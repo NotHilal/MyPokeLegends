@@ -90,14 +90,5 @@ public class ChampionFactory {
         return champions;
     }
 
-    public static void main(String[] args) {
-        // Test loading all Champions
-        List<Champion> champions = ChampionFactory.createAllChampions();
-        System.out.println("Loaded " + champions.size() + " Champions.");
-
-        // Display details for debugging
-        for (Champion c : champions) {
-            System.out.println("Champion: " + c.getName() + ", Type: " + c.getRegion() + "/" + c.getType());
-        }
-    }
+    
 }

@@ -30,29 +30,29 @@ public class TileManager {
 	}
 	
 	public void getTileImage() {
-		setup(0,"grass",false);
-		setup(1,"wall",true);
-		setup(2,"water",true);
-		setup(3,"earth",false);
-		setup(4,"tree",true);
-		setup(5,"sand",false);
-		setup(6, "highGrass", false);
+		setup(0,"grass",false,"");
+		setup(1,"wall",true,"");
+		setup(2,"water",true,"");
+		setup(3,"earth",false,"");
+		setup(4,"tree",true,"");
+		setup(5,"sand",false,"");
+		setup(6, "highGrass", false,"hometown");
 	}
 	
-	public void setup(int index, String imgname, boolean collision) {
-		UtilityTool uTool = new UtilityTool();
-		try {
-			tile[index]= new Tile();
-			tile[index].image= ImageIO.read(getClass().getResourceAsStream("/tiles/"+imgname+".png"));
-			tile[index].image=uTool.scaleImage(tile[index].image,gp.tileSize,gp.tileSize);
-			tile[index].collision=collision;
-			tile[index].isHighGrass = (index == 6); // Mark as high grass if the tile index is 6
-			
-		}catch(IOException e) {
-			e.printStackTrace();
-		}
-		
+	public void setup(int index, String imgName, boolean collision, String region) {
+	    UtilityTool uTool = new UtilityTool();
+	    try {
+	        tile[index] = new Tile();
+	        tile[index].image = ImageIO.read(getClass().getResourceAsStream("/tiles/" + imgName + ".png"));
+	        tile[index].image = uTool.scaleImage(tile[index].image, gp.tileSize, gp.tileSize);
+	        tile[index].collision = collision;
+	        tile[index].isHighGrass = imgName.equals("highGrass"); // Mark as high grass
+	        tile[index].region = tile[index].isHighGrass ? region : ""; // Assign region only if high grass
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
 	}
+
 	
 	public void loadMap(String path) {
 		try {

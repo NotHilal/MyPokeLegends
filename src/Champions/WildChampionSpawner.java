@@ -1,6 +1,7 @@
 package Champions;
 
 import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -19,45 +20,76 @@ public class WildChampionSpawner {
     }
 
     public void checkHighGrass(int playerX, int playerY, Rectangle hitbox) {
-        // Calculate the player's hitbox tile coordinates
         int hitboxCenterX = playerX + hitbox.x + hitbox.width / 2;
         int hitboxCenterY = playerY + hitbox.y + hitbox.height / 2;
 
         int tileX = hitboxCenterX / gamePanel.tileSize;
         int tileY = hitboxCenterY / gamePanel.tileSize;
 
-        // Only check for an encounter if the player enters a new tile
         if (tileX != previousTileX || tileY != previousTileY) {	
-            // Update the previous tile position
             previousTileX = tileX;
             previousTileY = tileY;
 
-            // Check if the current tile is high grass
             if (gamePanel.tileM.isHighGrass(tileX, tileY)) {
-                //System.out.println("Entered high grass tile: " + tileX + ", " + tileY);
-                // Perform a true 20% chance check
-                if (random.nextInt(100) < 20) { // 20% chance
-                    spawnWildChampion();
+                // Get the region of the current high grass tile
+                String region = gamePanel.tileM.tile[gamePanel.tileM.mapTileNum[tileX][tileY]].region;
+
+                // Only proceed if the region is defined (for high grass tiles)
+                if (!region.isEmpty()) {
+                    // System.out.println("Entered high grass in region: " + region);
+
+                    // Select the spawn list based on the region
+                    List<ChampionSpawn> spawnList = getSpawnListForRegion(region);
+
+                    // Perform a true 20% chance check
+                    if (random.nextInt(100) < 20) { // 20% chance
+                        spawnWildChampion(spawnList);
+                    }
                 }
             }
         }
     }
 
+    private List<ChampionSpawn> getSpawnListForRegion(String region) {
+        switch (region.toLowerCase()) {
+            case "hometown":
+                return ChampionSpawn.createHometownZoneSpawns(); // Forest region spawn list
+            case "mountain":
+                return ChampionSpawn.createMountainZoneSpawns(); // Mountain region spawn list
+            default:
+                return new ArrayList<>(); // Empty list for regions without spawns
+        }
+    }
 
 
-    private void spawnWildChampion() {
-        // Choose a random wild Champion
-        List<Champion> wildChampions = ChampionFactory.createAllChampions();
-        Champion wildChampion = wildChampions.get(random.nextInt(wildChampions.size()));
 
-        System.out.println("A wild " + wildChampion.getName() + " appeared!");
 
-        // Trigger battle logic (replace with your battle system)
-        startBattle(wildChampion);
+    private void spawnWildChampion(List<ChampionSpawn> spawnList) {
+        int totalWeight = 0;
+
+        // Calculate total weight (sum of all spawn chances)
+        for (ChampionSpawn spawn : spawnList) {
+            totalWeight += spawn.getSpawnChance();
+        }
+
+        // Generate a random value within the total weight range
+        int randomValue = random.nextInt(totalWeight);
+
+        // Determine which champion to spawn
+        int cumulativeWeight = 0;
+        for (ChampionSpawn spawn : spawnList) {
+            cumulativeWeight += spawn.getSpawnChance();
+            if (randomValue < cumulativeWeight) {
+                System.out.println("A wild " + spawn.getChampion().getName() + " appeared!");
+                startBattle(spawn.getChampion());
+                return;
+            }
+        }
     }
 
     private void startBattle(Champion wildChampion) {
         System.out.println("Starting battle with " + wildChampion.getName());
-        // Implement your battle system here
+        // Implement your battle logic here
     }
+
 }
