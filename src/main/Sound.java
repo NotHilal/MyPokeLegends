@@ -23,6 +23,7 @@ public class Sound {
 		soundURL[7]= getClass().getResource("/sound/dex.wav");
 		soundURL[8]= getClass().getResource("/sound/changeMenu.wav");
 		soundURL[9]= getClass().getResource("/sound/retroChoice.wav");
+		soundURL[10]= getClass().getResource("/sound/encounter.wav");
 	}
 	
 	

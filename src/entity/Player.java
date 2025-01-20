@@ -9,6 +9,7 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import Champions.Champion;
 import Champions.WildChampionSpawner;
 import main.Coordinates;
 import main.EventRect;
@@ -34,6 +35,8 @@ public class Player extends Entity {
     int annimcpt=0;
     
     WildChampionSpawner spawner;
+    
+    private Champion[] party = new Champion[6]; // Fixed-size array for 6 slots
 
     public Player(GamePanel gp, KeyHandler keyH) {
     	
@@ -60,6 +63,8 @@ public class Player extends Entity {
         solidAreaDefaultX = solidArea.x;
         solidAreaDefaultY = solidArea.y;
         
+        
+        initializeParty();
         spawner = new WildChampionSpawner(gp);
         
         setDefaultValues();
@@ -150,6 +155,47 @@ public class Player extends Entity {
     		e.printStackTrace();
     	}
     	return image;
+    }
+    
+    private void initializeParty() {
+        // Add placeholder champions to the first slots; other slots remain null
+        party[0] = new Champion("Aatrox", "Darkin", "Fighter", 1, 580, 65, 0, 38, 32, 345, -1, null, null);
+        party[1] = new Champion("Ahri", "Ionia", "Mage", 1, 526, 0, 53, 21, 30, 330, -1, null, null);
+        // Other slots are null by default
+    }
+    
+    public Champion[] getParty() {
+        return party;
+    }
+    
+    public Champion getFirstChampion() {
+        // Return the first non-null champion or null if all slots are empty
+        for (Champion champion : party) {
+            if (champion != null) {
+                return champion;
+            }
+        }
+        return null;
+    }
+    
+    public void addChampionToParty(Champion newChampion) {
+        for (int i = 0; i < party.length; i++) {
+            if (party[i] == null) {
+                party[i] = newChampion;
+                System.out.println(newChampion.getName() + " was added to your party!");
+                return;
+            }
+        }
+        System.out.println("Your party is full! Cannot add " + newChampion.getName() + ".");
+    }
+    
+    public void removeChampionFromParty(int slotIndex) {
+        if (slotIndex >= 0 && slotIndex < party.length && party[slotIndex] != null) {
+            System.out.println(party[slotIndex].getName() + " was removed from your party.");
+            party[slotIndex] = null;
+        } else {
+            System.out.println("No champion in this slot to remove.");
+        }
     }
 
     public void update() {

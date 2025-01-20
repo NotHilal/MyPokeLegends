@@ -65,31 +65,44 @@ public class WildChampionSpawner {
 
 
     private void spawnWildChampion(List<ChampionSpawn> spawnList) {
-        int totalWeight = 0;
+        if (spawnList.isEmpty()) {
+            System.out.println("No wild champions available for this region.");
+            return;
+        }
 
-        // Calculate total weight (sum of all spawn chances)
+        int totalWeight = 0;
         for (ChampionSpawn spawn : spawnList) {
             totalWeight += spawn.getSpawnChance();
         }
 
-        // Generate a random value within the total weight range
+        if (totalWeight <= 0) {
+            System.out.println("No valid spawn chances in the spawn list.");
+            return;
+        }
+
         int randomValue = random.nextInt(totalWeight);
 
-        // Determine which champion to spawn
         int cumulativeWeight = 0;
         for (ChampionSpawn spawn : spawnList) {
             cumulativeWeight += spawn.getSpawnChance();
             if (randomValue < cumulativeWeight) {
-                System.out.println("A wild " + spawn.getChampion().getName() + " appeared!");
-                startBattle(spawn.getChampion());
+                Champion wildChampion = spawn.getChampion();
+                System.out.println("A wild " + wildChampion.getName() + " appeared!");
+
+                // Set up the battle
+                gamePanel.battleManager.startBattle(
+                    gamePanel.player.getFirstChampion(), // Player's first champion
+                    wildChampion // Wild champion
+                );
+
+                // Start the transition
+                gamePanel.startTransitionToBattle();
                 return;
             }
         }
     }
 
-    private void startBattle(Champion wildChampion) {
-        System.out.println("Starting battle with " + wildChampion.getName());
-        // Implement your battle logic here
-    }
+
+    
 
 }

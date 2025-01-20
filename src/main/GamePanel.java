@@ -68,6 +68,20 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int playState=1;
 	public final int pauseState=2;
 	public final int dialogState=3;
+	public final int battleState = 4;
+	public final int PartyMenuState = 5;
+	
+	public final int transitionState = 6; // New transition state
+	
+	
+	
+	private int blinkAlpha = 0; // Current alpha value for the blink
+	private float blinkTimer = 0; // Timer to track the progress of the effect
+	private final float blinkDuration = 3.0f; // Total duration of the effect in seconds
+	private final int numBlinks = 5; // Number of blinks during the transition
+	private final int maxBlinkAlpha = 200; // Maximum alpha for the fade (200 for a softer black)
+	
+	public BattleManager battleManager;
 	
 
 	
@@ -78,6 +92,7 @@ public class GamePanel extends JPanel implements Runnable{
 		this.setDoubleBuffered(true);
 		this.addKeyListener(keyH);
 		this.setFocusable(true);
+		battleManager = new BattleManager(this);
 	}
 	
 	public void setupGame() {
@@ -96,36 +111,6 @@ public class GamePanel extends JPanel implements Runnable{
 		
 	}
 
-
-	@Override
-//	public void run() {
-//		double drawInterval= 1000000000/FPS; //0.016667 secs 
-//		double nextDrawTime= System.nanoTime()+drawInterval;
-//		
-//		while (gameThread!= null) {
-//			update();
-//			
-//			repaint();
-//			
-//			
-//			try {
-//				double remainingTime = nextDrawTime - System.nanoTime();
-//				remainingTime=remainingTime/1000000;
-//				
-//				if(remainingTime<0) {
-//					remainingTime=0;
-//				}
-//				
-//				Thread.sleep((long)remainingTime);
-//				nextDrawTime+=drawInterval;
-//				
-//			} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//		}
-//		
-//	}
 	
 	public void run() {
 	
@@ -160,30 +145,58 @@ public class GamePanel extends JPanel implements Runnable{
 	}
 	
 	public void update() {
-		if(gameState==playState) {
-			// PLAYER
-			player.update();
-			
-			// NPC
-			for(int i =0; i<npc.length;i++) {
-				
-				if(npc[i]!=null) {
-					npc[i].update();
-				}
-			}
-			for(int i =0; i<monster.length;i++) {
-				
-				if(monster[i]!=null) {
-					monster[i].update();
-				}
-				
-			}
-		}
-		if(gameState==pauseState) {
-			
-		}
-		
+	    if (gameState == playState) {
+	        // PLAYER
+	        player.update();
+
+	        // NPC
+	        for (int i = 0; i < npc.length; i++) {
+	            if (npc[i] != null) {
+	                npc[i].update();
+	            }
+	        }
+
+	        // MONSTER
+	        for (int i = 0; i < monster.length; i++) {
+	            if (monster[i] != null) {
+	                monster[i].update();
+	            }
+	        }
+	    }
+
+	    if (gameState == pauseState) {
+	        // Logic for pause state (if any)
+	    }
+
+	    if (gameState == battleState) {
+	        // Update the battle logic
+	        battleManager.update();
+	    }
+
+	    if (gameState == transitionState) {
+	        // Progress the timer
+	        blinkTimer += 1.0 / 60.0; // Assuming 60 updates per second
+
+	        // Calculate the current blink cycle
+	        float cycleDuration = blinkDuration / numBlinks; // Duration of each blink
+	        float cycleProgress = (blinkTimer % cycleDuration) / cycleDuration; // Progress within the current blink
+
+	        // Use a sine wave for smooth fade-in and fade-out
+	        blinkAlpha = (int) (Math.sin(cycleProgress * Math.PI) * maxBlinkAlpha);
+
+	        // Ensure alpha remains non-negative
+	        if (blinkAlpha < 0) {
+	            blinkAlpha = 0;
+	        }
+
+	        // End the transition after the total duration
+	        if (blinkTimer >= blinkDuration) {
+	            blinkAlpha = 0; // Reset alpha
+	            gameState = battleState; // Transition to battle state
+	        }
+	    }
 	}
+
 	
 	@Override
 	public void paintComponent(Graphics g) {
@@ -196,50 +209,90 @@ public class GamePanel extends JPanel implements Runnable{
 	        drawStart = System.nanoTime();
 	    }
 
-	    // TITLE SCREEN
 	    if (gameState == titleState) {
+	        // TITLE SCREEN
 	        ui.draw(g2);
+
+	    } else if (gameState == battleState) {
+	        // BATTLE STATE
+	    	
+	    	//playMusic(0);
+	        battleManager.draw(g2);
+
+	    } else if (gameState == transitionState) {
+	    	 // First, draw the current play state as the background
+	        tileM.draw(g2);
+
+	        // Add entities
+	        entityList.add(player);
+	        for (int i = 0; i < npc.length; i++) {
+	            if (npc[i] != null) {
+	                entityList.add(npc[i]);
+	            }
+	        }
+	        for (int i = 0; i < obj.length; i++) {
+	            if (obj[i] != null) {
+	                entityList.add(obj[i]);
+	            }
+	        }
+	        for (int i = 0; i < monster.length; i++) {
+	            if (monster[i] != null) {
+	                entityList.add(monster[i]);
+	            }
+	        }
+
+	        // Sort entities by worldY
+	        entityList.sort(Comparator.comparingInt(e -> e.worldY));
+
+	        // Draw entities
+	        for (Entity entity : entityList) {
+	            entity.draw(g2);
+	        }
+	        entityList.clear();
+
+	        // Draw UI
+	        ui.draw(g2);
+
+	        // Draw the blinking transition overlay
+	        g2.setColor(new Color(0, 0, 0, blinkAlpha));
+	        g2.fillRect(0, 0, screenWidth, screenHeight);
+
 	    } else {
+	        // PLAY STATE
 	        // TILE
 	        tileM.draw(g2);
-	        
-	        
+
 	        // ADD ENTITIES TO LIST
 	        entityList.add(player);
-	        
-	        for(int i=0; i< npc.length; i++) {
-	        	if(npc[i]!= null) {
-	        		entityList.add(npc[i]);
-	        	}
-	        }
-	        
-	        for(int i=0; i< obj.length; i++) {
-	        	if(obj[i]!= null) {
-	        		entityList.add(obj[i]);
-	        	}
-	        }
-	        for(int i=0; i< monster.length; i++) {
-	        	if(monster[i]!= null) {
-	        		entityList.add(monster[i]);
-	        	}
-	        }
-	        // SORT 
-	        Collections.sort(entityList, new Comparator<Entity>() {
 
-				@Override
-				public int compare(Entity e1, Entity e2) {
-					int result = Integer.compare(e1.worldY, e2.worldY);
-					return result;
-				}
-			});
-	        
-	        // DRAW ENTITIES
-	        for(int i=0; i< entityList.size(); i++) {
-	        	entityList.get(i).draw(g2);
+	        for (int i = 0; i < npc.length; i++) {
+	            if (npc[i] != null) {
+	                entityList.add(npc[i]);
+	            }
 	        }
-	        
+
+	        for (int i = 0; i < obj.length; i++) {
+	            if (obj[i] != null) {
+	                entityList.add(obj[i]);
+	            }
+	        }
+
+	        for (int i = 0; i < monster.length; i++) {
+	            if (monster[i] != null) {
+	                entityList.add(monster[i]);
+	            }
+	        }
+
+	        // SORT
+	        entityList.sort(Comparator.comparingInt(e -> e.worldY));
+
+	        // DRAW ENTITIES
+	        for (Entity entity : entityList) {
+	            entity.draw(g2);
+	        }
+
 	        entityList.clear();
-	        
+
 	        // UI
 	        ui.draw(g2);
 	    }
@@ -271,6 +324,14 @@ public class GamePanel extends JPanel implements Runnable{
 		se.Play();
 	}
 	
+	
+	public void startTransitionToBattle() {
+	    gameState = transitionState; // Switch to transition state
+	    stopMusic();
+	    playSE(10);
+	    blinkAlpha = 0; // Reset alpha for the effect
+	    blinkTimer = 0; // Reset the timer
+	}
 	
 	public void openDex() {
 	    gameState = dialogState;
