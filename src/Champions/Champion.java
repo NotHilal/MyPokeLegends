@@ -67,6 +67,9 @@ public class Champion {
     public int getCurrentHp() {
         return currentHp;
     }
+    public int getMaxHp() {
+        return maxHp;
+    }
 
     public List<Move> getMoves() {
         return moves;
