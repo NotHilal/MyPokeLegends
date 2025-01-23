@@ -215,7 +215,6 @@ public class GamePanel extends JPanel implements Runnable{
 
 	    } else if (gameState == battleState) {
 	        // BATTLE STATE
-	    	
 	    	//playMusic(0);
 	        battleManager.draw(g2);
 
