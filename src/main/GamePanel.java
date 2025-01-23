@@ -50,6 +50,7 @@ public class GamePanel extends JPanel implements Runnable{
 	public UI ui = new UI(this);
 	public EventHandler eHandler= new EventHandler(this);
 	Thread gameThread;
+	public int currentMusic;
 	
 	// ENTITY AND OBJECT
 	public Player player = new Player(this,keyH);
@@ -101,6 +102,7 @@ public class GamePanel extends JPanel implements Runnable{
 		aSetter.setMonster();
 		//playMusic(5);
 		playMusic(0);
+		currentMusic=0;
 		gameState = titleState;
 		
 	}

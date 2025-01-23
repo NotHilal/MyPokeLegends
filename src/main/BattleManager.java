@@ -2,6 +2,7 @@ package main;
 
 import Champions.Champion;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -11,18 +12,18 @@ import javax.imageio.ImageIO;
 
 public class BattleManager {
 
-    private GamePanel gamePanel;
+    private GamePanel gp;
     private Champion playerChampion;
     private Champion wildChampion;
 
     public BattleManager(GamePanel gamePanel) {
-        this.gamePanel = gamePanel;
+        this.gp = gamePanel;
     }
 
     public void startBattle(Champion playerChampion, Champion wildChampion) {
         this.playerChampion = playerChampion;
         this.wildChampion = wildChampion;
-        gamePanel.gameState = gamePanel.battleState; // Switch to battle state
+        gp.gameState = gp.battleState; // Switch to battle state
         System.out.println("Battle started! Player: " + playerChampion.getName() + 
                            " vs Wild: " + wildChampion.getName());
     }
@@ -42,43 +43,118 @@ public class BattleManager {
 
         // Draw the background image for the top 2/3 of the screen
         if (backgroundImage != null) {
-            int backgroundHeight = (int) (gamePanel.screenHeight * (2.0 / 3.0));
-            g2.drawImage(backgroundImage, 0, 0, gamePanel.screenWidth, backgroundHeight, null);
+            int backgroundHeight = (int) (gp.screenHeight * (2.0 / 3.0));
+            g2.drawImage(backgroundImage, 0, 0, gp.screenWidth, backgroundHeight, null);
         } else {
-            // Fallback color if the image is missing
             g2.setColor(new Color(100, 150, 200)); // Placeholder blue
-            g2.fillRect(0, 0, gamePanel.screenWidth, (int) (gamePanel.screenHeight * (2.0 / 3.0)));
+            g2.fillRect(0, 0, gp.screenWidth, (int) (gp.screenHeight * (2.0 / 3.0)));
         }
 
-        // Draw a black rectangle for the bottom 1/3 of the screen
-        int blackStartY = (int) (gamePanel.screenHeight * (2.0 / 3.0));
-        g2.setColor(Color.BLACK);
-        g2.fillRect(0, blackStartY, gamePanel.screenWidth, gamePanel.screenHeight - blackStartY);
+        // Replace the black background for the bottom 1/3 with an image
+        BufferedImage fightLayoutImage = null;
+        try {
+            fightLayoutImage = ImageIO.read(getClass().getResourceAsStream("/battle/bgfightbtn2.jpg"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        // Draw the wild champion's name and health bar (top left)
+        int blackStartY = (int) (gp.screenHeight * (2.0 / 3.0));
+        if (fightLayoutImage != null) {
+            g2.drawImage(fightLayoutImage, 0, blackStartY, gp.screenWidth, gp.screenHeight - blackStartY, null);
+        } else {
+            g2.setColor(Color.BLACK);
+            g2.fillRect(0, blackStartY, gp.screenWidth, gp.screenHeight - blackStartY);
+        }
+
+        // Draw champion info
         drawChampionInfo(
-            g2,
-            wildChampion.getName(),
-            wildChampion.getCurrentHp(),
-            wildChampion.getMaxHp(),
-            50, // X position
-            50, // Y position
-            200, // Bar width
-            20  // Bar height
+            g2, wildChampion.getName(), wildChampion.getCurrentHp(), wildChampion.getMaxHp(),
+            50, 50, 200, 20
         );
 
-        // Draw the player's champion's name and health bar (bottom right)
         drawChampionInfo(
-            g2,
-            playerChampion.getName(),
-            playerChampion.getCurrentHp(),
-            playerChampion.getMaxHp(),
-            gamePanel.screenWidth - 250, // X position
-            blackStartY - 40, // Y position
-            200, // Bar width
-            20  // Bar height
+            g2, playerChampion.getName(), playerChampion.getCurrentHp(), playerChampion.getMaxHp(),
+            gp.screenWidth - 250, blackStartY - 40, 200, 20
         );
+
+        // Draw the battle buttons in a diamond shape
+        drawBattleButtons(g2);
     }
+
+
+
+    private void drawBattleButtons(Graphics2D g2) {
+        int centerX = gp.screenWidth / 2;
+        int blackStartY = (int) (gp.screenHeight * (2.0 / 3.0)); // Start of the black area
+        int centerY = blackStartY + ((gp.screenHeight - blackStartY) / 2); // Center of the black area
+
+        int buttonWidth = 150;
+        int buttonHeight = 50;
+        int verticalSpacing = 40; // Increased vertical spacing
+        int horizontalSpacing = 60; // Horizontal spacing between buttons
+        int cornerArc = 25; // Corner arc for rounded rectangles
+
+        // Button positions within the black area
+        int fightX = centerX - buttonWidth / 2; // Centered horizontally
+        int fightY = centerY - verticalSpacing*2 - 15;    // Top button (adjusted to move higher)
+
+        int itemsX = centerX - horizontalSpacing - buttonWidth; // Left button
+        int itemsY = centerY - buttonHeight / 2;      // Centered vertically
+
+        int partyX = centerX + horizontalSpacing;       // Right button
+        int partyY = centerY - buttonHeight / 2; // Centered vertically
+
+        int runX = centerX - buttonWidth / 2;  // Centered horizontally
+        int runY = centerY + verticalSpacing;      // Bottom button (adjusted to move lower)
+
+        // Draw "Fight" button
+        drawRoundedButton(g2, "Fight", fightX, fightY, buttonWidth, buttonHeight, cornerArc, new Color(255, 0, 0, 150));
+
+        // Draw "Items" button
+        drawRoundedButton(g2, "Items", itemsX, itemsY, buttonWidth, buttonHeight, cornerArc, new Color(0, 255, 0, 150));
+
+        // Draw "Party" button
+        drawRoundedButton(g2, "Party", partyX, partyY, buttonWidth, buttonHeight, cornerArc, new Color(0, 0, 255, 150));
+
+        // Draw "Run" button
+        drawRoundedButton(g2, "Run", runX, runY, buttonWidth, buttonHeight, cornerArc, new Color(255, 255, 0, 150));
+
+        // Highlight selected button
+        int highlightX = 0, highlightY = 0;
+
+        switch (gp.ui.battleNum) {
+            case 0 -> { highlightX = fightX; highlightY = fightY; }
+            case 1 -> { highlightX = itemsX; highlightY = itemsY; }
+            case 2 -> { highlightX = partyX; highlightY = partyY; }
+            case 3 -> { highlightX = runX; highlightY = runY; }
+        }
+
+        g2.setColor(new Color(255, 255, 255, 230)); 
+        g2.setStroke(new BasicStroke(3)); // Highlight thickness
+        g2.drawRoundRect(highlightX, highlightY, buttonWidth, buttonHeight, cornerArc, cornerArc);
+    }
+
+    /**
+     * Draws a button with rounded corners, specified label, and background color.
+     */
+    private void drawRoundedButton(Graphics2D g2, String label, int x, int y, int width, int height, int arc, Color bgColor) {
+        // Draw button background with rounded corners
+        g2.setColor(bgColor);
+        g2.fillRoundRect(x, y, width, height, arc, arc);
+
+        // Draw button border with rounded corners
+        g2.setColor(Color.BLACK);
+        g2.drawRoundRect(x, y, width, height, arc, arc);
+
+        // Draw button label
+        g2.setFont(g2.getFont().deriveFont(20f)); // Font size
+        g2.setColor(Color.WHITE);
+        int textWidth = g2.getFontMetrics().stringWidth(label);
+        int textX = x + (width - textWidth) / 2;
+        int textY = y + (height / 2) + 7; // Vertically centered
+        g2.drawString(label, textX, textY);
+    }
+
 
     /**
      * Draw champion info including name, HP bar, and HP value.
@@ -122,7 +198,30 @@ public class BattleManager {
         int textY = y + barHeight - 5; // Slightly above the bottom of the bar
         g2.drawString(hpText, textX, textY);
     }
-
-
+    
+    public void handleBattleAction(int actionIndex) {
+        switch (actionIndex) {
+            case 0 -> {
+                System.out.println("You chose to Fight!");
+                // Add logic to start a fight sequence here
+            }
+            case 1 -> {
+                System.out.println("You opened your Bag!");
+                // Add logic to display the Bag interface here
+            }
+            case 2 -> {
+            	System.out.println("You opened your Party!");
+                // Add logic for attempting to flee here
+            }
+            case 3 -> {
+            	System.out.println("You chose to Run!");
+                
+                // Add logic to switch champions here
+            	gp.gameState=gp.playState;
+            	gp.playMusic(gp.currentMusic);
+            }
+            default -> System.out.println("Invalid action!");
+        }
+    }
 
 }

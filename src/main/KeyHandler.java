@@ -112,7 +112,8 @@ public class KeyHandler implements KeyListener{
 						System.out.println("You chose Fire!");
 						gp.stopMusic();
 						//wait 1.5 second before starting the music
-						gp.playMusic(5); 
+						gp.playMusic(5);
+						gp.currentMusic=5;
 						gp.gameState=gp.playState;
 					}
 					if(gp.ui.commandNum==1&& gp.ui.commandNum2==0) {
@@ -120,6 +121,7 @@ public class KeyHandler implements KeyListener{
 						gp.stopMusic();
 						//wait 1.5 second before starting the music
 						gp.playMusic(5); 
+						gp.currentMusic=5;
 						gp.gameState=gp.playState;
 					}
 					if(gp.ui.commandNum==2&& gp.ui.commandNum2==0) {
@@ -127,6 +129,7 @@ public class KeyHandler implements KeyListener{
 						gp.stopMusic();
 						//wait 1.5 second before starting the music
 						gp.playMusic(5); 
+						gp.currentMusic=5;
 						gp.gameState=gp.playState;
 						
 					}
@@ -220,15 +223,17 @@ public class KeyHandler implements KeyListener{
 			
 		    if (code == KeyEvent.VK_D) { 
 		        gp.ui.menuNum = (gp.ui.menuNum + 1) % gp.ui.menuItems.length;
-		        gp.playSE(8);
+		        gp.playSE(9);
 		    }
 		    if (code == KeyEvent.VK_A) { 
 		        gp.ui.menuNum = (gp.ui.menuNum - 1 + gp.ui.menuItems.length) % gp.ui.menuItems.length;
-		        gp.playSE(8);
+		        gp.playSE(9);
 		    }
 		    if (code == KeyEvent.VK_ENTER) {
 		        // Middle item is always selected
+		    	gp.playSE(11);
 		        switch (gp.ui.menuItems[gp.ui.menuNum]) {
+		        
 		            case "Dex" -> gp.openDex();
 		            case "Champions" -> gp.openChampions();
 		            case "Bag" -> gp.openBag();
@@ -244,6 +249,43 @@ public class KeyHandler implements KeyListener{
 		        gp.gameState=gp.playState;
 		    }
 		}
+		else if (gp.gameState == gp.battleState) {
+		    if (code == KeyEvent.VK_W) { 
+		        if(gp.ui.battleNum!=0) {
+		        	gp.playSE(9);
+		        }
+		    	gp.ui.battleNum = 0;
+		    }
+		    if (code == KeyEvent.VK_A) { 
+		    	if(gp.ui.battleNum!=1) {
+		        	gp.playSE(9);
+		        }
+		    	gp.ui.battleNum = 1;
+		    }
+		    if (code == KeyEvent.VK_D) {
+		    	if(gp.ui.battleNum!=2) {
+		        	gp.playSE(9);
+		        }
+		    	gp.ui.battleNum = 2;
+		    }
+		    
+		    
+		    if (code == KeyEvent.VK_S) { 
+		    	if(gp.ui.battleNum!=3) {
+		        	gp.playSE(9);
+		        }
+		    	gp.ui.battleNum = 3;
+		    }
+		    
+		    
+		    if (code == KeyEvent.VK_ENTER) {
+		    	 gp.playSE(11);
+		    	 
+		    	 gp.battleManager.handleBattleAction(gp.ui.battleNum);
+		    	 
+		    }
+		}
+
 
 
 

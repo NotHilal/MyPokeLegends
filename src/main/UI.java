@@ -30,6 +30,7 @@ public class UI {
 	public String currentDialog="";
 	public int commandNum=0;
 	public int commandNum2=0;
+	public int battleNum=0;
 	public int titleScreenState=0; // 0: The first screen  1: Second screen
 	BufferedImage heartFull, heartHalf, heartBlank;
 	double playTime;
