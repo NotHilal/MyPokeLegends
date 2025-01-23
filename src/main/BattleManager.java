@@ -217,6 +217,7 @@ public class BattleManager {
             	System.out.println("You chose to Run!");
                 
                 // Add logic to switch champions here
+            	gp.ui.battleNum=0;
             	gp.gameState=gp.playState;
             	gp.playMusic(gp.currentMusic);
             }
