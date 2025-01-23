@@ -77,8 +77,8 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
 	private float blinkTimer = 0; // Timer to track the progress of the effect
-	private final float blinkDuration = 3.0f; // Total duration of the effect in seconds
-	private final int numBlinks = 5; // Number of blinks during the transition
+	private final float blinkDuration = 2.3f; // Total duration of the effect in seconds
+	private final int numBlinks = 4; // Number of blinks during the transition
 	private final int maxBlinkAlpha = 200; // Maximum alpha for the fade (200 for a softer black)
 	
 	public BattleManager battleManager;

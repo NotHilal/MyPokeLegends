@@ -48,6 +48,7 @@ public class KeyHandler implements KeyListener{
 					
 				}
 				if (code == KeyEvent.VK_ENTER) {
+					gp.playSE(11);
 					if(gp.ui.commandNum==0) {
 						
 						gp.ui.titleScreenState=1;
@@ -106,6 +107,7 @@ public class KeyHandler implements KeyListener{
 				}
 				
 				if (code == KeyEvent.VK_ENTER) {
+					gp.playSE(11);
 					if(gp.ui.commandNum==0&& gp.ui.commandNum2==0) {
 						System.out.println("You chose Fire!");
 						gp.stopMusic();

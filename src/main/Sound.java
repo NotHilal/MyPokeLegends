@@ -13,7 +13,7 @@ public class Sound {
 	
 	
 	public Sound() {
-		soundURL[0]= getClass().getResource("/sound/BlueBoyAdventure.wav");
+		soundURL[0]= getClass().getResource("/sound/MenuSongFinal.wav");
 		soundURL[1]= getClass().getResource("/sound/coin.wav");
 		soundURL[2]= getClass().getResource("/sound/powerup.wav");
 		soundURL[3]= getClass().getResource("/sound/unlock.wav");
@@ -23,7 +23,8 @@ public class Sound {
 		soundURL[7]= getClass().getResource("/sound/dex.wav");
 		soundURL[8]= getClass().getResource("/sound/changeMenu.wav");
 		soundURL[9]= getClass().getResource("/sound/retroChoice.wav");
-		soundURL[10]= getClass().getResource("/sound/encounter.wav");
+		soundURL[10]= getClass().getResource("/sound/wild-battle.wav");
+		soundURL[11]= getClass().getResource("/sound/select.wav");
 	}
 	
 	
