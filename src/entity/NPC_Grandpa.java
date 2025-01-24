@@ -14,12 +14,12 @@ public class NPC_Grandpa extends Entity{
 		direction="down";
 		speed=1;
 		solidArea = new Rectangle();
-        solidArea.x = 8;
+        solidArea.x = 4;
         solidArea.y = 6;
         solidAreaDefaultX = solidArea.x;
         solidAreaDefaultY = solidArea.y;
         solidArea.height = 40;
-        solidArea.width = 32;
+        solidArea.width = 40;
         
         getImage();
         setDialog();
