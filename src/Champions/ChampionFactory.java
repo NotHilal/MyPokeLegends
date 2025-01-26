@@ -16,7 +16,7 @@ public class ChampionFactory {
         	        new Move("World Ender", "Magic", 0, 100, 30, "Heal", 0),
         	        new Move("Deathbringer Stance", "Passive", 0, 100, 0, "Bonus damage", 0)
         	    )
-        	));
+        	)); 
 
         	champions.add(new Champion(
         	    "Ahri","Ahri1", "Ionia", "Mage", 1, 526, 0, 53, 21, 30, 330, -1, null,
@@ -796,6 +796,16 @@ public class ChampionFactory {
         								        new Move("Wuju Style", "Physical", 60, 100, 10, "True damage", 0),
         								        new Move("Highlander", "Physical", 120, 85, 50, "Speed boost", 0)
         								    )
+        								));
+        								
+        								champions.add(new Champion(
+        								        "Mel", "Mel1", "Noxian", "Mage", 1, 520, 50, 90, 28, 35, 350, 12, "Ascended Mel",
+        								        List.of(
+        								            new Move("Radiant Volley", "Magic", 60, 95, 15, "Area damage", 0),
+        								            new Move("Rebuttal", "Buff", 0, 100, 25, "Reflect projectiles", 0),
+        								            new Move("Solar Snare", "Magic", 70, 90, 20, "Root & slow", 15),
+        								            new Move("Golden Eclipse", "Ultimate", 200, 80, 50, "Overwhelm damage boost", 0)
+        								        )
         								));
         								
         								champions.add(new Champion(

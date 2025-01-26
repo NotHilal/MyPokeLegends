@@ -31,7 +31,7 @@ public class Champion {
     // Image
     private String imageName;
     
-
+ 
     // Constructor
     public Champion(String name, String imgName, String region, String type, int level, int maxHp, int AD, int AP, int armor,
                     int magicResist, int speed, int evolveAt, String nextEvolution, List<Move> moves) {
