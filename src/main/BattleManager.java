@@ -66,6 +66,40 @@ public class BattleManager {
             g2.fillRect(0, blackStartY, gp.screenWidth, gp.screenHeight - blackStartY);
         }
 
+        // Draw wild champion image
+        if (wildChampion != null) {
+        	
+            BufferedImage wildChampionImage = null;
+            try {
+                wildChampionImage = ImageIO.read(getClass().getResourceAsStream("/championsImg/" + wildChampion.getImageName()+".png"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            if (wildChampionImage != null) {
+                int wildImageX = gp.screenWidth / 4 +300; // Adjust position to center the image
+                int wildImageY = (int) (gp.screenHeight * (1.0 / 6.0) -60
+                		) ;
+                g2.drawImage(wildChampionImage, wildImageX, wildImageY, 200, 200, null); // Draw at specific position
+            }
+        }
+
+        // Draw player champion image
+        if (playerChampion != null) {
+            BufferedImage playerChampionImage = null;
+            try {
+                playerChampionImage = ImageIO.read(getClass().getResourceAsStream("/championsImg/" + playerChampion.getImageName()+".png"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            if (playerChampionImage != null) {
+                int playerImageX = (int) (gp.screenWidth * (3.0 / 4.0)- 530) ;
+                int playerImageY = (int) (gp.screenHeight * (2.0 / 3.0)- 280) ;
+                g2.drawImage(playerChampionImage, playerImageX, playerImageY, 200, 200, null); // Draw at specific position
+            }
+        }
+
         // Draw champion info
         drawChampionInfo(
             g2, wildChampion.getName(), wildChampion.getCurrentHp(), wildChampion.getMaxHp(),
@@ -80,8 +114,6 @@ public class BattleManager {
         // Draw the battle buttons in a diamond shape
         drawBattleButtons(g2);
     }
-
-
 
     private void drawBattleButtons(Graphics2D g2) {
         int centerX = gp.screenWidth / 2;

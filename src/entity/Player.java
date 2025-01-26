@@ -159,8 +159,8 @@ public class Player extends Entity {
     
     private void initializeParty() {
         // Add placeholder champions to the first slots; other slots remain null
-        party[0] = new Champion("Aatrox", "Darkin", "Fighter", 1, 580, 65, 0, 38, 32, 345, -1, null, null);
-        party[1] = new Champion("Ahri", "Ionia", "Mage", 1, 526, 0, 53, 21, 30, 330, -1, null, null);
+        party[0] = new Champion("Aatrox","Aatrox1", "Darkin", "Fighter", 1, 580, 65, 0, 38, 32, 345, -1, null, null);
+        party[1] = new Champion("Ahri","Ahri1", "Ionia", "Mage", 1, 526, 0, 53, 21, 30, 330, -1, null, null);
         // Other slots are null by default
     }
     

@@ -29,16 +29,14 @@ public class Champion {
     private String nextEvolution; // Name of the evolved form
     
     // Image
-    public BufferedImage up1,up2,up3,up4,
-	down1,down2,down3,down4,
-	left1,left2,left3,left4,
-	right1,right2,right3,right4;
+    private String imageName;
     
 
     // Constructor
-    public Champion(String name, String region, String type, int level, int maxHp, int AD, int AP, int armor,
+    public Champion(String name, String imgName, String region, String type, int level, int maxHp, int AD, int AP, int armor,
                     int magicResist, int speed, int evolveAt, String nextEvolution, List<Move> moves) {
         this.name = name;
+        this.imageName = imgName;
         this.region = region;
         this.type = type;
         this.level = level;
@@ -94,7 +92,12 @@ public class Champion {
     public int getSpeed() {
         return speed;
     }
+    
+    public String getImageName() {
+        return imageName;
+    }
 
+    
     // Battle Methods
     public void takeDamage(int damage) {
         currentHp -= damage;
