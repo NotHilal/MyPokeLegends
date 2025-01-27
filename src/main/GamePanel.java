@@ -1,14 +1,20 @@
 package main;
 
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 import Champions.Champion;
@@ -20,7 +26,7 @@ import tile.TileManager;
 
 public class GamePanel extends JPanel implements Runnable{
 
-	// SCREEN SETTINGS
+	// SCREEN SETTINGS 
 	final int originalTileSize = 16; //16x16 tiles
 	final int scale = 3;
 	
@@ -42,7 +48,9 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	// CHAMPIONS
 	public List<Champion> champList = ChampionFactory.createAllChampions();
-	
+	public ChampionMenu championMenu;
+
+
 	// FPS
 	int FPS=60;
 	
@@ -81,7 +89,8 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int PartyMenuState = 5;
 	
 	public final int transitionState = 6; // New transition state
-	
+	public final int championMenuState = 7; // New state for the champion menu
+
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -101,6 +110,17 @@ public class GamePanel extends JPanel implements Runnable{
 		this.setDoubleBuffered(true);
 		this.addKeyListener(keyH);
 		this.setFocusable(true);
+		this.championMenu = new ChampionMenu(this);
+
+	    // Add mouse listener for detecting clicks
+	    this.addMouseListener(new MouseAdapter() {
+	        @Override
+	        public void mouseClicked(MouseEvent e) {
+	            if (gameState == championMenuState) { // Only handle clicks in champion menu
+	                championMenu.handleMouseClick(e.getX(), e.getY());
+	            }
+	        }
+	    });
 		
 		battleManager = new BattleManager(this);
 	}
@@ -207,7 +227,8 @@ public class GamePanel extends JPanel implements Runnable{
 	        }
 	    }
 	}
-
+	
+	
 	
 	@Override
 	public void paintComponent(Graphics g) {
@@ -267,7 +288,13 @@ public class GamePanel extends JPanel implements Runnable{
 	        g2.setColor(new Color(0, 0, 0, blinkAlpha));
 	        g2.fillRect(0, 0, screenWidth, screenHeight);
 
-	    } else {
+	    }
+	    
+	    else if (gameState == championMenuState) {
+	        championMenu.draw(g2);
+	    }
+	    
+	    else {
 	        // PLAY STATE
 	        // TILE
 	        tileM.draw(g2);
@@ -315,8 +342,17 @@ public class GamePanel extends JPanel implements Runnable{
 	        g2.drawString("Draw time: " + passed, 650, 100);
 	        System.out.println("Draw time: " + passed);
 	    }
-
+ 
 	    g2.dispose();
+	}
+
+
+
+	private void handleMouseClick(int mouseX, int mouseY) {
+	    if (gameState == championMenuState) {
+	        championMenu.handleMouseClick(mouseX, mouseY);
+	    }
+	    // Other game states...
 	}
 
 	
@@ -350,8 +386,8 @@ public class GamePanel extends JPanel implements Runnable{
 	}
 
 	public void openChampions() {
-		gameState = dialogState;
 		ui.currentDialog="Action done!\nYou openned the Champions list!";
+		gameState = championMenuState; // Switch to champion menu state
 	}
 	public void openBag() {
 		gameState = dialogState;

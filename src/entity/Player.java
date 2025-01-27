@@ -6,6 +6,8 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -26,7 +28,7 @@ public class Player extends Entity {
     public final int screenY;
     //public int hasKey = 0;
     int standCounter = 0;
-
+    
     private boolean showCollisionBox = false;
 
     // Idle animation variables
@@ -38,7 +40,10 @@ public class Player extends Entity {
     
     WildChampionSpawner spawner;
     
-    private Champion[] party = new Champion[6]; // Fixed-size array for 6 slots
+    private Champion[] party = new Champion[5]; // Fixed-size array
+    private List<Boolean> ownedChampions=new ArrayList<>();; // List to track ownership
+
+
 
     public Player(GamePanel gp, KeyHandler keyH) {
     	
@@ -57,6 +62,8 @@ public class Player extends Entity {
         solidArea.height = 14;
         solidArea.width = 14;
         
+        
+        
 //        solidArea.x = gp.tileSize / 2 -4; // Center horizontally
 //        solidArea.y = gp.tileSize / 2 +6; // Center vertically
 //        solidArea.width = 4;
@@ -68,6 +75,16 @@ public class Player extends Entity {
         
         initializeParty();
         spawner = new WildChampionSpawner(gp);
+        
+        for (int i = 0; i < gp.champList.size(); i++) {
+        	if(i%2==0) {
+        		ownedChampions.add(false);
+        	}
+        	else
+        	{
+        		ownedChampions.add(true);
+        	}
+        }
         
         setDefaultValues();
         getPlayerImage();
@@ -169,7 +186,11 @@ public class Player extends Entity {
     public Champion[] getParty() {
         return party;
     }
-    
+    public boolean isChampionOwned(Champion champion) {
+        int index = gp.champList.indexOf(champion);
+        return index >= 0 && ownedChampions.get(index);
+    }
+
     public Champion getFirstChampion() {
         // Return the first non-null champion or null if all slots are empty
         for (Champion champion : party) {
@@ -180,16 +201,41 @@ public class Player extends Entity {
         return null;
     }
     
-    public void addChampionToParty(Champion newChampion) {
-        for (int i = 0; i < party.length; i++) {
-            if (party[i] == null) {
-                party[i] = newChampion;
-                System.out.println(newChampion.getName() + " was added to your party!");
-                return;
-            }
+    public void addChampionToParty(Champion newChampion, int index) {
+        // Check if the index is valid
+        if (index < 0 || index >= party.length) {
+            System.out.println("Invalid index: " + index + ". Please provide a value between 0 and 4.");
+            return;
         }
-        System.out.println("Your party is full! Cannot add " + newChampion.getName() + ".");
+
+        // Check if the slot at the given index is empty
+        if (party[index] != null) {
+            System.out.println("The slot at index " + index + " is already occupied by " + party[index].getName() + ".");
+            return;
+        }
+
+        // Determine the required role based on the index
+        String requiredRole = switch (index) {
+            case 0 -> "Top";
+            case 1 -> "Mid";
+            case 2 -> "Jgl";
+            case 3 -> "Adc";
+            case 4 -> "Supp";
+            default -> null; // This should never happen due to earlier bounds check
+        };
+
+        // Check if the champion's roles match the required role
+        if (!requiredRole.equalsIgnoreCase(newChampion.getRole()) && 
+            !requiredRole.equalsIgnoreCase(newChampion.getRole2())) {
+            System.out.println(newChampion.getName() + " cannot be assigned to the " + requiredRole + " role.");
+            return;
+        }
+
+        // Assign the champion to the specified slot
+        party[index] = newChampion;
+        System.out.println(newChampion.getName() + " was successfully added to the " + requiredRole + " slot at index " + index + "!");
     }
+
     
     public void removeChampionFromParty(int slotIndex) {
         if (slotIndex >= 0 && slotIndex < party.length && party[slotIndex] != null) {
@@ -336,6 +382,9 @@ public class Player extends Entity {
     		
     	}
     }
+    
+  
+ 
 
     public void draw(Graphics2D g2) {
 
@@ -434,7 +483,7 @@ public class Player extends Entity {
             }
         }
     }
-
+ 
     private BufferedImage getMovingImage(String direction) {
         switch (spriteNum) {
             case 1: return direction.equals("up") ? up1 : direction.equals("down") ? down1 :
@@ -470,4 +519,9 @@ public class Player extends Entity {
             default: return null;
         }
     }
+    
+    
+    
+  
+
 }

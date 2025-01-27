@@ -21,7 +21,7 @@ public class Champion {
     private int speed;
     private int currentHp;
     //public int chanceSpawn;
-
+ 
     // Moves
     private List<Move> moves;
 

@@ -7,7 +7,7 @@ import java.util.List;
 public class ChampionFactory {
 	
 	public ChampionFactory() {
-		createAllChampions();
+		createAllChampions(); 
 	}
 	
 	

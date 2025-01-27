@@ -27,7 +27,7 @@ public class BattleManager {
         System.out.println("Battle started! Player: " + playerChampion.getName() + 
                            " vs Wild: " + wildChampion.getName());
     }
-
+ 
     public void update() {
         // Add battle logic here
     }
