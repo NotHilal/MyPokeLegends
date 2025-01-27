@@ -41,18 +41,26 @@
 	        int leftPanelWidth = gp.screenWidth / 4;
 	        g2.setColor(Color.LIGHT_GRAY);
 	        g2.fillRect(0, 0, leftPanelWidth, gp.screenHeight);
-	
+
 	        // Roles for the team slots
 	        String[] roles = { "Top", "Mid", "Jgl", "Adc", "Supp" };
 	        int slotHeight = gp.screenHeight / 5;
-	
+
+	        // Count the number of champions in the party
+	        int championsInParty = 0;
+	        for (Champion champion : gp.player.getParty()) {
+	            if (champion != null) {
+	                championsInParty++;
+	            }
+	        }
+
 	        for (int i = 0; i < 5; i++) {
 	            int slotY = i * slotHeight;
-	
+
 	            // Draw the slot rectangle
 	            g2.setColor(Color.WHITE);
 	            g2.drawRect(10, slotY + 10, leftPanelWidth - 20, slotHeight - 20);
-	
+
 	            // Draw the role name in the top-left corner of the box
 	            String roleText = roles[i];
 	            g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black background
@@ -60,7 +68,7 @@
 	            g2.setColor(Color.WHITE);
 	            g2.setFont(new Font("Arial", Font.BOLD, 12));
 	            g2.drawString(roleText, 20, slotY + 30); // Position the text inside the background
-	
+
 	            // Draw the champion image
 	            Champion champion = gp.player.getParty()[i];
 	            if (champion != null) {
@@ -72,19 +80,21 @@
 	                    int imageY = slotY + 40 + (slotHeight - 20 - imageHeight) / 2 - 20; // Move the image 20px higher
 	                    g2.drawImage(champImage, imageX, imageY, imageWidth, imageHeight, null);
 	                }
-	
-	                // Draw the white "X" button
-	                int xButtonSize = 20;
-	                int xButtonX = 10 + leftPanelWidth - 30; // Position it near the right edge
-	                int xButtonY = slotY + 20; // Position it near the top of the slot
-	                g2.setColor(Color.WHITE);
-	                g2.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
-	                g2.setColor(Color.BLACK);
-	                g2.drawString("X", xButtonX + 6, xButtonY + 15); // Center the "X" inside the button
+
+	                // Draw the white "X" button if there is more than one champion in the party
+	                if (championsInParty > 1) {
+	                    int xButtonSize = 20;
+	                    int xButtonX = 10 + leftPanelWidth - 30; // Position it near the right edge
+	                    int xButtonY = slotY + 20; // Position it near the top of the slot
+	                    g2.setColor(Color.WHITE);
+	                    g2.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+	                    g2.setColor(Color.BLACK);
+	                    g2.drawString("X", xButtonX + 6, xButtonY + 15); // Center the "X" inside the button
+	                }
 	            }
 	        }
 	    }
-	
+
 	
 	
 	
@@ -311,23 +321,33 @@
 	        int arrowYOffset = filterHeight + (gp.screenHeight - filterHeight) / 2 - arrowSize / 2;
 	        int slotHeight = gp.screenHeight / 5;
 
-	        // Check for clicks on the "X" button in the party slots
-	        for (int i = 0; i < gp.player.getParty().length; i++) {
-	            int xButtonSize = 20;
-	            int xButtonX = 10 + leftPanelWidth - 30; // Position it near the right edge of the slot
-	            int xButtonY = i * slotHeight + 20; // Position it near the top of the slot
+	        // Count the number of champions in the party
+	        int championsInParty = 0;
+	        for (Champion champion : gp.player.getParty()) {
+	            if (champion != null) {
+	                championsInParty++;
+	            }
+	        }
 
-	            if (mouseX >= xButtonX && mouseX <= xButtonX + xButtonSize &&
-	                mouseY >= xButtonY && mouseY <= xButtonY + xButtonSize) {
-	                Champion removedChampion = gp.player.getParty()[i];
-	                gp.player.getParty()[i] = null; // Remove the champion from the party
+	        // Check for clicks on the "X" button in the party slots if there is more than one champion
+	        if (championsInParty > 1) {
+	            for (int i = 0; i < gp.player.getParty().length; i++) {
+	                int xButtonSize = 20;
+	                int xButtonX = 10 + leftPanelWidth - 30; // Position it near the right edge of the slot
+	                int xButtonY = i * slotHeight + 20; // Position it near the top of the slot
 
-	                if (removedChampion != null) {
-	                    System.out.println(removedChampion.getName() + " has been removed from the party.");
+	                if (mouseX >= xButtonX && mouseX <= xButtonX + xButtonSize &&
+	                    mouseY >= xButtonY && mouseY <= xButtonY + xButtonSize) {
+	                    Champion removedChampion = gp.player.getParty()[i];
+	                    gp.player.getParty()[i] = null; // Remove the champion from the party
+
+	                    if (removedChampion != null) {
+	                        System.out.println(removedChampion.getName() + " has been removed from the party.");
+	                    }
+
+	                    gp.repaint();
+	                    return;
 	                }
-
-	                gp.repaint();
-	                return;
 	            }
 	        }
 
@@ -447,26 +467,27 @@
 	        int cellHeight = (gp.screenHeight - filterHeight) / gridColumns;
 
 	        for (int i = currentPage * championsPerPage; i < Math.min(filteredChampions.size(), (currentPage + 1) * championsPerPage); i++) {
-	            Champion clickedChampion = filteredChampions.get(i);
-
-	            // Check if the champion is already in the party
-	            boolean inParty = false;
-	            for (Champion partyMember : gp.player.getParty()) {
-	                if (partyMember != null && partyMember.equals(clickedChampion)) {
-	                    inParty = true;
-	                    break;
-	                }
-	            }
-
-	            if (inParty) continue; // Skip clicks on champions already in the party
-
 	            int col = (i - currentPage * championsPerPage) % gridColumns; // Column number
 	            int row = (i - currentPage * championsPerPage) / gridColumns; // Row number
 	            int xOffset = rightPanelX + arrowPadding + arrowSize + col * cellWidth;
 	            int yOffset = filterHeight + row * cellHeight;
 
+	            // Check if champion is already in the party
+	            boolean inParty = false;
+	            for (Champion partyMember : gp.player.getParty()) {
+	                if (partyMember != null && partyMember.equals(filteredChampions.get(i))) {
+	                    inParty = true;
+	                    break;
+	                }
+	            }
+
+	            // Skip clicking on champions already in the party
+	            if (inParty) continue;
+
 	            if (mouseX >= xOffset + 10 && mouseX <= xOffset + cellWidth - 10 &&
 	                mouseY >= yOffset + 10 && mouseY <= yOffset + cellHeight - 10) {
+	                Champion clickedChampion = filteredChampions.get(i);
+
 	                // Show the popup
 	                selectedChampion = clickedChampion;
 	                showPopup = true;
