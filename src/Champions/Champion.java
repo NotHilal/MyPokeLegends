@@ -7,7 +7,8 @@ public class Champion {
     // Basic Info
     private String name;
     private String region;
-    private String type; // Optional, can be null
+    private String role;
+    private String role2;// Optional, can be null
     private int level;
     private int exp;
 
@@ -33,12 +34,13 @@ public class Champion {
     
  
     // Constructor
-    public Champion(String name, String imgName, String region, String type, int level, int maxHp, int AD, int AP, int armor,
+    public Champion(String name, String imgName, String region, String role,String role2, int level, int maxHp, int AD, int AP, int armor,
                     int magicResist, int speed, int evolveAt, String nextEvolution, List<Move> moves) {
         this.name = name;
         this.imageName = imgName;
         this.region = region;
-        this.type = type;
+        this.role = role;
+        this.role2 = role2;
         this.level = level;
         this.exp = 0;
         this.maxHp = maxHp;
@@ -155,8 +157,12 @@ public class Champion {
 		return  region;
 	}
 
-	public String getType() {
-
-		return type;
+	public String getRole() {
+			
+		return role;
+	}
+	public String getRole2() {
+		
+		return role2;
 	}
 }
