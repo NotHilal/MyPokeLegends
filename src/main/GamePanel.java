@@ -7,9 +7,12 @@ import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 import javax.swing.JPanel;
 
+import Champions.Champion;
+import Champions.ChampionFactory;
 import entity.Entity;
 import entity.Player;
 
@@ -37,6 +40,9 @@ public class GamePanel extends JPanel implements Runnable{
 	public boolean showEventRect = false;
 	public boolean showHighGrass = false;
 	
+	// CHAMPIONS
+	public List<Champion> champList = ChampionFactory.createAllChampions();
+	
 	// FPS
 	int FPS=60;
 	
@@ -58,6 +64,8 @@ public class GamePanel extends JPanel implements Runnable{
 	public Entity npc[] = new Entity[10];
 	public Entity monster[] = new Entity[12];
 	ArrayList<Entity> entityList = new ArrayList<>();
+	
+	
 	
 	// MENU 
 	
@@ -93,6 +101,7 @@ public class GamePanel extends JPanel implements Runnable{
 		this.setDoubleBuffered(true);
 		this.addKeyListener(keyH);
 		this.setFocusable(true);
+		
 		battleManager = new BattleManager(this);
 	}
 	

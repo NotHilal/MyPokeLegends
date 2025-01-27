@@ -1,12 +1,21 @@
 package Champions;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ChampionFactory {
+	
+	public ChampionFactory() {
+		createAllChampions();
+	}
+	
+	
+	
 
+	
     public static List<Champion> createAllChampions() {
-        List<Champion> champions = new ArrayList<>();
+    	List<Champion> champions = new ArrayList<>();
 
         champions.add(new Champion(
         	    "Aatrox","Aatrox1", "Darkin", "Fighter", 1, 580, 65, 0, 38, 32, 345, -1, null,
@@ -219,7 +228,7 @@ public class ChampionFactory {
         		));
 
         		champions.add(new Champion(
-        			"Cassiopeia","Cassiopeia1", "Shurima", "Mage", 1, 560, 0, 55, 25, 30, 328, -1, null,
+        			"Cassiopeia","Cassiopea1", "Shurima", "Mage", 1, 560, 0, 55, 25, 30, 328, -1, null,
         		    List.of(
         		        new Move("Noxious Blast", "Magic", 70, 100, 10, "Poison", 0),
         		        new Move("Miasma", "Magic", 80, 95, 15, "Grounded", 0),
@@ -369,7 +378,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        							 "Gangplank", "Gangplank1", "Bilgewater", "Fighter", 1, 580, 70, 0, 35, 32, 345, -1, null,
+        							 "Gangplank", "Gankplank1", "Bilgewater", "Fighter", 1, 580, 70, 0, 35, 32, 345, -1, null,
         					    List.of(
         					        new Move("Parrrley", "Physical", 70, 100, 10, "Bonus gold", 0),
         					        new Move("Remove Scurvy", "Physical", 0, 100, 10, "Heal", 0),
@@ -951,7 +960,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        										    "Orianna","Orianna1", "Piltover", "Mage", 1, 530, 0, 70, 22, 30, 325, -1, null,
+        										    "Orianna","Oriana1", "Piltover", "Mage", 1, 530, 0, 70, 22, 30, 325, -1, null,
         										    List.of(
         										        new Move("Command: Attack", "Magic", 60, 100, 10, "Position ball", 0),
         										        new Move("Command: Dissonance", "Magic", 80, 95, 15, "AoE damage", 0),
@@ -1692,10 +1701,11 @@ public class ChampionFactory {
         								
 
 
-
+        												
         			
         return champions;
     }
-
+    
+    
     
 }

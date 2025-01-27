@@ -249,6 +249,11 @@ public class BattleManager {
             	System.out.println("You chose to Run!");
                 
                 // Add logic to switch champions here
+            	if(gp.player.numchamp<gp.champList.size()) {
+            		gp.player.numchamp++;
+            		gp.player.initializeParty();
+            	}
+            	
             	gp.ui.battleNum=0;
             	gp.gameState=gp.playState;
             	gp.playMusic(gp.currentMusic);

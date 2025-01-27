@@ -10,6 +10,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import Champions.Champion;
+import Champions.ChampionFactory;
 import Champions.WildChampionSpawner;
 import main.Coordinates;
 import main.EventRect;
@@ -33,6 +34,7 @@ public class Player extends Entity {
     int idleSpriteNum = 1;
     
     int annimcpt=0;
+    public int numchamp =27;
     
     WildChampionSpawner spawner;
     
@@ -157,11 +159,11 @@ public class Player extends Entity {
     	return image;
     }
     
-    private void initializeParty() {
+    public void initializeParty() {
         // Add placeholder champions to the first slots; other slots remain null
-        party[0] = new Champion("Aatrox","Aatrox1", "Darkin", "Fighter", 1, 580, 65, 0, 38, 32, 345, -1, null, null);
-        party[1] = new Champion("Ahri","Ahri1", "Ionia", "Mage", 1, 526, 0, 53, 21, 30, 330, -1, null, null);
-        // Other slots are null by default
+        party[0] = gp.champList.get(numchamp);
+        party[1] = gp.champList.get(1);
+        // Other slots are null by default 
     }
     
     public Champion[] getParty() {

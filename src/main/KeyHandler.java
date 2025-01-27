@@ -249,6 +249,7 @@ public class KeyHandler implements KeyListener{
 		        gp.gameState=gp.playState;
 		    }
 		}
+		// BATTLE STATE
 		else if (gp.gameState == gp.battleState) {
 		    if (code == KeyEvent.VK_W) { 
 		        if(gp.ui.battleNum!=0) {
