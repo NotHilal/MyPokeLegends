@@ -3,9 +3,11 @@
 	import java.awt.*;
 	import java.awt.image.BufferedImage;
 	import java.util.ArrayList;
-	import java.util.List;
-	
-	import javax.imageio.ImageIO;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
 	
 	import Champions.Champion;
 	
@@ -20,11 +22,38 @@
 	
 	    private Champion selectedChampion = null; // Track the selected champion for the popup
 	    private boolean showPopup = false;        // Whether the popup is currently visible
-	
+	    private final Map<String, BufferedImage> imageCache = new HashMap<>(); // Cache for champion images
+	    
 	    public ChampionMenu(GamePanel gp) {
 	        this.gp = gp;
+	        preloadImages();
 	    }
-	
+	    private void preloadImages() {
+	        for (Champion champion : gp.champList) {
+	            loadChampionImage(champion.getImageName());
+	        }
+	    }
+	    
+	    public void clearImageCache() {
+	        imageCache.clear();
+	    }
+
+	    
+	    private BufferedImage loadChampionImage(String imageName) {
+	        if (imageCache.containsKey(imageName)) {
+	            return imageCache.get(imageName);
+	        }
+	        try {
+	            BufferedImage image = ImageIO.read(getClass().getResourceAsStream("/championsImg/" + imageName + ".png"));
+	            imageCache.put(imageName, image); // Cache the image
+	            return image;
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	            return null;
+	        }
+	    }
+
+	    
 	    public void draw(Graphics2D g2) {
 	        // Draw background
 	        g2.setColor(Color.DARK_GRAY);
@@ -568,12 +597,5 @@
 	        return false;
 	    }
 	
-	    private BufferedImage loadChampionImage(String imageName) {
-	        try {
-	            return ImageIO.read(getClass().getResourceAsStream("/championsImg/" + imageName + ".png"));
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	            return null;
-	        }
-	    }
+	   
 	}
