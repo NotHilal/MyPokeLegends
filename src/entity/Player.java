@@ -36,7 +36,7 @@ public class Player extends Entity {
     int idleSpriteNum = 1;
     
     int annimcpt=0;
-    public int numchamp =27;
+    public int numchamp =0;
     
     WildChampionSpawner spawner;
     

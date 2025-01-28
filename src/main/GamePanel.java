@@ -90,7 +90,7 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	public final int transitionState = 6; // New transition state
 	public final int championMenuState = 7; // New state for the champion menu
-
+	public final int dexState = 8; // New state for the Dex
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -101,7 +101,7 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	public BattleManager battleManager;
 	
-
+	public Dex dex; // Declare Dex
 	
 	
 	public GamePanel() {
@@ -111,6 +111,7 @@ public class GamePanel extends JPanel implements Runnable{
 		this.addKeyListener(keyH);
 		this.setFocusable(true);
 		this.championMenu = new ChampionMenu(this);
+		this.dex = new Dex(this);
 
 	    // Add mouse listener for detecting clicks
 	    this.addMouseListener(new MouseAdapter() {
@@ -118,6 +119,9 @@ public class GamePanel extends JPanel implements Runnable{
 	        public void mouseClicked(MouseEvent e) {
 	            if (gameState == championMenuState) { // Only handle clicks in champion menu
 	                championMenu.handleMouseClick(e.getX(), e.getY());
+	            }
+	            if (gameState == dexState) {
+	                dex.handleMouseClick(e.getX(), e.getY());
 	            }
 	        }
 	    });
@@ -294,6 +298,10 @@ public class GamePanel extends JPanel implements Runnable{
 	        championMenu.draw(g2);
 	    }
 	    
+	    else if (gameState == dexState) {
+	        dex.draw(g2);
+	    }
+	    
 	    else {
 	        // PLAY STATE
 	        // TILE
@@ -352,6 +360,7 @@ public class GamePanel extends JPanel implements Runnable{
 	    if (gameState == championMenuState) {
 	        championMenu.handleMouseClick(mouseX, mouseY);
 	    }
+	    
 	    // Other game states...
 	}
 
@@ -380,7 +389,7 @@ public class GamePanel extends JPanel implements Runnable{
 	}
 	
 	public void openDex() {
-	    gameState = dialogState;
+		gameState = dexState;
 	    playSE(7);
 	    ui.currentDialog="Action done!\nYou openned the Dex!";
 	}

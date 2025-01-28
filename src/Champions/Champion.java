@@ -165,4 +165,28 @@ public class Champion {
 		
 		return role2;
 	}
+
+    // Getter for Abilities
+    public String[] getAbilities() {
+        if (moves == null || moves.isEmpty()) {
+            return new String[]{"No abilities available"};
+        }
+
+        // Format abilities into a string array
+        String[] abilities = new String[moves.size()];
+        for (int i = 0; i < moves.size(); i++) {
+            Move move = moves.get(i);
+            abilities[i] = String.format("%s: %s | Damage: %d-%d | Mana Cost: %d | Effect: %s | Cooldown: %d sec",
+                move.getName(),
+                move.getType()
+                //move.getManaCost(),
+                //move.getEffect() == null ? "None" : move.getEffect(),
+               // move.getCooldown()
+            );
+        }
+
+        return abilities;
+    }
+    
+    
 }
