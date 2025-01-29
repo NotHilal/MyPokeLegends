@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.imageio.ImageIO;
+import javax.swing.SwingUtilities;
+
 import Champions.Champion;
 
 public class Dex {
@@ -90,6 +92,10 @@ public class Dex {
         int startIndex = currentPage * CHAMPIONS_PER_PAGE;
         int endIndex = Math.min(startIndex + CHAMPIONS_PER_PAGE, champions.size());
 
+        // Get mouse position for hover effect (only when popup is closed)
+        Point mousePoint = MouseInfo.getPointerInfo().getLocation();
+        SwingUtilities.convertPointFromScreen(mousePoint, gp);
+
         for (int i = startIndex; i < endIndex; i++) {
             Champion champion = champions.get(i);
 
@@ -100,8 +106,17 @@ public class Dex {
             int xOffset = gridStartX + col * cellWidth;
             int yOffset = gridStartY + row * cellHeight;
 
-            // Draw cell background
-            g2.setColor(Color.WHITE);
+            // Enable hover effect only if the popup is closed
+            boolean isHovered = !showPopup &&
+                    mousePoint.x >= xOffset + 10 && mousePoint.x <= xOffset + cellWidth - 10 &&
+                    mousePoint.y >= yOffset + 10 && mousePoint.y <= yOffset + cellHeight - 10;
+
+            // Draw cell background (light gray on hover)
+            g2.setColor(isHovered ? new Color(180, 180, 180) : Color.WHITE);
+            g2.fillRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
+
+            // Draw cell border
+            g2.setColor(Color.BLACK);
             g2.drawRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
 
             // Draw champion image
@@ -129,6 +144,7 @@ public class Dex {
 
         drawPageNavigationArrows(g2);
     }
+
 
 
     

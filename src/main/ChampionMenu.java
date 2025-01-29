@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
-	
-	import Champions.Champion;
+import javax.swing.SwingUtilities;
+
+import Champions.Champion;
 	
 	public class ChampionMenu {
 	
@@ -213,20 +214,24 @@ import javax.imageio.ImageIO;
 	        int gridRows = 3;    // Fixed rows for this setup
 	        int cellWidth = rightPanelWidth / gridColumns; // Width of each cell
 	        int cellHeight = (gp.screenHeight - filterHeight) / gridRows;  // Height of each cell
-	
+
+	        // Get mouse position for hover effect (only when popup is closed)
+	        Point mousePoint = MouseInfo.getPointerInfo().getLocation();
+	        SwingUtilities.convertPointFromScreen(mousePoint, gp);
+
 	        // Calculate the range of champions to display on the current page
 	        int start = currentPage * championsPerPage;
 	        int end = Math.min(filteredChampions.size(), start + championsPerPage);
-	
+
 	        for (int i = start; i < end; i++) {
 	            Champion champion = filteredChampions.get(i);
-	
+
 	            // Calculate grid position
 	            int col = (i - start) % gridColumns; // Column number (0-2)
 	            int row = (i - start) / gridColumns; // Row number (0-2)
 	            int xOffset = rightPanelX + col * cellWidth;
 	            int yOffset = filterHeight + row * cellHeight;
-	
+
 	            // Check if champion is already in the party
 	            boolean inParty = false;
 	            for (Champion partyMember : gp.player.getParty()) {
@@ -235,11 +240,20 @@ import javax.imageio.ImageIO;
 	                    break;
 	                }
 	            }
-	
+
+	            // Enable hover effect only if the popup is **closed**
+	            boolean isHovered = !showPopup && !inParty &&
+	                    mousePoint.x >= xOffset + 10 && mousePoint.x <= xOffset + cellWidth - 10 &&
+	                    mousePoint.y >= yOffset + 10 && mousePoint.y <= yOffset + cellHeight - 10;
+
 	            // Draw the cell background
-	            g2.setColor(Color.WHITE);
+	            g2.setColor(isHovered ? new Color(255, 215, 0, 150) : Color.WHITE); // Gold highlight on hover
+	            g2.fillRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
+
+	            // Draw the cell border
+	            g2.setColor(Color.BLACK);
 	            g2.drawRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
-	
+
 	            // Draw champion image, with reduced opacity if in party
 	            BufferedImage champImage = loadChampionImage(champion.getImageName());
 	            if (champImage != null) {
@@ -247,7 +261,7 @@ import javax.imageio.ImageIO;
 	                int imgHeight = 96;
 	                int imgX = xOffset + (cellWidth - imgWidth) / 2; // Center horizontally
 	                int imgY = yOffset + (cellHeight - imgHeight) / 2; // Center vertically
-	
+
 	                if (inParty) {
 	                    // Reduce opacity for champions in the party
 	                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f));
@@ -255,35 +269,38 @@ import javax.imageio.ImageIO;
 	                g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null); // Draw image
 	                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f)); // Reset opacity
 	            }
-	
+
 	            // Draw champion name below the image
 	            g2.setColor(inParty ? Color.GRAY : Color.GREEN); // Gray text if in party
 	            String champName = champion.getName();
 	            int textWidth = g2.getFontMetrics().stringWidth(champName);
 	            g2.drawString(champName, xOffset + (cellWidth - textWidth) / 2, yOffset + cellHeight - 20); // Center text horizontally
 	        }
+
+	        // Ensure grid remains visible even when popup is open
+	        gp.repaint();
 	    }
+
+
 	
 	    private void drawPopup(Graphics2D g2) {
 	        if (!showPopup || selectedChampion == null) return;
-	
-	        // Popup dimensions
+
 	        int popupWidth = 400;
 	        int popupHeight = 300;
-	
-	        // Center the popup in the grid area
+
 	        int rightPanelWidth = gp.screenWidth - gp.screenWidth / 4;
 	        int popupX = gp.screenWidth / 4 + (rightPanelWidth - popupWidth) / 2;
 	        int popupY = gp.screenHeight / 2 - popupHeight / 2;
-	
+
 	        // Draw popup background
 	        g2.setColor(new Color(50, 50, 50));
 	        g2.fillRect(popupX, popupY, popupWidth, popupHeight);
-	
+
 	        // Draw popup border
 	        g2.setColor(Color.WHITE);
 	        g2.drawRect(popupX, popupY, popupWidth, popupHeight);
-	
+
 	        // Draw close button (red "X")
 	        int closeButtonSize = 30;
 	        int closeButtonX = popupX + popupWidth - closeButtonSize - 10;
@@ -291,53 +308,52 @@ import javax.imageio.ImageIO;
 	        g2.setColor(Color.RED);
 	        g2.fillRect(closeButtonX, closeButtonY, closeButtonSize, closeButtonSize);
 	        g2.setColor(Color.WHITE);
-	        String closeText = "X";
-	        int closeTextWidth = g2.getFontMetrics().stringWidth(closeText);
-	        g2.drawString(closeText, closeButtonX + (closeButtonSize - closeTextWidth) / 2, closeButtonY + closeButtonSize - 8);
-	
+	        g2.drawString("X", closeButtonX + 10, closeButtonY + 20);
+
 	        // Draw champion image
 	        BufferedImage champImage = loadChampionImage(selectedChampion.getImageName());
 	        if (champImage != null) {
 	            g2.drawImage(champImage, popupX + 20, popupY + 20, 100, 100, null);
 	        }
-	
+
 	        // Draw champion roles
 	        g2.setColor(Color.WHITE);
 	        g2.drawString("Name: " + selectedChampion.getName(), popupX + 140, popupY + 50);
 	        g2.drawString("Role 1: " + selectedChampion.getRole(), popupX + 140, popupY + 80);
-	        String role2Text = selectedChampion.getRole2() == null || selectedChampion.getRole2().isEmpty() ? "None" : selectedChampion.getRole2();
+	        String role2Text = (selectedChampion.getRole2() == null || selectedChampion.getRole2().isEmpty()) ? "None" : selectedChampion.getRole2();
 	        g2.drawString("Role 2: " + role2Text, popupX + 140, popupY + 110);
-	
+
 	        // Draw buttons for roles
 	        int buttonWidth = 120;
 	        int buttonHeight = 40;
 	        int buttonY = popupY + 200;
-	
+
+	        g2.setFont(new Font("Arial", Font.BOLD, 14));
+
 	        if (role2Text.equals("None")) { 
-	            // Only one button, center it
 	            int buttonX = popupX + (popupWidth - buttonWidth) / 2;
 	            g2.setColor(new Color(100, 255, 100));
 	            g2.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
 	            g2.setColor(Color.BLACK);
-	            g2.drawString("Add (" + selectedChampion.getRole() + ")", buttonX + 10, buttonY + 25);
+	            String buttonText = "Add (" + selectedChampion.getRole() + ")";
+	            int textWidth = g2.getFontMetrics().stringWidth(buttonText);
+	            int textX = buttonX + (buttonWidth - textWidth) / 2;
+	            g2.drawString(buttonText, textX, buttonY + 25);
 	        } else {
-	            // Two buttons, position symmetrically
 	            int button1X = popupX + popupWidth / 4 - buttonWidth / 2;
 	            int button2X = popupX + 3 * popupWidth / 4 - buttonWidth / 2;
-	
-	            // Button for Role 1
+
 	            g2.setColor(new Color(100, 255, 100));
 	            g2.fillRect(button1X, buttonY, buttonWidth, buttonHeight);
+	            g2.fillRect(button2X, buttonY, buttonWidth, buttonHeight);
+
 	            g2.setColor(Color.BLACK);
 	            g2.drawString("Add (" + selectedChampion.getRole() + ")", button1X + 10, buttonY + 25);
-	
-	            // Button for Role 2
-	            g2.setColor(new Color(100, 255, 100));
-	            g2.fillRect(button2X, buttonY, buttonWidth, buttonHeight);
-	            g2.setColor(Color.BLACK);
 	            g2.drawString("Add (" + role2Text + ")", button2X + 10, buttonY + 25);
 	        }
 	    }
+
 	
 	
 	    public void handleMouseClick(int mouseX, int mouseY) {
@@ -403,9 +419,10 @@ import javax.imageio.ImageIO;
 	            int buttonHeight = 40;
 	            int buttonY = popupY + 200;
 
-	            if (selectedChampion.getRole2() == null || selectedChampion.getRole2().isEmpty()) {
-	                // Only one button, center it
+	            if (selectedChampion.getRole2() == null || selectedChampion.getRole2().isEmpty() || selectedChampion.getRole2().equalsIgnoreCase("None")) {
+	                // Single role button (centered)
 	                int buttonX = popupX + (popupWidth - buttonWidth) / 2;
+
 	                if (mouseX >= buttonX && mouseX <= buttonX + buttonWidth &&
 	                    mouseY >= buttonY && mouseY <= buttonY + buttonHeight) {
 	                    promptAddToParty(selectedChampion, selectedChampion.getRole());
@@ -414,7 +431,7 @@ import javax.imageio.ImageIO;
 	                    return;
 	                }
 	            } else {
-	                // Two buttons, position symmetrically
+	                // Two role buttons (side by side)
 	                int button1X = popupX + popupWidth / 4 - buttonWidth / 2;
 	                int button2X = popupX + 3 * popupWidth / 4 - buttonWidth / 2;
 
@@ -435,7 +452,6 @@ import javax.imageio.ImageIO;
 	                }
 	            }
 
-	            // Ignore clicks outside the popup
 	            return;
 	        }
 
@@ -525,6 +541,7 @@ import javax.imageio.ImageIO;
 	            }
 	        }
 	    }
+
 
 	    private void promptAddToParty(Champion selectedChampion, String role) {
 	        for (int i = 0; i < gp.player.getParty().length; i++) {
