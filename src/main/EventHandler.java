@@ -112,8 +112,8 @@ public class EventHandler {
 	
 	public void damagePit(int col, int row, int gameState) {
 		gp.gameState= gameState;
-		gp.ui.currentDialog= "Ouch.. This hurts!";
-		gp.player.life-=1;
+		gp.ui.currentDialog= "This spot looks dangerous, but you're unharmed.";
+		// Life damage removed - no longer damages player
 		//eventRect[col][row].eventDone= true;
 		canTouchEvent= false;
 	}
@@ -137,8 +137,20 @@ public class EventHandler {
 	public void heal(int col, int row, int gameState) {
 		if(gp.keyH.interctPressed==true) {
 			gp.gameState=gameState;
-			gp.ui.currentDialog = "You just healed your pokemons.\nCome  back soon !";
-			gp.player.life= gp.player.maxLife;
+			gp.ui.currentDialog = "Your champions have been fully healed!\nHP and PP have been restored!\nCome back soon!";
+			
+			// Heal all champions in the party
+			for(int i = 0; i < gp.player.getParty().length; i++) {
+				if(gp.player.getParty()[i] != null) {
+					// Restore HP
+					gp.player.getParty()[i].setCurrentHp(gp.player.getParty()[i].getMaxHp());
+					
+					// Restore PP for all moves
+					for(int j = 0; j < gp.player.getParty()[i].getMoves().size(); j++) {
+						gp.player.getParty()[i].getMoves().get(j).restorePP();
+					}
+				}
+			}
 		}
 		
 		

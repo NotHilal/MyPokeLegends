@@ -18,7 +18,7 @@ public class ChampionFactory {
     	List<Champion> champions = new ArrayList<>();
 
         champions.add(new Champion(
-        	    "Aatrox","Aatrox1", "Darkin", "Top","None", 1, 580, 65, 0, 38, 32, 345, -1, null,
+        	    "Aatrox","Aatrox1", "Darkin", "Top","None", 1, 580, 65, 0, 38, 32, 345, 0, 0, -1, null,
         	    List.of(
         	        new Move("The Darkin Blade", "Physical", 70, 90, 15, null, 0),
         	        new Move("Infernal Chains", "Magic", 50, 100, 10, "Root", 30),
@@ -28,7 +28,7 @@ public class ChampionFactory {
         	)); 
 
         	champions.add(new Champion(
-        	    "Ahri","Ahri1", "Ionia", "Mid","None", 1, 526, 0, 53, 21, 30, 330, -1, null,
+        	    "Ahri","Ahri1", "Ionia", "Mid","None", 1, 526, 0, 53, 21, 30, 330, 0, 0, -1, null,
         	    List.of(
         	        new Move("Orb of Deception", "Magic", 60, 100, 20, null, 0),
         	        new Move("Charm", "Magic", 40, 85, 10, "Stun", 40),
@@ -38,7 +38,7 @@ public class ChampionFactory {
         	));
 
         	champions.add(new Champion(
-        	    "Akali","Akali1", "Ionia", "Top","Mid", 1, 500, 65, 0, 23, 37, 345, -1, null,
+        	    "Akali","Akali1", "Ionia", "Top","Mid", 1, 500, 65, 0, 23, 37, 345, 0, 0, -1, null,
         	    List.of(
         	        new Move("Five Point Strike", "Physical", 60, 90, 10, null, 0),
         	        new Move("Twilight Shroud", "Magic", 0, 100, 5, "Invisibility", 0),
@@ -48,7 +48,7 @@ public class ChampionFactory {
         	));
         	
         	champions.add(new Champion(
-        		    "Akshan","Akshan1", "Shurima", "Top","Adc", 1, 540, 65, 0, 30, 30, 330, -1, null,
+        		    "Akshan","Akshan1", "Shurima", "Top","Adc", 1, 540, 65, 0, 30, 30, 330, 0, 0, -1, null,
         		    List.of(
         		        new Move("Avengerang", "Physical", 60, 95, 10, "Boomerang damage", 0),
         		        new Move("Going Rogue", "Magic", 0, 100, 15, "Camouflage", 0),
@@ -58,7 +58,7 @@ public class ChampionFactory {
         		));
 
         	champions.add(new Champion(
-        	    "Alistar","Alistar1", "Demacia", "Supp","None", 1, 600, 62, 0, 40, 32, 330, -1, null,
+        	    "Alistar","Alistar1", "Demacia", "Supp","None", 1, 600, 62, 0, 40, 32, 330, 0, 0, -1, null,
         	    List.of(
         	        new Move("Pulverize", "Physical", 50, 95, 10, "Knockup", 50),
         	        new Move("Headbutt", "Physical", 70, 100, 10, null, 0),
@@ -68,7 +68,7 @@ public class ChampionFactory {
         	));
         	
         	champions.add(new Champion(
-        		    "Ambessa","Ambessa1", "Noxus", "Top","None", 1, 600, 75, 0, 45, 40, 330, -1, null,
+        		    "Ambessa","Ambessa1", "Noxus", "Top","None", 1, 600, 75, 0, 45, 40, 330, 0, 0, -1, null,
         		    List.of(
         		        new Move("Iron Will", "Physical", 80, 95, 10, "Shield Slam", 0),
         		        new Move("Warlord's Shout", "Magic", 0, 100, 15, "Area taunt", 0),
@@ -78,7 +78,7 @@ public class ChampionFactory {
         		));
 
         	champions.add(new Champion(
-        			"Amumu","Amumu1", "Shurima", "Jgl","Supp", 1, 620, 55, 0, 40, 35, 335, -1, null,
+        			"Amumu","Amumu1", "Shurima", "Jgl","Supp", 1, 620, 55, 0, 40, 35, 335, 0, 0, -1, null,
         	    List.of(
         	        new Move("Bandage Toss", "Magic", 60, 100, 10, "Stun", 30),
         	        new Move("Despair", "Magic", 5, 100, 5, "HP Drain", 0),
@@ -88,7 +88,7 @@ public class ChampionFactory {
         	));
 
         	champions.add(new Champion(
-        			"Anivia","Anivia1", "Freljord", "Mid","Supp", 1, 480, 0, 55, 21, 30, 325, -1, null,
+        			"Anivia","Anivia1", "Freljord", "Mid","Supp", 1, 480, 0, 55, 21, 30, 325, 0, 0, -1, null,
         	    List.of(
         	        new Move("Flash Frost", "Magic", 50, 85, 15, "Stun", 20),
         	        new Move("Frostbite", "Magic", 70, 100, 10, null, 0),
@@ -98,7 +98,7 @@ public class ChampionFactory {
         	));
         	
         	champions.add(new Champion(
-        			"Annie","Annie1", "Noxus", "Mid","Supp", 1, 500, 0, 65, 20, 30, 335, -1, null,
+        			"Annie","Annie1", "Noxus", "Mid","Supp", 1, 500, 0, 65, 20, 30, 335, 0, 0, -1, null,
         		    List.of(
         		        new Move("Disintegrate", "Magic", 60, 100, 10, "Single target damage", 0),
         		        new Move("Incinerate", "Magic", 80, 90, 15, "AoE damage", 0),
@@ -108,7 +108,7 @@ public class ChampionFactory {
         		));
 
         	champions.add(new Champion(
-        			"Ashe","Ashe1", "Freljord", "Adc","None", 1, 540, 61, 0, 26, 30, 325, -1, null,
+        			"Ashe","Ashe1", "Freljord", "Adc","None", 1, 540, 61, 0, 26, 30, 325, 0, 0, -1, null,
         	    List.of(
         	        new Move("Volley", "Physical", 50, 100, 20, null, 0),
         	        new Move("Hawkshot", "Magic", 0, 100, 5, "Vision", 0),
@@ -118,7 +118,7 @@ public class ChampionFactory {
         	));
 
         	champions.add(new Champion(
-        			"Aurelion Sol","Aurelionsol1", "Targon","None", "Mid", 1, 575, 0, 60, 32, 30, 325, -1, null,
+        			"Aurelion Sol","Aurelionsol1", "Targon","None", "Mid", 1, 575, 0, 60, 32, 30, 325, 0, 0, -1, null,
         	    List.of(
         	        new Move("Starsurge", "Magic", 70, 100, 10, "Stun", 30),
         	        new Move("Celestial Expansion", "Magic", 80, 90, 15, null, 0),
@@ -128,7 +128,7 @@ public class ChampionFactory {
         	));
         	
         	champions.add(new Champion(
-        			"Aurora","Aurora1", "Freljord", "Mid","Top", 1, 500, 0, 70, 25, 30, 325, -1, null,
+        			"Aurora","Aurora1", "Freljord", "Mid","Top", 1, 500, 0, 70, 25, 30, 325, 0, 0, -1, null,
         		    List.of(
         		        new Move("Glacial Ray", "Magic", 70, 100, 10, "Freeze target", 0),
         		        new Move("Ice Spikes", "Magic", 60, 90, 15, "AoE damage", 0),
@@ -138,7 +138,7 @@ public class ChampionFactory {
         		));
 
         	champions.add(new Champion(
-        			"Azir","Azir1", "Shurima", "Mid","None", 1, 550, 52, 50, 24, 30, 335, -1, null,
+        			"Azir","Azir1", "Shurima", "Mid","None", 1, 550, 52, 50, 24, 30, 335, 0, 0, -1, null,
         		    List.of(
         		        new Move("Conquering Sands", "Magic", 60, 100, 15, null, 0),
         		        new Move("Arise!", "Magic", 0, 100, 10, "Summon soldiers", 0),
@@ -148,7 +148,7 @@ public class ChampionFactory {
         		));
 
         		champions.add(new Champion(
-        		    "Bard","Bard1", "Targon", "Supp","None", 1, 560, 52, 40, 34, 30, 340, -1, null,
+        		    "Bard","Bard1", "Targon", "Supp","None", 1, 560, 52, 40, 34, 30, 340, 0, 0, -1, null,
         		    List.of(
         		        new Move("Cosmic Binding", "Magic", 70, 100, 10, "Stun", 50),
         		        new Move("Caretaker's Shrine", "Magic", 0, 100, 10, "Heal", 0),
@@ -158,7 +158,7 @@ public class ChampionFactory {
         		));
         		
         		champions.add(new Champion(
-        				"Bel'Veth","Belveth1", "Void", "Jgl","None", 1, 620, 70, 0, 35, 32, 345, -1, null,
+        				"Bel'Veth","Belveth1", "Void", "Jgl","None", 1, 620, 70, 0, 35, 32, 345, 0, 0, -1, null,
         			    List.of(
         			        new Move("Void Surge", "Magic", 70, 95, 10, "Dash damage", 0),
         			        new Move("Above and Below", "Magic", 80, 90, 15, "Knockup", 0),
@@ -168,7 +168,7 @@ public class ChampionFactory {
         			));
 
         		champions.add(new Champion(
-        				"Blitzcrank","Blitzcrank1", "Zaun", "Supp","None", 1, 600, 62, 0, 40, 32, 325, -1, null,
+        				"Blitzcrank","Blitzcrank1", "Zaun", "Supp","None", 1, 600, 62, 0, 40, 32, 325, 0, 0, -1, null,
         		    List.of(
         		        new Move("Rocket Grab", "Physical", 50, 95, 20, "Pull", 0),
         		        new Move("Overdrive", "Magic", 0, 100, 10, "Speed boost", 0),
@@ -178,7 +178,7 @@ public class ChampionFactory {
         		));
 
         		champions.add(new Champion(
-        				"Brand","Brand1", "Runeterra", "Mid","Supp", 1, 520, 0, 57, 22, 30, 340, -1, null,
+        				"Brand","Brand1", "Runeterra", "Mid","Supp", 1, 520, 0, 57, 22, 30, 340, 0, 0, -1, null,
         		    List.of(
         		        new Move("Sear", "Magic", 60, 100, 15, "Stun", 0),
         		        new Move("Pillar of Flame", "Magic", 80, 95, 20, "Area damage", 0),
@@ -188,7 +188,7 @@ public class ChampionFactory {
         		));
         		
         		champions.add(new Champion(
-        				"Braum","Braum1", "Freljord", "Supp","None", 1, 600, 50, 0, 40, 35, 330, -1, null,
+        				"Braum","Braum1", "Freljord", "Supp","None", 1, 600, 50, 0, 40, 35, 330, 0, 0, -1, null,
         			    List.of(
         			        new Move("Winter's Bite", "Magic", 60, 90, 10, "Slow", 0),
         			        new Move("Stand Behind Me", "Magic", 0, 100, 15, "Shield ally", 0),
@@ -198,7 +198,7 @@ public class ChampionFactory {
         			));
         		
         		champions.add(new Champion(
-        				"Briar","Briar1", "Noxus", "Jgl","None", 1, 580, 70, 0, 30, 30, 340, -1, null,
+        				"Briar","Briar1", "Noxus", "Jgl","None", 1, 580, 70, 0, 30, 30, 340, 0, 0, -1, null,
         			    List.of(
         			        new Move("Blood Frenzy", "Physical", 70, 95, 10, "Frenzy damage", 0),
         			        new Move("Crimson Pact", "Magic", 0, 100, 10, "Heal on kill", 0),
@@ -208,7 +208,7 @@ public class ChampionFactory {
         			));
 
         		champions.add(new Champion(
-        				"Caitlyn","Caitlyn1", "Piltover", "Adc","None", 1, 510, 65, 0, 27, 30, 330, -1, null,
+        				"Caitlyn","Caitlyn1", "Piltover", "Adc","None", 1, 510, 65, 0, 27, 30, 330, 0, 0, -1, null,
         		    List.of(
         		        new Move("Piltover Peacemaker", "Physical", 60, 100, 15, null, 0),
         		        new Move("Yordle Snap Trap", "Magic", 0, 100, 10, "Root", 0),
@@ -218,7 +218,7 @@ public class ChampionFactory {
         		));
 
         		champions.add(new Champion(
-        				"Camille","Camille1", "Piltover", "Top","None", 1, 575, 68, 0, 35, 33, 340, -1, null,
+        				"Camille","Camille1", "Piltover", "Top","None", 1, 575, 68, 0, 35, 33, 340, 0, 0, -1, null,
         		    List.of(
         		        new Move("Precision Protocol", "Physical", 70, 95, 10, null, 0),
         		        new Move("Tactical Sweep", "Physical", 80, 90, 15, "Slow", 0),
@@ -228,7 +228,7 @@ public class ChampionFactory {
         		));
 
         		champions.add(new Champion(
-        			"Cassiopeia","Cassiopea1", "Shurima", "Mid","None", 1, 560, 0, 55, 25, 30, 328, -1, null,
+        			"Cassiopeia","Cassiopea1", "Shurima", "Mid","None", 1, 560, 0, 55, 25, 30, 328, 0, 0, -1, null,
         		    List.of(
         		        new Move("Noxious Blast", "Magic", 70, 100, 10, "Poison", 0),
         		        new Move("Miasma", "Magic", 80, 95, 15, "Grounded", 0),
@@ -238,7 +238,7 @@ public class ChampionFactory {
         		));
 
         		champions.add(new Champion(
-        				"Cho'Gath","Chogath1", "Void", "Top","Jgl", 1, 580, 69, 0, 38, 32, 345, -1, null,
+        				"Cho'Gath","Chogath1", "Void", "Top","Jgl", 1, 580, 69, 0, 38, 32, 345, 0, 0, -1, null,
         		    List.of(
         		        new Move("Rupture", "Magic", 70, 95, 10, "Knockup", 0),
         		        new Move("Feral Scream", "Magic", 60, 100, 10, "Silence", 0),
@@ -247,7 +247,7 @@ public class ChampionFactory {
         		    )
         		));
         		champions.add(new Champion(
-        			    "Corki","Corki1", "Piltover", "Mid","Adc", 1, 540, 60, 0, 28, 30, 325, -1, null,
+        			    "Corki","Corki1", "Piltover", "Mid","Adc", 1, 540, 60, 0, 28, 30, 325, 0, 0, -1, null,
         			    List.of(
         			        new Move("Phosphorus Bomb", "Magic", 70, 100, 15, "Vision reveal", 0),
         			        new Move("Valkyrie", "Magic", 60, 90, 10, "Burn", 0),
@@ -257,7 +257,7 @@ public class ChampionFactory {
         			));
 
         			champions.add(new Champion(
-        			    "Darius","Darius1", "Noxus", "Top","None", 1, 650, 70, 0, 40, 32, 340, -1, null,
+        			    "Darius","Darius1", "Noxus", "Top","None", 1, 650, 70, 0, 40, 32, 340, 0, 0, -1, null,
         			    List.of(
         			        new Move("Decimate", "Physical", 80, 100, 10, "Heal", 0),
         			        new Move("Crippling Strike", "Physical", 70, 90, 15, "Slow", 0),
@@ -267,7 +267,7 @@ public class ChampionFactory {
         			));
 
         			champions.add(new Champion(
-        			    "Diana","Diana1", "Targon", "Mid","Jgl", 1, 570, 0, 60, 30, 30, 345, -1, null,
+        			    "Diana","Diana1", "Targon", "Mid","Jgl", 1, 570, 0, 60, 30, 30, 345, 0, 0, -1, null,
         			    List.of(
         			        new Move("Crescent Strike", "Magic", 70, 100, 10, null, 0),
         			        new Move("Pale Cascade", "Magic", 60, 90, 15, "Shield", 0),
@@ -277,7 +277,7 @@ public class ChampionFactory {
         			));
         			
         			champions.add(new Champion(
-        					"Dr. Mundo","Drmundo1", "Zaun", "Top","None", 1, 700, 70, 0, 36, 32, 335, -1, null,
+        					"Dr. Mundo","Drmundo1", "Zaun", "Top","None", 1, 700, 70, 0, 36, 32, 335, 0, 0, -1, null,
         				    List.of(
         				        new Move("Infected Cleaver", "Physical", 70, 100, 10, "Slow", 0),
         				        new Move("Burning Agony", "Magic", 50, 100, 10, "Damage over time", 0),
@@ -287,7 +287,7 @@ public class ChampionFactory {
         				));
 
         				champions.add(new Champion(
-        						"Draven","Draven1", "Noxus", "Adc","None", 1, 605, 68, 0, 29, 30, 330, -1, null,
+        						"Draven","Draven1", "Noxus", "Adc","None", 1, 605, 68, 0, 29, 30, 330, 0, 0, -1, null,
         				    List.of(
         				        new Move("Spinning Axe", "Physical", 80, 100, 10, "Bonus AD", 0),
         				        new Move("Blood Rush", "Physical", 0, 100, 5, "Speed boost", 0),
@@ -297,7 +297,7 @@ public class ChampionFactory {
         				));
 
         				champions.add(new Champion(
-        						"Ekko","Ekko1", "Zaun", "Mid","Jgl", 1, 585, 60, 50, 32, 30, 340, -1, null,
+        						"Ekko","Ekko1", "Zaun", "Mid","Jgl", 1, 585, 60, 50, 32, 30, 340, 0, 0, -1, null,
         				    List.of(
         				        new Move("Timewinder", "Magic", 60, 100, 10, "Slow", 0),
         				        new Move("Parallel Convergence", "Magic", 80, 95, 15, "Shield & Stun", 0),
@@ -307,7 +307,7 @@ public class ChampionFactory {
         				));
 
         				champions.add(new Champion(
-        						"Elise","Elise1", "Shadow Isles", "Jgl","None", 1, 555, 0, 50, 27, 32, 330, -1, null,
+        						"Elise","Elise1", "Shadow Isles", "Jgl","None", 1, 555, 0, 50, 27, 32, 330, 0, 0, -1, null,
         				    List.of(
         				        new Move("Neurotoxin", "Magic", 70, 100, 10, "Damage by health", 0),
         				        new Move("Volatile Spiderling", "Magic", 60, 90, 15, "Area damage", 0),
@@ -317,7 +317,7 @@ public class ChampionFactory {
         				));
 
         				champions.add(new Champion(
-        						"Evelynn","Evelynn1", "Shadow Isles", "Jgl","None", 1, 550, 65, 55, 25, 30, 335, -1, null,
+        						"Evelynn","Evelynn1", "Shadow Isles", "Jgl","None", 1, 550, 65, 55, 25, 30, 335, 0, 0, -1, null,
         				    List.of(
         				        new Move("Hate Spike", "Magic", 70, 100, 5, null, 0),
         				        new Move("Allure", "Magic", 0, 100, 10, "Charm", 0),
@@ -327,7 +327,7 @@ public class ChampionFactory {
         				));
 
         				champions.add(new Champion(
-        						"Ezreal","Ezreal1", "Piltover", "Adc","Mid", 1, 530, 65, 0, 22, 30, 330, -1, null,
+        						"Ezreal","Ezreal1", "Piltover", "Adc","Mid", 1, 530, 65, 0, 22, 30, 330, 0, 0, -1, null,
         				    List.of(
         				        new Move("Mystic Shot", "Physical", 60, 100, 10, null, 0),
         				        new Move("Essence Flux", "Magic", 80, 95, 15, "Buff", 0),
@@ -337,7 +337,7 @@ public class ChampionFactory {
         				));
 
         				champions.add(new Champion(
-        						"Fiddlesticks","Fiddlesticks1", "Runeterra", "Jgl","None", 1, 580, 0, 55, 30, 30, 335, -1, null,
+        						"Fiddlesticks","Fiddlesticks1", "Runeterra", "Jgl","None", 1, 580, 0, 55, 30, 30, 335, 0, 0, -1, null,
         				    List.of(
         				        new Move("Terrify", "Magic", 0, 100, 10, "Fear", 0),
         				        new Move("Drain", "Magic", 70, 90, 15, "Heal", 0),
@@ -347,7 +347,7 @@ public class ChampionFactory {
         				));
 
         				champions.add(new Champion(
-        						"Fiora","Fiora1", "Demacia", "Top","None", 1, 620, 70, 0, 32, 30, 345, -1, null,
+        						"Fiora","Fiora1", "Demacia", "Top","None", 1, 620, 70, 0, 32, 30, 345, 0, 0, -1, null,
         				    List.of(
         				        new Move("Lunge", "Physical", 60, 100, 5, "Dash", 0),
         				        new Move("Riposte", "Physical", 0, 100, 10, "Stun", 0),
@@ -357,7 +357,7 @@ public class ChampionFactory {
         				));
 
         				champions.add(new Champion(
-        						"Fizz","Fizz1", "Bilgewater", "Mid","Top", 1, 550, 70, 50, 25, 32, 345, -1, null,
+        						"Fizz","Fizz1", "Bilgewater", "Mid","Top", 1, 550, 70, 50, 25, 32, 345, 0, 0, -1, null,
         				    List.of(
         				        new Move("Urchin Strike", "Magic", 70, 100, 5, "Dash", 0),
         				        new Move("Seastone Trident", "Magic", 80, 95, 15, "On-hit", 0),
@@ -368,7 +368,7 @@ public class ChampionFactory {
         				
         				
         				champions.add(new Champion(
-        						"Galio","Galio1", "Demacia", "Mid","Supp", 1, 610, 60, 50, 38, 35, 335, -1, null,
+        						"Galio","Galio1", "Demacia", "Mid","Supp", 1, 610, 60, 50, 38, 35, 335, 0, 0, -1, null,
         					    List.of(
         					        new Move("Winds of War", "Magic", 80, 100, 10, "Area damage", 0),
         					        new Move("Shield of Durand", "Magic", 0, 100, 10, "Taunt", 0),
@@ -378,7 +378,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        							 "Gangplank", "Gankplank1", "Bilgewater", "Top","Mid", 1, 580, 70, 0, 35, 32, 345, -1, null,
+        							 "Gangplank", "Gankplank1", "Bilgewater", "Top","Mid", 1, 580, 70, 0, 35, 32, 345, 0, 0, -1, null,
         					    List.of(
         					        new Move("Parrrley", "Physical", 70, 100, 10, "Bonus gold", 0),
         					        new Move("Remove Scurvy", "Physical", 0, 100, 10, "Heal", 0),
@@ -388,7 +388,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        							"Garen","Garen1", "Demacia", "Top","None", 1, 650, 72, 0, 40, 32, 340, -1, null,
+        							"Garen","Garen1", "Demacia", "Top","None", 1, 650, 72, 0, 40, 32, 340, 0, 0, -1, null,
         					    List.of(
         					        new Move("Decisive Strike", "Physical", 60, 100, 10, "Silence", 0),
         					        new Move("Courage", "Physical", 0, 100, 15, "Damage reduction", 0),
@@ -398,7 +398,7 @@ public class ChampionFactory {
         					));
         					
         					champions.add(new Champion(
-        							"Gnar","Gnar1", "Freljord", "Top","None", 1, 540, 65, 0, 32, 30, 335, -1, null,
+        							"Gnar","Gnar1", "Freljord", "Top","None", 1, 540, 65, 0, 32, 30, 335, 0, 0, -1, null,
         						    List.of(
         						        new Move("Boomerang Throw", "Physical", 50, 90, 10, "Slow", 0),
         						        new Move("Hyper", "Magic", 0, 100, 15, "Speed buff", 0),
@@ -408,7 +408,7 @@ public class ChampionFactory {
         						));
 
         					champions.add(new Champion(
-        							"Gragas","Gragas1", "Freljord", "Jgl","Top", 1, 650, 65, 50, 40, 35, 330, -1, null,
+        							"Gragas","Gragas1", "Freljord", "Jgl","Top", 1, 650, 65, 50, 40, 35, 330, 0, 0, -1, null,
         					    List.of(
         					        new Move("Barrel Roll", "Magic", 80, 100, 10, "Slow", 0),
         					        new Move("Drunken Rage", "Magic", 0, 100, 10, "Damage reduction", 0),
@@ -418,7 +418,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        					    "Graves","Graves1", "Bilgewater", "Jgl","None", 1, 625, 70, 0, 33, 32, 340, -1, null,
+        					    "Graves","Graves1", "Bilgewater", "Jgl","None", 1, 625, 70, 0, 33, 32, 340, 0, 0, -1, null,
         					    List.of(
         					        new Move("End of the Line", "Physical", 80, 100, 10, "Explosion", 0),
         					        new Move("Smoke Screen", "Magic", 0, 100, 10, "Blind", 0),
@@ -428,7 +428,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        					    "Gwen","Gwen1", "Shadow Isles", "Top","None", 1, 620, 65, 60, 30, 35, 335, -1, null,
+        					    "Gwen","Gwen1", "Shadow Isles", "Top","None", 1, 620, 65, 60, 30, 35, 335, 0, 0, -1, null,
         					    List.of(
         					        new Move("Snip Snip!", "Magic", 70, 100, 10, "Area damage", 0),
         					        new Move("Hallowed Mist", "Magic", 0, 100, 10, "Damage reduction", 0),
@@ -438,7 +438,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        					    "Hecarim", "Hecarim1", "Shadow Isles", "Jgl","None", 1, 650, 70, 0, 35, 32, 340, -1, null,
+        					    "Hecarim", "Hecarim1", "Shadow Isles", "Jgl","None", 1, 650, 70, 0, 35, 32, 340, 0, 0, -1, null,
         					    List.of(
         					        new Move("Rampage", "Physical", 60, 100, 5, "Area damage", 0),
         					        new Move("Spirit of Dread", "Magic", 0, 100, 10, "Heal", 0),
@@ -448,7 +448,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        					    "Heimerdinger", "Heimerdinger1","Piltover", "Mid","Top", 1, 530, 0, 70, 25, 30, 335, -1, null,
+        					    "Heimerdinger", "Heimerdinger1","Piltover", "Mid","Top", 1, 530, 0, 70, 25, 30, 335, 0, 0, -1, null,
         					    List.of(
         					        new Move("H-28G Evolution Turret", "Magic", 60, 100, 10, "Summon turret", 0),
         					        new Move("Hextech Micro-Rockets", "Magic", 80, 95, 15, "Damage", 0),
@@ -458,7 +458,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        					    "Illaoi","Illaoi1", "Bilgewater", "Top","Mid", 1, 650, 75, 0, 35, 32, 345, -1, null,
+        					    "Illaoi","Illaoi1", "Bilgewater", "Top","Mid", 1, 650, 75, 0, 35, 32, 345, 0, 0, -1, null,
         					    List.of(
         					        new Move("Tentacle Smash", "Physical", 80, 100, 10, "Area damage", 0),
         					        new Move("Harsh Lesson", "Physical", 70, 90, 5, "Bonus damage", 0),
@@ -468,7 +468,7 @@ public class ChampionFactory {
         					));
 
         					champions.add(new Champion(
-        					    "Irelia","Irelia1", "Ionia", "Top","Mid", 1, 600, 70, 0, 30, 32, 340, -1, null,
+        					    "Irelia","Irelia1", "Ionia", "Top","Mid", 1, 600, 70, 0, 30, 32, 340, 0, 0, -1, null,
         					    List.of(
         					        new Move("Bladesurge", "Physical", 60, 100, 5, "Dash", 0),
         					        new Move("Defiant Dance", "Physical", 0, 100, 10, "Damage reduction", 0),
@@ -478,7 +478,7 @@ public class ChampionFactory {
         					));
         					
         					champions.add(new Champion(
-        						    "Ivern", "Ivern1","Ionia", "Jgl","None", 1, 570, 55, 50, 30, 30, 330, -1, null,
+        						    "Ivern", "Ivern1","Ionia", "Jgl","None", 1, 570, 55, 50, 30, 30, 330, 0, 0, -1, null,
         						    List.of(
         						        new Move("Rootcaller", "Magic", 60, 100, 10, "Root", 0),
         						        new Move("Brushmaker", "Magic", 0, 100, 15, "Brush creation", 0),
@@ -488,7 +488,7 @@ public class ChampionFactory {
         						));
 
         						champions.add(new Champion(
-        						    "Janna","Janna1",  "Runeterra", "Supp","None", 1, 525, 50, 70, 30, 32, 330, -1, null,
+        						    "Janna","Janna1",  "Runeterra", "Supp","None", 1, 525, 50, 70, 30, 32, 330, 0, 0, -1, null,
         						    List.of(
         						        new Move("Howling Gale", "Magic", 60, 100, 15, "Knockup", 0),
         						        new Move("Zephyr", "Magic", 50, 95, 10, "Slow", 0),
@@ -498,7 +498,7 @@ public class ChampionFactory {
         						));
 
         						champions.add(new Champion(
-        						    "Jarvan IV","JarvanIV1", "Demacia", "Jgl","Top", 1, 610, 72, 0, 38, 32, 340, -1, null,
+        						    "Jarvan IV","JarvanIV1", "Demacia", "Jgl","Top", 1, 610, 72, 0, 38, 32, 340, 0, 0, -1, null,
         						    List.of(
         						        new Move("Dragon Strike", "Physical", 80, 100, 10, "Knockup", 0),
         						        new Move("Golden Aegis", "Magic", 0, 100, 15, "Shield", 0),
@@ -508,7 +508,7 @@ public class ChampionFactory {
         						));
 
         						champions.add(new Champion(
-        								"Jax","Jax1", "Ionia", "Top","Jgl", 1, 640, 68, 0, 36, 32, 350, -1, null,
+        								"Jax","Jax1", "Ionia", "Top","Jgl", 1, 640, 68, 0, 36, 32, 350, 0, 0, -1, null,
         						    List.of(
         						        new Move("Leap Strike", "Physical", 70, 100, 10, "Dash", 0),
         						        new Move("Empower", "Physical", 80, 90, 5, "Bonus damage", 0),
@@ -518,7 +518,7 @@ public class ChampionFactory {
         						));
 
         						champions.add(new Champion(
-        								"Jayce", "Jayce1", "Piltover", "Mid","Top", 1, 560, 65, 50, 30, 32, 340, -1, null,
+        								"Jayce", "Jayce1", "Piltover", "Mid","Top", 1, 560, 65, 50, 30, 32, 340, 0, 0, -1, null,
         						    List.of(
         						        new Move("Shock Blast", "Magic", 70, 100, 10, "Area damage", 0),
         						        new Move("Hyper Charge", "Physical", 50, 95, 5, "Attack speed boost", 0),
@@ -528,7 +528,7 @@ public class ChampionFactory {
         						));
 
         						champions.add(new Champion(
-        						    "Jhin","Jhin1",  "Ionia", "Adc","None", 1, 540, 65, 0, 22, 32, 330, -1, null,
+        						    "Jhin","Jhin1",  "Ionia", "Adc","None", 1, 540, 65, 0, 22, 32, 330, 0, 0, -1, null,
         						    List.of(
         						        new Move("Dancing Grenade", "Physical", 80, 100, 10, "Bouncing damage", 0),
         						        new Move("Deadly Flourish", "Magic", 70, 90, 15, "Root", 0),
@@ -538,7 +538,7 @@ public class ChampionFactory {
         						));
 
         						champions.add(new Champion(
-        						    "Jinx","Jinx1", "Zaun", "Adc","None", 1, 530, 70, 0, 25, 30, 325, -1, null,
+        						    "Jinx","Jinx1", "Zaun", "Adc","None", 1, 530, 70, 0, 25, 30, 325, 0, 0, -1, null,
         						    List.of(
         						        new Move("Switcheroo!", "Physical", 0, 100, 10, "Weapon switch", 0),
         						        new Move("Zap!", "Physical", 60, 95, 15, "Slow", 0),
@@ -548,7 +548,7 @@ public class ChampionFactory {
         						));
         						
         						champions.add(new Champion(
-        							    "K'Sante", "Ksante1",  "Shurima", "Top","None", 1, 620, 80, 0, 50, 35, 330, -1, null,
+        							    "K'Sante", "Ksante1",  "Shurima", "Top","None", 1, 620, 80, 0, 50, 35, 330, 0, 0, -1, null,
         							    List.of(
         							        new Move("Ntofo Strikes", "Physical", 80, 90, 10, "Knockback", 0),
         							        new Move("Path Maker", "Magic", 50, 95, 15, "Shield and charge", 0),
@@ -558,7 +558,7 @@ public class ChampionFactory {
         							));
         						
         						champions.add(new Champion(
-        							    "Kai'Sa", "Kaisa1", "Void", "Adc","None", 1, 560, 68, 0, 28, 30, 335, -1, null,
+        							    "Kai'Sa", "Kaisa1", "Void", "Adc","None", 1, 560, 68, 0, 28, 30, 335, 0, 0, -1, null,
         							    List.of(
         							        new Move("Icathian Rain", "Physical", 60, 100, 10, "Multi-target damage", 0),
         							        new Move("Void Seeker", "Magic", 80, 90, 20, "Mark target", 0),
@@ -567,7 +567,7 @@ public class ChampionFactory {
         							    )
         							));
         						champions.add(new Champion(
-        							    "Kalista","Kalista1", "Shadow Isles", "Adc","None", 1, 520, 65, 0, 22, 30, 330, -1, null,
+        							    "Kalista","Kalista1", "Shadow Isles", "Adc","None", 1, 520, 65, 0, 22, 30, 330, 0, 0, -1, null,
         							    List.of(
         							        new Move("Pierce", "Physical", 70, 95, 10, "Piercing damage", 0),
         							        new Move("Sentinel", "Magic", 0, 100, 15, "Vision scout", 0),
@@ -578,7 +578,7 @@ public class ChampionFactory {
         						
 
         						champions.add(new Champion(
-        						    "Karma","Karma1", "Ionia", "Supp","Top", 1, 540, 55, 60, 28, 32, 340, -1, null,
+        						    "Karma","Karma1", "Ionia", "Supp","Top", 1, 540, 55, 60, 28, 32, 340, 0, 0, -1, null,
         						    List.of(
         						        new Move("Inner Flame", "Magic", 70, 100, 10, "Area damage", 0),
         						        new Move("Focused Resolve", "Magic", 60, 90, 15, "Root", 0),
@@ -588,7 +588,7 @@ public class ChampionFactory {
         						));
 
         						champions.add(new Champion(
-        						    "Karthus", "Karthus1","Shadow Isles", "Mid","Jgl", 1, 550, 0, 70, 25, 30, 335, -1, null,
+        						    "Karthus", "Karthus1","Shadow Isles", "Mid","Jgl", 1, 550, 0, 70, 25, 30, 335, 0, 0, -1, null,
         						    List.of(
         						        new Move("Lay Waste", "Magic", 60, 100, 10, "Area damage", 0),
         						        new Move("Wall of Pain", "Magic", 50, 95, 15, "Slow", 0),
@@ -598,7 +598,7 @@ public class ChampionFactory {
         						));
 
         						champions.add(new Champion(
-        						    "Kassadin","Kassadin1", "Void", "Mid","Top", 1, 570, 65, 60, 30, 35, 340, -1, null,
+        						    "Kassadin","Kassadin1", "Void", "Mid","Top", 1, 570, 65, 60, 30, 35, 340, 0, 0, -1, null,
         						    List.of(
         						        new Move("Null Sphere", "Magic", 70, 100, 10, "Silence", 0),
         						        new Move("Nether Blade", "Physical", 60, 95, 10, "Bonus damage", 0),
@@ -608,7 +608,7 @@ public class ChampionFactory {
         						));
         						
         						champions.add(new Champion(
-        							    "Katarina","Katarina1", "Noxus", "Mid","None", 1, 540, 65, 55, 28, 30, 345, -1, null,
+        							    "Katarina","Katarina1", "Noxus", "Mid","None", 1, 540, 65, 55, 28, 30, 345, 0, 0, -1, null,
         							    List.of(
         							        new Move("Bouncing Blade", "Physical", 60, 95, 10, "Bounce damage", 0),
         							        new Move("Preparation", "Magic", 0, 100, 5, "Speed boost", 0),
@@ -618,7 +618,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "Kayle","Kayle1", "Targon", "Top","None", 1, 600, 65, 60, 30, 32, 335, -1, null,
+        							    "Kayle","Kayle1", "Targon", "Top","None", 1, 600, 65, 60, 30, 32, 335, 0, 0, -1, null,
         							    List.of(
         							        new Move("Radiant Blast", "Magic", 70, 100, 10, "Armor shred", 0),
         							        new Move("Celestial Blessing", "Magic", 0, 100, 10, "Heal", 0),
@@ -628,7 +628,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "Kayn", "Kayn1","Darkin", "Jgl","Top", 1, 610, 68, 0, 38, 32, 340, -1, null,
+        							    "Kayn", "Kayn1","Darkin", "Jgl","Top", 1, 610, 68, 0, 38, 32, 340, 0, 0, -1, null,
         							    List.of(
         							        new Move("Reaping Slash", "Physical", 70, 95, 10, "Dash", 0),
         							        new Move("Blade's Reach", "Physical", 80, 100, 15, "Slow", 0),
@@ -638,7 +638,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "Kennen","Kennen1", "Ionia", "Top","Mid", 1, 540, 50, 60, 28, 32, 340, -1, null,
+        							    "Kennen","Kennen1", "Ionia", "Top","Mid", 1, 540, 50, 60, 28, 32, 340, 0, 0, -1, null,
         							    List.of(
         							        new Move("Thundering Shuriken", "Magic", 60, 100, 10, "Damage", 0),
         							        new Move("Electrical Surge", "Magic", 70, 95, 15, "Bonus damage", 0),
@@ -648,7 +648,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "Kha'Zix","Khazix1", "Void", "Jgl","None", 1, 600, 65, 50, 30, 30, 350, -1, null,
+        							    "Kha'Zix","Khazix1", "Void", "Jgl","None", 1, 600, 65, 50, 30, 30, 350, 0, 0, -1, null,
         							    List.of(
         							        new Move("Taste Their Fear", "Physical", 80, 100, 10, "Isolation damage", 0),
         							        new Move("Void Spike", "Magic", 60, 90, 15, "Area damage", 0),
@@ -658,7 +658,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "Kindred","Kindred1", "Runeterra", "Jgl","None", 1, 550, 65, 50, 25, 32, 325, -1, null,
+        							    "Kindred","Kindred1", "Runeterra", "Jgl","None", 1, 550, 65, 50, 25, 32, 325, 0, 0, -1, null,
         							    List.of(
         							        new Move("Dance of Arrows", "Physical", 60, 95, 10, "Dash", 0),
         							        new Move("Wolf's Frenzy", "Magic", 70, 100, 15, "Area damage", 0),
@@ -668,7 +668,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "Kled","Kled1", "Noxus", "Top","None", 1, 630, 68, 0, 40, 30, 340, -1, null,
+        							    "Kled","Kled1", "Noxus", "Top","None", 1, 630, 68, 0, 40, 30, 340, 0, 0, -1, null,
         							    List.of(
         							        new Move("Bear Trap on a Rope", "Physical", 70, 95, 10, "Pull", 0),
         							        new Move("Violent Tendencies", "Physical", 80, 100, 15, "Bonus damage", 0),
@@ -678,7 +678,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "Kog'Maw", "Kogmaw1","Void", "Adc","None", 1, 540, 60, 50, 25, 30, 330, -1, null,
+        							    "Kog'Maw", "Kogmaw1","Void", "Adc","None", 1, 540, 60, 50, 25, 30, 330, 0, 0, -1, null,
         							    List.of(
         							        new Move("Caustic Spittle", "Magic", 60, 100, 10, "Armor shred", 0),
         							        new Move("Bio-Arcane Barrage", "Magic", 0, 100, 15, "Bonus range", 0),
@@ -688,7 +688,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "LeBlanc","Leblanc1", "Noxus", "Mid","None", 1, 520, 0, 70, 22, 32, 340, -1, null,
+        							    "LeBlanc","Leblanc1", "Noxus", "Mid","None", 1, 520, 0, 70, 22, 32, 340, 0, 0, -1, null,
         							    List.of(
         							        new Move("Sigil of Malice", "Magic", 60, 100, 10, "Mark damage", 0),
         							        new Move("Distortion", "Magic", 70, 95, 15, "Dash", 0),
@@ -698,7 +698,7 @@ public class ChampionFactory {
         							));
 
         							champions.add(new Champion(
-        							    "Lee Sin","Leesin1", "Ionia", "Jgl","Top", 1, 610, 68, 0, 35, 32, 345, -1, null,
+        							    "Lee Sin","Leesin1", "Ionia", "Jgl","Top", 1, 610, 68, 0, 35, 32, 345, 0, 0, -1, null,
         							    List.of(
         							        new Move("Sonic Wave", "Physical", 70, 95, 10, "Dash", 0),
         							        new Move("Safeguard", "Magic", 0, 100, 15, "Shield", 0),
@@ -708,7 +708,7 @@ public class ChampionFactory {
         							));
         							
         							champions.add(new Champion(
-        								    "Leona", "Leona1","Targon", "Supp","None", 1, 630, 60, 50, 45, 40, 335, -1, null,
+        								    "Leona", "Leona1","Targon", "Supp","None", 1, 630, 60, 50, 45, 40, 335, 0, 0, -1, null,
         								    List.of(
         								        new Move("Shield of Daybreak", "Physical", 70, 100, 10, "Stun", 0),
         								        new Move("Eclipse", "Magic", 60, 90, 15, "Armor boost", 0),
@@ -718,7 +718,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        								    "Lillia","Lilia1", "Ionia", "Jgl","Top", 1, 570, 55, 65, 30, 35, 330, -1, null,
+        								    "Lillia","Lilia1", "Ionia", "Jgl","Top", 1, 570, 55, 65, 30, 35, 330, 0, 0, -1, null,
         								    List.of(
         								        new Move("Blooming Blows", "Magic", 70, 95, 10, "Damage over time", 0),
         								        new Move("Watch Out! Eep!", "Magic", 90, 90, 15, "Area damage", 0),
@@ -728,7 +728,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        								    "Lissandra","Lissandra1", "Freljord", "Mid","Top", 1, 510, 0, 65, 25, 30, 330, -1, null,
+        								    "Lissandra","Lissandra1", "Freljord", "Mid","Top", 1, 510, 0, 65, 25, 30, 330, 0, 0, -1, null,
         								    List.of(
         								        new Move("Ice Shard", "Magic", 60, 95, 10, "Slow", 0),
         								        new Move("Ring of Frost", "Magic", 70, 100, 15, "Root", 0),
@@ -738,7 +738,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        								    "Lucian", "Lucian1","Demacia", "Adc","Mid", 1, 570, 65, 0, 30, 30, 335, -1, null,
+        								    "Lucian", "Lucian1","Demacia", "Adc","Mid", 1, 570, 65, 0, 30, 30, 335, 0, 0, -1, null,
         								    List.of(
         								        new Move("Piercing Light", "Physical", 80, 100, 10, "Line damage", 0),
         								        new Move("Ardent Blaze", "Magic", 50, 90, 15, "Mark damage", 0),
@@ -748,7 +748,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        								    "Lulu","Lulu1", "Bandle City", "Supp","None", 1, 530, 0, 60, 30, 35, 330, -1, null,
+        								    "Lulu","Lulu1", "Bandle City", "Supp","None", 1, 530, 0, 60, 30, 35, 330, 0, 0, -1, null,
         								    List.of(
         								        new Move("Glitterlance", "Magic", 70, 95, 10, "Slow", 0),
         								        new Move("Whimsy", "Magic", 50, 100, 15, "Polymorph", 0),
@@ -758,7 +758,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        										"Lux","Lux1", "Demacia", "Mid","Supp", 1, 500, 0, 70, 22, 30, 330, -1, null,
+        										"Lux","Lux1", "Demacia", "Mid","Supp", 1, 500, 0, 70, 22, 30, 330, 0, 0, -1, null,
         								    List.of(
         								        new Move("Light Binding", "Magic", 70, 95, 10, "Root", 0),
         								        new Move("Prismatic Barrier", "Magic", 0, 100, 15, "Shield", 0),
@@ -768,7 +768,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        								    "Malphite","Malphite1", "Ixtal", "Top","None", 1, 640, 60, 0, 50, 45, 335, -1, null,
+        								    "Malphite","Malphite1", "Ixtal", "Top","None", 1, 640, 60, 0, 50, 45, 335, 0, 0, -1, null,
         								    List.of(
         								        new Move("Seismic Shard", "Magic", 60, 90, 10, "Slow", 0),
         								        new Move("Thunderclap", "Physical", 70, 95, 15, "Bonus damage", 0),
@@ -778,7 +778,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        								    "Malzahar","Malzahar1", "Void", "Mid","None", 1, 520, 0, 65, 22, 30, 335, -1, null,
+        								    "Malzahar","Malzahar1", "Void", "Mid","None", 1, 520, 0, 65, 22, 30, 335, 0, 0, -1, null,
         								    List.of(
         								        new Move("Call of the Void", "Magic", 70, 95, 10, "Silence", 0),
         								        new Move("Null Zone", "Magic", 80, 90, 15, "Area damage", 0),
@@ -788,7 +788,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        								    "Maokai","Maokai1", "Shadow Isles", "Top","Supp", 1, 650, 60, 0, 50, 40, 330, -1, null,
+        								    "Maokai","Maokai1", "Shadow Isles", "Top","Supp", 1, 650, 60, 0, 50, 40, 330, 0, 0, -1, null,
         								    List.of(
         								        new Move("Bramble Smash", "Physical", 60, 95, 10, "Knockback", 0),
         								        new Move("Twisted Advance", "Magic", 70, 100, 15, "Root", 0),
@@ -798,7 +798,7 @@ public class ChampionFactory {
         								));
 
         								champions.add(new Champion(
-        								    "Master Yi","Masteryi1", "Ionia", "Jgl","None", 1, 600, 68, 0, 32, 30, 350, -1, null,
+        								    "Master Yi","Masteryi1", "Ionia", "Jgl","None", 1, 600, 68, 0, 32, 30, 350, 0, 0, -1, null,
         								    List.of(
         								        new Move("Alpha Strike", "Physical", 80, 95, 10, "Dash", 0),
         								        new Move("Meditate", "Magic", 0, 100, 15, "Heal", 0),
@@ -808,7 +808,7 @@ public class ChampionFactory {
         								));
         								
         								champions.add(new Champion(
-        								        "Mel", "Mel1", "Noxus", "Mid","None", 1, 520, 50, 90, 28, 35, 350, 12, "Ascended Mel",
+        								        "Mel", "Mel1", "Noxus", "Mid","None", 1, 520, 50, 90, 28, 35, 350, 0, 0, 12, "Ascended Mel",
         								        List.of(
         								            new Move("Radiant Volley", "Magic", 60, 95, 15, "Area damage", 0),
         								            new Move("Rebuttal", "Buff", 0, 100, 25, "Reflect projectiles", 0),
@@ -818,7 +818,7 @@ public class ChampionFactory {
         								));
         								
         								champions.add(new Champion(
-        									    "Milio","Milio1", "Ixtal", "Supp","None", 1, 510, 0, 60, 22, 30, 330, -1, null,
+        									    "Milio","Milio1", "Ixtal", "Supp","None", 1, 510, 0, 60, 22, 30, 330, 0, 0, -1, null,
         									    List.of(
         									        new Move("Ultra Mega Fire Kick", "Magic", 60, 100, 10, "Knockback", 0),
         									        new Move("Cozy Campfire", "Magic", 0, 100, 20, "Heal and buff", 0),
@@ -828,7 +828,7 @@ public class ChampionFactory {
         									));
         								
         								champions.add(new Champion(
-        									    "Miss Fortune","Missfortune1", "Bilgewater", "Adc","None", 1, 540, 65, 0, 28, 30, 325, -1, null,
+        									    "Miss Fortune","Missfortune1", "Bilgewater", "Adc","None", 1, 540, 65, 0, 28, 30, 325, 0, 0, -1, null,
         									    List.of(
         									        new Move("Double Up", "Physical", 70, 95, 10, "Bounce damage", 0),
         									        new Move("Strut", "Magic", 0, 100, 15, "Speed boost", 0),
@@ -838,7 +838,7 @@ public class ChampionFactory {
         									));
 
         									champions.add(new Champion(
-        									    "Mordekaiser", "Mordekaiser1","Shadow Isles", "Top","None", 1, 650, 70, 0, 40, 35, 335, -1, null,
+        									    "Mordekaiser", "Mordekaiser1","Shadow Isles", "Top","None", 1, 650, 70, 0, 40, 35, 335, 0, 0, -1, null,
         									    List.of(
         									        new Move("Obliterate", "Physical", 90, 95, 10, "Smash", 0),
         									        new Move("Indestructible", "Magic", 0, 100, 15, "Shield", 0),
@@ -848,7 +848,7 @@ public class ChampionFactory {
         									));
 
         									champions.add(new Champion(
-        									    "Morgana","Morgana1", "Demacia", "Supp","None", 1, 560, 0, 65, 25, 30, 330, -1, null,
+        									    "Morgana","Morgana1", "Demacia", "Supp","None", 1, 560, 0, 65, 25, 30, 330, 0, 0, -1, null,
         									    List.of(
         									        new Move("Dark Binding", "Magic", 70, 95, 10, "Root", 0),
         									        new Move("Tormented Shadow", "Magic", 80, 90, 15, "Area damage", 0),
@@ -858,7 +858,7 @@ public class ChampionFactory {
         									));
         									
         									champions.add(new Champion(
-        										    "Naafiri", "Naafiri1","Shurima", "Mid","None", 1, 540, 70, 0, 30, 30, 340, -1, null,
+        										    "Naafiri", "Naafiri1","Shurima", "Mid","None", 1, 540, 70, 0, 30, 30, 340, 0, 0, -1, null,
         										    List.of(
         										        new Move("Darkin Daggers", "Physical", 70, 95, 10, "Bleed", 0),
         										        new Move("Hound Rush", "Physical", 50, 100, 10, "Dash with wolves", 0),
@@ -868,7 +868,7 @@ public class ChampionFactory {
         										));
 
         									champions.add(new Champion(
-        											 "Nami",  "Nami1", "Bilgewater", "Supp","None", 1, 550, 0, 60, 28, 30, 335, -1, null,
+        											 "Nami",  "Nami1", "Bilgewater", "Supp","None", 1, 550, 0, 60, 28, 30, 335, 0, 0, -1, null,
         									    List.of(
         									        new Move("Aqua Prison", "Magic", 60, 95, 10, "Stun", 0),
         									        new Move("Ebb and Flow", "Magic", 50, 90, 15, "Heal/Bounce", 0),
@@ -878,7 +878,7 @@ public class ChampionFactory {
         									));
 
         									champions.add(new Champion(
-        									    "Nasus", "Nasus1", "Shurima", "Top","Jgl", 1, 650, 68, 0, 40, 35, 340, -1, null,
+        									    "Nasus", "Nasus1", "Shurima", "Top","Jgl", 1, 650, 68, 0, 40, 35, 340, 0, 0, -1, null,
         									    List.of(
         									        new Move("Siphoning Strike", "Physical", 70, 95, 10, "Stack damage", 0),
         									        new Move("Wither", "Magic", 0, 100, 15, "Slow", 0),
@@ -888,7 +888,7 @@ public class ChampionFactory {
         									));
 
         									champions.add(new Champion(
-        									    "Nautilus", "Nautilus1", "Bilgewater", "Supp","None", 1, 640, 60, 0, 50, 35, 325, -1, null,
+        									    "Nautilus", "Nautilus1", "Bilgewater", "Supp","None", 1, 640, 60, 0, 50, 35, 325, 0, 0, -1, null,
         									    List.of(
         									        new Move("Dredge Line", "Physical", 60, 95, 10, "Pull", 0),
         									        new Move("Titan's Wrath", "Magic", 0, 100, 15, "Shield", 0),
@@ -898,7 +898,7 @@ public class ChampionFactory {
         									));
 
         									champions.add(new Champion(
-        											   "Neeko",    "Neeko1", "Ixtal", "Mid","Supp", 1, 540, 0, 65, 28, 30, 340, -1, null,
+        											   "Neeko",    "Neeko1", "Ixtal", "Mid","Supp", 1, 540, 0, 65, 28, 30, 340, 0, 0, -1, null,
         									    List.of(
         									        new Move("Blooming Burst", "Magic", 70, 95, 10, "AoE damage", 0),
         									        new Move("Shapesplitter", "Magic", 0, 100, 15, "Clone", 0),
@@ -908,7 +908,7 @@ public class ChampionFactory {
         									));
 
         									champions.add(new Champion(
-        									    "Nidalee", "Nidalee1", "Ixtal", "Jgl","None", 1, 560, 60, 0, 32, 30, 350, -1, null,
+        									    "Nidalee", "Nidalee1", "Ixtal", "Jgl","None", 1, 560, 60, 0, 32, 30, 350, 0, 0, -1, null,
         									    List.of(
         									        new Move("Javelin Toss", "Physical", 80, 95, 10, "Range damage", 0),
         									        new Move("Bushwhack", "Magic", 0, 100, 15, "Trap", 0),
@@ -919,7 +919,7 @@ public class ChampionFactory {
         									
 
 								champions.add(new Champion(
-								    "Nilah","Nilah1", "Bilgewater", "Adc","None", 1, 550, 68, 0, 30, 30, 340, -1, null,
+								    "Nilah","Nilah1", "Bilgewater", "Adc","None", 1, 550, 68, 0, 30, 30, 340, 0, 0, -1, null,
 								    List.of(
 								        new Move("Formless Blade", "Physical", 70, 100, 10, "AoE slash", 0),
 								        new Move("Jubilant Veil", "Magic", 0, 100, 15, "Shield and cleanse", 0),
@@ -929,7 +929,7 @@ public class ChampionFactory {
 								));
 
         									champions.add(new Champion(
-        									    "Nocturne", "Nocturne1", "Runeterra", "Jgl","None", 1, 580, 65, 0, 32, 30, 350, -1, null,
+        									    "Nocturne", "Nocturne1", "Runeterra", "Jgl","None", 1, 580, 65, 0, 32, 30, 350, 0, 0, -1, null,
         									    List.of(
         									        new Move("Duskbringer", "Physical", 70, 95, 10, "Dash", 0),
         									        new Move("Shroud of Darkness", "Magic", 0, 100, 15, "Spell shield", 0),
@@ -939,7 +939,7 @@ public class ChampionFactory {
         									));
 
         									champions.add(new Champion(
-        									    "Nunu & Willump", "Nunu1", "Freljord", "Jgl","None", 1, 650, 60, 0, 45, 35, 325, -1, null,
+        									    "Nunu & Willump", "Nunu1", "Freljord", "Jgl","None", 1, 650, 60, 0, 45, 35, 325, 0, 0, -1, null,
         									    List.of(
         									        new Move("Consume", "Physical", 80, 95, 10, "Heal", 0),
         									        new Move("Biggest Snowball Ever!", "Physical", 90, 90, 15, "Knockback", 0),
@@ -950,7 +950,7 @@ public class ChampionFactory {
         									
         									
         									champions.add(new Champion(
-        										    "Olaf","Olaf1", "Freljord", "Top","None", 1, 580, 68, 0, 35, 32, 350, -1, null,
+        										    "Olaf","Olaf1", "Freljord", "Top","None", 1, 580, 68, 0, 35, 32, 350, 0, 0, -1, null,
         										    List.of(
         										        new Move("Undertow", "Physical", 70, 95, 10, "Slow", 0),
         										        new Move("Vicious Strikes", "Magic", 0, 100, 15, "Heal", 0),
@@ -960,7 +960,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        										    "Orianna","Oriana1", "Piltover", "Mid","None", 1, 530, 0, 70, 22, 30, 325, -1, null,
+        										    "Orianna","Oriana1", "Piltover", "Mid","None", 1, 530, 0, 70, 22, 30, 325, 0, 0, -1, null,
         										    List.of(
         										        new Move("Command: Attack", "Magic", 60, 100, 10, "Position ball", 0),
         										        new Move("Command: Dissonance", "Magic", 80, 95, 15, "AoE damage", 0),
@@ -970,7 +970,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        												 "Ornn", "Ornn1", "Freljord", "Top","None", 1, 590, 60, 0, 45, 35, 335, -1, null,
+        												 "Ornn", "Ornn1", "Freljord", "Top","None", 1, 590, 60, 0, 45, 35, 335, 0, 0, -1, null,
         										    List.of(
         										        new Move("Volcanic Rupture", "Physical", 70, 95, 10, "Knockup", 0),
         										        new Move("Bellows Breath", "Magic", 50, 90, 15, "Brittle", 0),
@@ -980,7 +980,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        												 "Pantheon",  "Pantheon1", "Targon", "Top","Supp", 1, 600, 70, 0, 40, 30, 345, -1, null,
+        												 "Pantheon",  "Pantheon1", "Targon", "Top","Supp", 1, 600, 70, 0, 40, 30, 345, 0, 0, -1, null,
         										    List.of(
         										        new Move("Comet Spear", "Physical", 80, 90, 10, "Range damage", 0),
         										        new Move("Shield Vault", "Physical", 50, 95, 10, "Stun", 0),
@@ -990,7 +990,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        										    "Poppy", "Poppy1",  "Demacia", "Top","None", 1, 610, 55, 0, 40, 35, 330, -1, null,
+        										    "Poppy", "Poppy1",  "Demacia", "Top","None", 1, 610, 55, 0, 40, 35, 330, 0, 0, -1, null,
         										    List.of(
         										        new Move("Hammer Shock", "Physical", 70, 95, 10, "Slow", 0),
         										        new Move("Steadfast Presence", "Magic", 0, 100, 15, "Anti-dash", 0),
@@ -1000,7 +1000,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        										    "Pyke", "Pyke1", "Bilgewater", "Supp","None", 1, 580, 65, 0, 32, 30, 345, -1, null,
+        										    "Pyke", "Pyke1", "Bilgewater", "Supp","None", 1, 580, 65, 0, 32, 30, 345, 0, 0, -1, null,
         										    List.of(
         										        new Move("Bone Skewer", "Physical", 80, 90, 10, "Pull", 0),
         										        new Move("Ghostwater Dive", "Magic", 0, 100, 15, "Invisibility", 0),
@@ -1010,7 +1010,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        										    "Qiyana", "Qiyana1","Ixtal", "Mid","None", 1, 560, 65, 0, 32, 30, 350, -1, null,
+        										    "Qiyana", "Qiyana1","Ixtal", "Mid","None", 1, 560, 65, 0, 32, 30, 350, 0, 0, -1, null,
         										    List.of(
         										        new Move("Edge of Ixtal", "Physical", 70, 95, 10, "Area damage", 0),
         										        new Move("Terrashape", "Magic", 0, 100, 15, "Buff", 0),
@@ -1020,7 +1020,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        										    "Quinn",  "Quinn1", "Demacia", "Top","Adc", 1, 540, 68, 0, 30, 30, 335, -1, null,
+        										    "Quinn",  "Quinn1", "Demacia", "Top","Adc", 1, 540, 68, 0, 30, 30, 335, 0, 0, -1, null,
         										    List.of(
         										        new Move("Blinding Assault", "Physical", 70, 95, 10, "Blind", 0),
         										        new Move("Heightened Senses", "Magic", 0, 100, 15, "Vision reveal", 0),
@@ -1030,7 +1030,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        										    "Rakan", "Rakan1","Ionia", "Supp","None", 1, 580, 60, 0, 32, 30, 340, -1, null,
+        										    "Rakan", "Rakan1","Ionia", "Supp","None", 1, 580, 60, 0, 32, 30, 340, 0, 0, -1, null,
         										    List.of(
         										        new Move("Gleaming Quill", "Magic", 60, 95, 10, "Heal", 0),
         										        new Move("Grand Entrance", "Physical", 50, 90, 10, "Knockup", 0),
@@ -1040,7 +1040,7 @@ public class ChampionFactory {
         										));
 
         										champions.add(new Champion(
-        										    "Rammus",   "Rammus1","Shurima", "Jgl","None", 1, 600, 55, 0, 50, 40, 335, -1, null,
+        										    "Rammus",   "Rammus1","Shurima", "Jgl","None", 1, 600, 55, 0, 50, 40, 335, 0, 0, -1, null,
         										    List.of(
         										        new Move("Powerball", "Physical", 80, 90, 10, "Dash", 0),
         										        new Move("Defensive Ball Curl", "Magic", 0, 100, 15, "Block", 0),
@@ -1050,7 +1050,7 @@ public class ChampionFactory {
         										));
         										
         										champions.add(new Champion(
-        											    "Rek'Sai","Reksai1","Void", "Jgl","None", 1, 570, 65, 0, 35, 32, 335, -1, null,
+        											    "Rek'Sai","Reksai1","Void", "Jgl","None", 1, 570, 65, 0, 35, 32, 335, 0, 0, -1, null,
         											    List.of(
         											        new Move("Queen's Wrath", "Physical", 60, 95, 10, null, 0),
         											        new Move("Burrow", "Magic", 0, 100, 10, "Tunnel", 0),
@@ -1060,7 +1060,7 @@ public class ChampionFactory {
         											));
         										
         										champions.add(new Champion(
-        											    "Rell","Rell1",  "Noxus", "Supp","None", 1, 620, 70, 0, 50, 35, 335, -1, null,
+        											    "Rell","Rell1",  "Noxus", "Supp","None", 1, 620, 70, 0, 50, 35, 335, 0, 0, -1, null,
         											    List.of(
         											        new Move("Shattering Strike", "Physical", 80, 95, 10, "Piercing damage", 0),
         											        new Move("Ferromancy: Crash Down", "Magic", 60, 90, 15, "Knockup", 0),
@@ -1070,7 +1070,7 @@ public class ChampionFactory {
         											));
         										
         										champions.add(new Champion(
-        											    "Renata Glasc","Renata1", "Zaun", "Supp","None", 1, 500, 0, 60, 25, 30, 330, -1, null,
+        											    "Renata Glasc","Renata1", "Zaun", "Supp","None", 1, 500, 0, 60, 25, 30, 330, 0, 0, -1, null,
         											    List.of(
         											        new Move("Handshake", "Magic", 60, 100, 10, "Pull and throw", 0),
         											        new Move("Bailout", "Magic", 0, 100, 15, "Revive ally temporarily", 0),
@@ -1080,7 +1080,7 @@ public class ChampionFactory {
         											));
 
         											champions.add(new Champion(
-        											    "Renekton","Renekton1", "Shurima", "Top","None", 1, 575, 69, 0, 40, 30, 345, -1, null,
+        											    "Renekton","Renekton1", "Shurima", "Top","None", 1, 575, 69, 0, 40, 30, 345, 0, 0, -1, null,
         											    List.of(
         											        new Move("Cull the Meek", "Physical", 70, 95, 10, "Heal", 0),
         											        new Move("Ruthless Predator", "Physical", 60, 100, 10, "Stun", 0),
@@ -1090,7 +1090,7 @@ public class ChampionFactory {
         											));
 
         											champions.add(new Champion(
-        											    "Rengar",  "Rengar1", "Ixtal", "Jgl","None", 1, 590, 68, 0, 34, 30, 345, -1, null,
+        											    "Rengar",  "Rengar1", "Ixtal", "Jgl","None", 1, 590, 68, 0, 34, 30, 345, 0, 0, -1, null,
         											    List.of(
         											        new Move("Savagery", "Physical", 70, 95, 10, null, 0),
         											        new Move("Battle Roar", "Magic", 50, 90, 10, "Heal", 0),
@@ -1100,7 +1100,7 @@ public class ChampionFactory {
         											));
 
         											champions.add(new Champion(
-        											    "Riven",   "Riven1", "Noxus", "Top","None", 1, 560, 70, 0, 30, 30, 345, -1, null,
+        											    "Riven",   "Riven1", "Noxus", "Top","None", 1, 560, 70, 0, 30, 30, 345, 0, 0, -1, null,
         											    List.of(
         											        new Move("Broken Wings", "Physical", 60, 95, 10, "Dash", 0),
         											        new Move("Ki Burst", "Physical", 50, 100, 10, "Stun", 0),
@@ -1110,7 +1110,7 @@ public class ChampionFactory {
         											));
 
         											champions.add(new Champion(
-        											    "Rumble", "Rumble1",  "Zaun", "Top","Mid", 1, 600, 0, 55, 30, 30, 345, -1, null,
+        											    "Rumble", "Rumble1",  "Zaun", "Top","Mid", 1, 600, 0, 55, 30, 30, 345, 0, 0, -1, null,
         											    List.of(
         											        new Move("Flamespitter", "Magic", 80, 90, 10, "Area damage", 0),
         											        new Move("Scrap Shield", "Magic", 0, 100, 15, "Shield", 0),
@@ -1120,7 +1120,7 @@ public class ChampionFactory {
         											));
 
         											champions.add(new Champion(
-        											    "Ryze",  "Ryze1", "Runeterra", "Mid","Top", 1, 520, 0, 70, 22, 30, 340, -1, null,
+        											    "Ryze",  "Ryze1", "Runeterra", "Mid","Top", 1, 520, 0, 70, 22, 30, 340, 0, 0, -1, null,
         											    List.of(
         											        new Move("Overload", "Magic", 60, 100, 10, null, 0),
         											        new Move("Rune Prison", "Magic", 50, 95, 10, "Root", 0),
@@ -1130,7 +1130,7 @@ public class ChampionFactory {
         											));
 
         											champions.add(new Champion(
-        											    "Samira",  "Samira1", "Shurima", "Adc","None", 1, 530, 68, 0, 27, 30, 335, -1, null,
+        											    "Samira",  "Samira1", "Shurima", "Adc","None", 1, 530, 68, 0, 27, 30, 335, 0, 0, -1, null,
         											    List.of(
         											        new Move("Flair", "Physical", 70, 95, 10, "Area damage", 0),
         											        new Move("Blade Whirl", "Physical", 0, 100, 15, "Projectile block", 0),
@@ -1140,7 +1140,7 @@ public class ChampionFactory {
         											));
 
         											champions.add(new Champion(
-        											    "Sejuani",    "Sejuani1", "Freljord", "Jgl","None", 1, 620, 60, 0, 45, 35, 340, -1, null,
+        											    "Sejuani",    "Sejuani1", "Freljord", "Jgl","None", 1, 620, 60, 0, 45, 35, 340, 0, 0, -1, null,
         											    List.of(
         											        new Move("Arctic Assault", "Physical", 70, 95, 10, "Knockup", 0),
         											        new Move("Winter's Wrath", "Magic", 60, 100, 15, "Slow", 0),
@@ -1150,7 +1150,7 @@ public class ChampionFactory {
         											));
 
         											champions.add(new Champion(
-        											    "Senna",    "Senna1","Shadow Isles", "Supp","None", 1, 520, 65, 0, 30, 30, 330, -1, null,
+        											    "Senna",    "Senna1","Shadow Isles", "Supp","None", 1, 520, 65, 0, 30, 30, 330, 0, 0, -1, null,
         											    List.of(
         											        new Move("Piercing Darkness", "Physical", 70, 95, 10, "Heal", 0),
         											        new Move("Last Embrace", "Physical", 50, 90, 10, "Root", 0),
@@ -1160,7 +1160,7 @@ public class ChampionFactory {
         											));
         											
         											champions.add(new Champion(
-        												    "Seraphine",   "Seraphine1", "Piltover", "Supp","None", 1, 550, 0, 65, 25, 30, 330, -1, null,
+        												    "Seraphine",   "Seraphine1", "Piltover", "Supp","None", 1, 550, 0, 65, 25, 30, 330, 0, 0, -1, null,
         												    List.of(
         												        new Move("High Note", "Magic", 70, 100, 10, "Single target damage", 0),
         												        new Move("Surround Sound", "Magic", 0, 100, 15, "AoE shield and heal", 0),
@@ -1170,7 +1170,7 @@ public class ChampionFactory {
         												));
 
         											champions.add(new Champion(
-        											    "Sett",  "Sett1", "Ionia", "Top","None", 1, 600, 70, 0, 40, 30, 340, -1, null,
+        											    "Sett",  "Sett1", "Ionia", "Top","None", 1, 600, 70, 0, 40, 30, 340, 0, 0, -1, null,
         											    List.of(
         											        new Move("Knuckle Down", "Physical", 70, 95, 10, "Enhanced attack", 0),
         											        new Move("Haymaker", "Physical", 80, 90, 15, "True damage", 0),
@@ -1180,7 +1180,7 @@ public class ChampionFactory {
         											));
         											
         											champions.add(new Champion(
-        												    "Shaco",  "Shaco1", "Runeterra", "Jgl","Supp", 1, 550, 70, 0, 30, 30, 345, -1, null,
+        												    "Shaco",  "Shaco1", "Runeterra", "Jgl","Supp", 1, 550, 70, 0, 30, 30, 345, 0, 0, -1, null,
         												    List.of(
         												        new Move("Deceive", "Physical", 60, 95, 10, "Invisibility", 0),
         												        new Move("Jack in the Box", "Magic", 50, 100, 15, "Fear", 0),
@@ -1190,7 +1190,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Shen", "Shen1","Ionia", "Top","Supp", 1, 600, 65, 0, 40, 35, 340, -1, null,
+        												    "Shen", "Shen1","Ionia", "Top","Supp", 1, 600, 65, 0, 40, 35, 340, 0, 0, -1, null,
         												    List.of(
         												        new Move("Twilight Assault", "Physical", 60, 95, 10, "Enhanced attack", 0),
         												        new Move("Spirit's Refuge", "Magic", 0, 100, 15, "Damage block", 0),
@@ -1200,7 +1200,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Shyvana",   "Shyvana1", "Demacia", "Jgl","None", 1, 580, 70, 0, 35, 30, 345, -1, null,
+        												    "Shyvana",   "Shyvana1", "Demacia", "Jgl","None", 1, 580, 70, 0, 35, 30, 345, 0, 0, -1, null,
         												    List.of(
         												        new Move("Twin Bite", "Physical", 70, 95, 10, null, 0),
         												        new Move("Burnout", "Magic", 50, 90, 15, "Area damage", 0),
@@ -1210,7 +1210,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Singed", "Singed1", "Zaun", "Top","None", 1, 580, 55, 0, 40, 35, 345, -1, null,
+        												    "Singed", "Singed1", "Zaun", "Top","None", 1, 580, 55, 0, 40, 35, 345, 0, 0, -1, null,
         												    List.of(
         												        new Move("Poison Trail", "Magic", 50, 95, 10, "Damage over time", 0),
         												        new Move("Mega Adhesive", "Magic", 0, 100, 15, "Root", 0),
@@ -1220,7 +1220,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Sion", "Sion1",  "Noxus", "Top","Supp", 1, 615, 70, 0, 40, 35, 345, -1, null,
+        												    "Sion", "Sion1",  "Noxus", "Top","Supp", 1, 615, 70, 0, 40, 35, 345, 0, 0, -1, null,
         												    List.of(
         												        new Move("Decimating Smash", "Physical", 70, 95, 10, "Knockup", 0),
         												        new Move("Soul Furnace", "Magic", 0, 100, 15, "Shield", 0),
@@ -1230,7 +1230,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Sivir",  "Sivir1", "Shurima", "Adc","None", 1, 560, 65, 0, 30, 30, 335, -1, null,
+        												    "Sivir",  "Sivir1", "Shurima", "Adc","None", 1, 560, 65, 0, 30, 30, 335, 0, 0, -1, null,
         												    List.of(
         												        new Move("Boomerang Blade", "Physical", 70, 95, 10, null, 0),
         												        new Move("Ricochet", "Physical", 60, 90, 15, "Bounce", 0),
@@ -1240,7 +1240,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Skarner","Skarner1", "Shurima", "Jgl","Top", 1, 620, 65, 0, 40, 35, 345, -1, null,
+        												    "Skarner","Skarner1", "Shurima", "Jgl","Top", 1, 620, 65, 0, 40, 35, 345, 0, 0, -1, null,
         												    List.of(
         												        new Move("Crystal Slash", "Physical", 70, 95, 10, "AoE damage", 0),
         												        new Move("Crystalline Exoskeleton", "Magic", 0, 100, 15, "Shield", 0),
@@ -1250,7 +1250,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Sona", "Sona1",  "Demacia", "Supp","None", 1, 520, 55, 0, 25, 30, 330, -1, null,
+        												    "Sona", "Sona1",  "Demacia", "Supp","None", 1, 520, 55, 0, 25, 30, 330, 0, 0, -1, null,
         												    List.of(
         												        new Move("Hymn of Valor", "Magic", 70, 95, 10, "Damage", 0),
         												        new Move("Aria of Perseverance", "Magic", 0, 100, 15, "Heal", 0),
@@ -1260,7 +1260,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Soraka",   "Soraka1", "Ionia", "Supp","None", 1, 520, 50, 0, 25, 30, 335, -1, null,
+        												    "Soraka",   "Soraka1", "Ionia", "Supp","None", 1, 520, 50, 0, 25, 30, 335, 0, 0, -1, null,
         												    List.of(
         												        new Move("Starcall", "Magic", 70, 95, 10, "Heal", 0),
         												        new Move("Astral Infusion", "Magic", 0, 100, 15, "Heal ally", 0),
@@ -1270,7 +1270,7 @@ public class ChampionFactory {
         												));
 
         												champions.add(new Champion(
-        												    "Swain",    "Swain1",  "Noxus", "Mid","Supp", 1, 580, 60, 50, 35, 30, 330, -1, null,
+        												    "Swain",    "Swain1",  "Noxus", "Mid","Supp", 1, 580, 60, 50, 35, 30, 330, 0, 0, -1, null,
         												    List.of(
         												        new Move("Death's Hand", "Magic", 70, 95, 10, "Damage", 0),
         												        new Move("Vision of Empire", "Magic", 80, 90, 15, "Reveal", 0),
@@ -1281,7 +1281,7 @@ public class ChampionFactory {
         												
         												
         												champions.add(new Champion(
-        													    "Sylas",    "Sylas1", "Demacia", "Mid","Top", 1, 580, 70, 50, 35, 30, 340, -1, null,
+        													    "Sylas",    "Sylas1", "Demacia", "Mid","Top", 1, 580, 70, 50, 35, 30, 340, 0, 0, -1, null,
         													    List.of(
         													        new Move("Chain Lash", "Magic", 60, 95, 10, "Slow", 0),
         													        new Move("Kingslayer", "Magic", 80, 90, 15, "Heal", 0),
@@ -1291,7 +1291,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        													    "Syndra",   "Syndra1","Ionia", "Mid","None", 1, 530, 50, 55, 25, 30, 330, -1, null,
+        													    "Syndra",   "Syndra1","Ionia", "Mid","None", 1, 530, 50, 55, 25, 30, 330, 0, 0, -1, null,
         													    List.of(
         													        new Move("Dark Sphere", "Magic", 70, 95, 10, null, 0),
         													        new Move("Scatter the Weak", "Magic", 60, 90, 15, "Stun", 0),
@@ -1301,7 +1301,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        													    "Tahm Kench", "Tahmkench1","Bilgewater", "Top","Supp", 1, 620, 70, 0, 40, 35, 335, -1, null,
+        													    "Tahm Kench", "Tahmkench1","Bilgewater", "Top","Supp", 1, 620, 70, 0, 40, 35, 335, 0, 0, -1, null,
         													    List.of(
         													        new Move("Tongue Lash", "Magic", 70, 95, 10, "Slow", 0),
         													        new Move("Devour", "Magic", 0, 100, 15, "Consume", 0),
@@ -1311,7 +1311,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        													    "Taliyah", "Taliyah1", "Shurima", "Mid","None", 1, 530, 50, 60, 25, 30, 335, -1, null,
+        													    "Taliyah", "Taliyah1", "Shurima", "Mid","None", 1, 530, 50, 60, 25, 30, 335, 0, 0, -1, null,
         													    List.of(
         													        new Move("Threaded Volley", "Magic", 70, 95, 10, null, 0),
         													        new Move("Seismic Shove", "Magic", 60, 90, 15, "Knockback", 0),
@@ -1321,7 +1321,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        													    "Talon","Talon1", "Noxus", "Mid","Top", 1, 600, 70, 0, 30, 30, 345, -1, null,
+        													    "Talon","Talon1", "Noxus", "Mid","Top", 1, 600, 70, 0, 30, 30, 345, 0, 0, -1, null,
         													    List.of(
         													        new Move("Noxian Diplomacy", "Physical", 70, 95, 10, null, 0),
         													        new Move("Rake", "Physical", 60, 90, 15, "Slow", 0),
@@ -1331,7 +1331,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        														    "Taric","Taric1", "Targon", "Supp","None", 1, 620, 55, 0, 40, 35, 330, -1, null,
+        														    "Taric","Taric1", "Targon", "Supp","None", 1, 620, 55, 0, 40, 35, 330, 0, 0, -1, null,
         													    List.of(
         													        new Move("Starlight's Touch", "Magic", 70, 95, 10, "Heal", 0),
         													        new Move("Bastion", "Magic", 0, 100, 15, "Shield", 0),
@@ -1341,7 +1341,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        													    "Teemo",  "Teemo1","Bandle City", "Top","None", 1, 540, 60, 0, 25, 30, 330, -1, null,
+        													    "Teemo",  "Teemo1","Bandle City", "Top","None", 1, 540, 60, 0, 25, 30, 330, 0, 0, -1, null,
         													    List.of(
         													        new Move("Blinding Dart", "Magic", 60, 95, 10, "Blind", 0),
         													        new Move("Move Quick", "Magic", 0, 100, 15, "Speed boost", 0),
@@ -1351,7 +1351,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        													    "Thresh", "Thresh1", "Shadow Isles", "Supp","None", 1, 600, 55, 0, 40, 35, 330, -1, null,
+        													    "Thresh", "Thresh1", "Shadow Isles", "Supp","None", 1, 600, 55, 0, 40, 35, 330, 0, 0, -1, null,
         													    List.of(
         													        new Move("Death Sentence", "Magic", 70, 95, 10, "Pull", 0),
         													        new Move("Dark Passage", "Magic", 0, 100, 15, "Shield", 0),
@@ -1361,7 +1361,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        													    "Tristana",	    "Tristana1", "Bandle City", "Adc","Mid", 1, 530, 65, 0, 25, 30, 325, -1, null,
+        													    "Tristana",	    "Tristana1", "Bandle City", "Adc","Mid", 1, 530, 65, 0, 25, 30, 325, 0, 0, -1, null,
         													    List.of(
         													        new Move("Rapid Fire", "Physical", 0, 100, 15, "Attack speed boost", 0),
         													        new Move("Rocket Jump", "Physical", 70, 95, 10, "Jump", 0),
@@ -1371,7 +1371,7 @@ public class ChampionFactory {
         													));
 
         													champions.add(new Champion(
-        													    "Trundle",	    "Trundle1", "Freljord", "Top","Jgl", 1, 620, 65, 0, 35, 30, 340, -1, null,
+        													    "Trundle",	    "Trundle1", "Freljord", "Top","Jgl", 1, 620, 65, 0, 35, 30, 340, 0, 0, -1, null,
         													    List.of(
         													        new Move("Chomp", "Physical", 70, 95, 10, "Attack buff", 0),
         													        new Move("Frozen Domain", "Magic", 0, 100, 15, "Speed boost", 0),
@@ -1382,7 +1382,7 @@ public class ChampionFactory {
         													
         													
         													champions.add(new Champion(
-        														    "Tryndamere","Tryndamere1",  "Freljord", "Top","None", 1, 630, 70, 0, 35, 30, 345, -1, null,
+        														    "Tryndamere","Tryndamere1",  "Freljord", "Top","None", 1, 630, 70, 0, 35, 30, 345, 0, 0, -1, null,
         														    List.of(
         														        new Move("Bloodlust", "Physical", 0, 100, 15, "Heal", 0),
         														        new Move("Mocking Shout", "Physical", 60, 90, 10, "Slow", 0),
@@ -1392,7 +1392,7 @@ public class ChampionFactory {
         														));
 
         														champions.add(new Champion(
-        														    "Twisted Fate","Twistedfate1", "Bilgewater", "Mid","None", 1, 540, 55, 60, 25, 30, 330, -1, null,
+        														    "Twisted Fate","Twistedfate1", "Bilgewater", "Mid","None", 1, 540, 55, 60, 25, 30, 330, 0, 0, -1, null,
         														    List.of(
         														        new Move("Wild Cards", "Magic", 70, 95, 10, "AoE damage", 0),
         														        new Move("Pick a Card", "Magic", 60, 90, 10, "Stun or Slow", 0),
@@ -1402,7 +1402,7 @@ public class ChampionFactory {
         														));
 
         														champions.add(new Champion(
-        														    "Twitch",    "Twitch1", "Zaun", "Adc","None", 1, 540, 65, 0, 27, 30, 330, -1, null,
+        														    "Twitch",    "Twitch1", "Zaun", "Adc","None", 1, 540, 65, 0, 27, 30, 330, 0, 0, -1, null,
         														    List.of(
         														        new Move("Deadly Venom", "Physical", 50, 90, 10, "Poison", 0),
         														        new Move("Venom Cask", "Magic", 60, 85, 15, "Slow", 0),
@@ -1412,7 +1412,7 @@ public class ChampionFactory {
         														));
 
         														champions.add(new Champion(
-        														    "Udyr",  "Udyr1", "Freljord", "Jgl","Top", 1, 620, 70, 0, 35, 30, 345, -1, null,
+        														    "Udyr",  "Udyr1", "Freljord", "Jgl","Top", 1, 620, 70, 0, 35, 30, 345, 0, 0, -1, null,
         														    List.of(
         														        new Move("Tiger Stance", "Physical", 70, 95, 10, "Attack speed boost", 0),
         														        new Move("Turtle Stance", "Magic", 0, 100, 10, "Shield and Heal", 0),
@@ -1422,7 +1422,7 @@ public class ChampionFactory {
         														));
 
         														champions.add(new Champion(
-        														    "Urgot", "Urgot1", "Zaun", "Top","None", 1, 600, 70, 0, 35, 30, 330, -1, null,
+        														    "Urgot", "Urgot1", "Zaun", "Top","None", 1, 600, 70, 0, 35, 30, 330, 0, 0, -1, null,
         														    List.of(
         														        new Move("Corrosive Charge", "Magic", 60, 85, 10, "Armor shred", 0),
         														        new Move("Purge", "Physical", 70, 95, 15, "Attack boost", 0),
@@ -1432,7 +1432,7 @@ public class ChampionFactory {
         														));
 
         														champions.add(new Champion(
-        														    "Varus", "Varus1", "Darkin", "Adc","None", 1, 530, 65, 0, 25, 30, 335, -1, null,
+        														    "Varus", "Varus1", "Darkin", "Adc","None", 1, 530, 65, 0, 25, 30, 335, 0, 0, -1, null,
         														    List.of(
         														        new Move("Piercing Arrow", "Physical", 70, 95, 10, "Long-range damage", 0),
         														        new Move("Blighted Quiver", "Magic", 50, 90, 10, "Magic damage", 0),
@@ -1442,7 +1442,7 @@ public class ChampionFactory {
         														));
 
         														champions.add(new Champion(
-        														    "Vayne",   "Vayne1", "Demacia", "Adc","Top", 1, 520, 65, 0, 23, 30, 330, -1, null,
+        														    "Vayne",   "Vayne1", "Demacia", "Adc","Top", 1, 520, 65, 0, 23, 30, 330, 0, 0, -1, null,
         														    List.of(
         														        new Move("Tumble", "Physical", 60, 90, 5, "Dash", 0),
         														        new Move("Silver Bolts", "Physical", 70, 95, 10, "True damage", 0),
@@ -1452,7 +1452,7 @@ public class ChampionFactory {
         														));
 
         														champions.add(new Champion(
-        														    "Veigar",  "Veigar1",  "Bandle City", "Mid","None", 1, 510, 0, 60, 25, 30, 330, -1, null,
+        														    "Veigar",  "Veigar1",  "Bandle City", "Mid","None", 1, 510, 0, 60, 25, 30, 330, 0, 0, -1, null,
         														    List.of(
         														        new Move("Baleful Strike", "Magic", 70, 95, 10, "Farm AP", 0),
         														        new Move("Dark Matter", "Magic", 80, 90, 15, "AoE damage", 0),
@@ -1462,7 +1462,7 @@ public class ChampionFactory {
         														));
 
         														champions.add(new Champion(
-        														    "Vel'Koz",    "Velkoz1","Void", "Mid","Supp", 1, 530, 0, 60, 25, 30, 330, -1, null,
+        														    "Vel'Koz",    "Velkoz1","Void", "Mid","Supp", 1, 530, 0, 60, 25, 30, 330, 0, 0, -1, null,
         														    List.of(
         														        new Move("Plasma Fission", "Magic", 70, 95, 10, "Slow", 0),
         														        new Move("Void Rift", "Magic", 80, 90, 15, "AoE damage", 0),
@@ -1472,7 +1472,7 @@ public class ChampionFactory {
         														));
         														
         														champions.add(new Champion(
-        															    "Vex", "Vex1", "Shadow Isles", "Mid","None", 1, 510, 0, 68, 22, 30, 325, -1, null,
+        															    "Vex", "Vex1", "Shadow Isles", "Mid","None", 1, 510, 0, 68, 22, 30, 325, 0, 0, -1, null,
         															    List.of(
         															        new Move("Mistral Bolt", "Magic", 70, 100, 10, "Line damage", 0),
         															        new Move("Personal Space", "Magic", 0, 100, 15, "Shield and AoE damage", 0),
@@ -1482,7 +1482,7 @@ public class ChampionFactory {
         															));
 
         														champions.add(new Champion(
-        														    "Vi", "Vi1", "Piltover", "Jgl","None", 1, 600, 70, 0, 35, 30, 335, -1, null,
+        														    "Vi", "Vi1", "Piltover", "Jgl","None", 1, 600, 70, 0, 35, 30, 335, 0, 0, -1, null,
         														    List.of(
         														        new Move("Vault Breaker", "Physical", 70, 95, 10, "Dash", 0),
         														        new Move("Denting Blows", "Physical", 60, 90, 10, "Armor shred", 0),
@@ -1492,7 +1492,7 @@ public class ChampionFactory {
         														));
         														
         														champions.add(new Champion(
-        															    "Viego", "Viego1", "Shadow Isles", "Jgl","None", 1, 580, 72, 0, 35, 32, 345, -1, null,
+        															    "Viego", "Viego1", "Shadow Isles", "Jgl","None", 1, 580, 72, 0, 35, 32, 345, 0, 0, -1, null,
         															    List.of(
         															        new Move("Blade of the Ruined King", "Physical", 80, 100, 10, "Damage and heal", 0),
         															        new Move("Spectral Maw", "Magic", 70, 90, 15, "Stun", 0),
@@ -1502,7 +1502,7 @@ public class ChampionFactory {
         															));
         														
         														champions.add(new Champion(
-        															    "Viktor",  "Viktor1", "Zaun", "Mid","None", 1, 520, 0, 60, 25, 30, 335, -1, null,
+        															    "Viktor",  "Viktor1", "Zaun", "Mid","None", 1, 520, 0, 60, 25, 30, 335, 0, 0, -1, null,
         															    List.of(
         															        new Move("Siphon Power", "Magic", 70, 95, 10, "Shield and Damage", 0),
         															        new Move("Gravity Field", "Magic", 60, 85, 10, "Stun", 0),
@@ -1512,7 +1512,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Vladimir",  "Vladimir1", "Noxus", "Mid","Top", 1, 570, 0, 55, 25, 30, 330, -1, null,
+        															    "Vladimir",  "Vladimir1", "Noxus", "Mid","Top", 1, 570, 0, 55, 25, 30, 330, 0, 0, -1, null,
         															    List.of(
         															        new Move("Transfusion", "Magic", 70, 100, 10, "Heal", 0),
         															        new Move("Sanguine Pool", "Magic", 0, 100, 15, "Invulnerability", 0),
@@ -1522,7 +1522,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Volibear", "Volibear1", "Freljord", "Top","None", 1, 650, 70, 0, 35, 30, 345, -1, null,
+        															    "Volibear", "Volibear1", "Freljord", "Top","None", 1, 650, 70, 0, 35, 30, 345, 0, 0, -1, null,
         															    List.of(
         															        new Move("Thundering Smash", "Physical", 60, 90, 10, "Stun", 0),
         															        new Move("Frenzied Maul", "Physical", 70, 95, 10, "Heal", 0),
@@ -1532,7 +1532,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Warwick",   "Warwick1", "Zaun", "Jgl","Top", 1, 620, 68, 0, 35, 30, 340, -1, null,
+        															    "Warwick",   "Warwick1", "Zaun", "Jgl","Top", 1, 620, 68, 0, 35, 30, 340, 0, 0, -1, null,
         															    List.of(
         															        new Move("Jaws of the Beast", "Physical", 70, 95, 10, "Heal", 0),
         															        new Move("Blood Hunt", "Magic", 0, 100, 15, "Speed boost", 0),
@@ -1542,7 +1542,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Wukong",   "Wukong1","Ionia", "Top","None", 1, 590, 68, 0, 35, 30, 345, -1, null,
+        															    "Wukong",   "Wukong1","Ionia", "Top","None", 1, 590, 68, 0, 35, 30, 345, 0, 0, -1, null,
         															    List.of(
         															        new Move("Crushing Blow", "Physical", 70, 95, 10, "Armor shred", 0),
         															        new Move("Decoy", "Magic", 0, 100, 10, "Invisibility", 0),
@@ -1552,7 +1552,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Xayah",    "Xayah1",  "Ionia", "Adc","None", 1, 530, 65, 0, 25, 30, 325, -1, null,
+        															    "Xayah",    "Xayah1",  "Ionia", "Adc","None", 1, 530, 65, 0, 25, 30, 325, 0, 0, -1, null,
         															    List.of(
         															        new Move("Double Daggers", "Physical", 70, 95, 10, "Line damage", 0),
         															        new Move("Deadly Plumage", "Physical", 60, 90, 10, "Attack speed boost", 0),
@@ -1562,7 +1562,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Xerath",  "Xerath1", "Shurima", "Mid","Supp", 1, 530, 0, 60, 25, 30, 330, -1, null,
+        															    "Xerath",  "Xerath1", "Shurima", "Mid","Supp", 1, 530, 0, 60, 25, 30, 330, 0, 0, -1, null,
         															    List.of(
         															        new Move("Arcanopulse", "Magic", 70, 95, 10, "Line damage", 0),
         															        new Move("Eye of Destruction", "Magic", 80, 90, 15, "AoE slow", 0),
@@ -1572,7 +1572,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Xin Zhao",   "Xinzhao1","Demacia", "Jgl","Top", 1, 610, 70, 0, 35, 30, 345, -1, null,
+        															    "Xin Zhao",   "Xinzhao1","Demacia", "Jgl","Top", 1, 610, 70, 0, 35, 30, 345, 0, 0, -1, null,
         															    List.of(
         															        new Move("Three Talon Strike", "Physical", 70, 95, 10, "Knockup", 0),
         															        new Move("Wind Becomes Lightning", "Physical", 80, 90, 10, "Line damage", 0),
@@ -1582,7 +1582,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Yasuo", "Yasuo1", "Ionia", "Mid","Top", 1, 550, 68, 0, 30, 30, 345, -1, null,
+        															    "Yasuo", "Yasuo1", "Ionia", "Mid","Top", 1, 550, 68, 0, 30, 30, 345, 0, 0, -1, null,
         															    List.of(
         															        new Move("Steel Tempest", "Physical", 70, 95, 10, "Line damage", 0),
         															        new Move("Wind Wall", "Magic", 0, 100, 15, "Projectile block", 0),
@@ -1592,7 +1592,7 @@ public class ChampionFactory {
         															));
 
         															champions.add(new Champion(
-        															    "Yone", "Yone1",  "Ionia", "Mid","Top", 1, 580, 68, 0, 30, 30, 345, -1, null,
+        															    "Yone", "Yone1",  "Ionia", "Mid","Top", 1, 580, 68, 0, 30, 30, 345, 0, 0, -1, null,
         															    List.of(
         															        new Move("Mortal Steel", "Physical", 70, 95, 10, "Line damage", 0),
         															        new Move("Spirit Cleave", "Physical", 80, 90, 15, "AoE damage", 0),
@@ -1602,7 +1602,7 @@ public class ChampionFactory {
         															));
         															
         															champions.add(new Champion(
-        																    "Yorick",  "Yorick1","Shadow Isles", "Top","None", 1, 620, 75, 0, 40, 35, 330, -1, null,
+        																    "Yorick",  "Yorick1","Shadow Isles", "Top","None", 1, 620, 75, 0, 40, 35, 330, 0, 0, -1, null,
         																    List.of(
         																        new Move("Last Rites", "Physical", 80, 95, 10, "Enhanced attack", 0),
         																        new Move("Dark Procession", "Magic", 0, 100, 15, "Cage creation", 0),
@@ -1613,7 +1613,7 @@ public class ChampionFactory {
         															
         															
         															champions.add(new Champion(
-        																    "Yuumi", "Yuumi1",  "Bandle City", "Supp","None", 1, 480, 0, 40, 25, 30, 330, -1, null,
+        																    "Yuumi", "Yuumi1",  "Bandle City", "Supp","None", 1, 480, 0, 40, 25, 30, 330, 0, 0, -1, null,
         																    List.of(
         																        new Move("Prowling Projectile", "Magic", 60, 95, 10, "Slow", 0),
         																        new Move("Zoomies", "Magic", 0, 100, 10, "Heal", 0),
@@ -1623,7 +1623,7 @@ public class ChampionFactory {
         																));
 
         																champions.add(new Champion(
-        																    "Zac",   "Zac1","Zaun", "Jgl","None", 1, 615, 65, 0, 35, 30, 335, -1, null,
+        																    "Zac",   "Zac1","Zaun", "Jgl","None", 1, 615, 65, 0, 35, 30, 335, 0, 0, -1, null,
         																    List.of(
         																        new Move("Stretching Strikes", "Physical", 70, 90, 10, "Slow", 0),
         																        new Move("Unstable Matter", "Magic", 60, 95, 10, "AoE damage", 0),
@@ -1633,7 +1633,7 @@ public class ChampionFactory {
         																));
 
         																champions.add(new Champion(
-        																    "Zed",  "Zed1", "Ionia", "Mid","None", 1, 580, 70, 0, 30, 30, 345, -1, null,
+        																    "Zed",  "Zed1", "Ionia", "Mid","None", 1, 580, 70, 0, 30, 30, 345, 0, 0, -1, null,
         																    List.of(
         																        new Move("Razor Shuriken", "Physical", 70, 95, 10, "Line damage", 0),
         																        new Move("Living Shadow", "Magic", 0, 100, 15, "Clone", 0),
@@ -1643,7 +1643,7 @@ public class ChampionFactory {
         																));
 
         																champions.add(new Champion(
-        																    "Zeri", "Zeri1", "Zaun", "Adc","None", 1, 530, 60, 0, 28, 30, 330, -1, null,
+        																    "Zeri", "Zeri1", "Zaun", "Adc","None", 1, 530, 60, 0, 28, 30, 330, 0, 0, -1, null,
         																    List.of(
         																        new Move("Burst Fire", "Physical", 60, 95, 10, "Line damage", 0),
         																        new Move("Ultrashock Laser", "Magic", 70, 90, 15, "Slow", 0),
@@ -1653,7 +1653,7 @@ public class ChampionFactory {
         																));
 
         																champions.add(new Champion(
-        																    "Ziggs", "Ziggs1",  "Piltover", "Mid","Adc", 1, 520, 0, 60, 25, 30, 325, -1, null,
+        																    "Ziggs", "Ziggs1",  "Piltover", "Mid","Adc", 1, 520, 0, 60, 25, 30, 325, 0, 0, -1, null,
         																    List.of(
         																        new Move("Bouncing Bomb", "Magic", 70, 95, 10, "AoE damage", 0),
         																        new Move("Satchel Charge", "Magic", 60, 85, 10, "Knockback", 0),
@@ -1663,7 +1663,7 @@ public class ChampionFactory {
         																));
 
         																champions.add(new Champion(
-        																    "Zilean",    "Zilean1", "Runeterra", "Supp","Mid", 1, 540, 0, 50, 25, 30, 330, -1, null,
+        																    "Zilean",    "Zilean1", "Runeterra", "Supp","Mid", 1, 540, 0, 50, 25, 30, 330, 0, 0, -1, null,
         																    List.of(
         																        new Move("Time Bomb", "Magic", 70, 90, 10, "AoE damage", 0),
         																        new Move("Rewind", "Magic", 0, 100, 5, "Cooldown reduction", 0),
@@ -1673,7 +1673,7 @@ public class ChampionFactory {
         																));
 
         																champions.add(new Champion(
-        																    "Zoe",    "Zoe1", "Targon", "Mid","None", 1, 530, 0, 60, 25, 30, 330, -1, null,
+        																    "Zoe",    "Zoe1", "Targon", "Mid","None", 1, 530, 0, 60, 25, 30, 330, 0, 0, -1, null,
         																    List.of(
         																        new Move("Paddle Star", "Magic", 70, 95, 10, "Line damage", 0),
         																        new Move("Spell Thief", "Magic", 0, 100, 10, "Steal spell", 0),
@@ -1683,7 +1683,7 @@ public class ChampionFactory {
         																));
 
         																champions.add(new Champion(
-        																    "Zyra",  "Zyra1", "Ixtal", "Mid","Supp", 1, 520, 0, 60, 25, 30, 330, -1, null,
+        																    "Zyra",  "Zyra1", "Ixtal", "Mid","Supp", 1, 520, 0, 60, 25, 30, 330, 0, 0, -1, null,
         																    List.of(
         																        new Move("Deadly Spines", "Magic", 70, 95, 10, "AoE damage", 0),
         																        new Move("Rampant Growth", "Magic", 0, 100, 5, "Plant summon", 0),

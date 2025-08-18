@@ -147,7 +147,7 @@ public class Entity {
 		
 		if(this.type==2 && contactPlayer==true) {
 			if(gp.player.invincible==false) {
-				gp.player.life-=1;
+				// Life damage removed - monsters no longer damage player
 				gp.player.invincible=true;
 			}
 		}

@@ -125,40 +125,7 @@ public class UI {
 	}
 	
 	public void drawPlayerLife() {
-		
-		
-		
-		int x =gp.tileSize/2;
-		int y =gp.tileSize/2;
-		int i =0;
-		
-		// BLANK HEART
-		while(i<gp.player.maxLife/2) {
-		
-			g2.drawImage(heartBlank,x,y,null);
-			i++;
-			x+=gp.tileSize;
-			
-		}
-		
-	
-		// RESET
-		x =gp.tileSize/2;
-		y =gp.tileSize/2;
-		i =0;
-		
-		// DRAW CURRENT LIFE
-		while(i< gp.player.life) {
-			g2.drawImage(heartHalf, x, y, null);
-			i++;
-			if(i<gp.player.life) {
-				g2.drawImage(heartFull, x, y, null);
-			}
-			i++;
-			x+=gp.tileSize;
-		}
-		
-		
+		// Hearts removed - no longer drawing player life hearts
 	}
 	
 	public void drawTitleScreen() {

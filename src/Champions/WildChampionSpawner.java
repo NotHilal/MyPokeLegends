@@ -41,8 +41,8 @@ public class WildChampionSpawner {
                     // Select the spawn list based on the region
                     List<ChampionSpawn> spawnList = getSpawnListForRegion(region);
 
-                    // Perform a true 20% chance check
-                    if (random.nextInt(100) < 20) { // 20% chance
+                    // Perform a true 13% chance check
+                    if (random.nextInt(100) < 13) { // 13% chance
                         spawnWildChampion(spawnList);
                     }
                 }

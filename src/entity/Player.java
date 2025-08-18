@@ -376,7 +376,7 @@ public class Player extends Entity {
     	
     	if(i!=999) {
     		if (invincible==false) {
-    			life-=1;
+    			// Life damage removed - monsters no longer damage player
     			invincible=true;
     		}
     		

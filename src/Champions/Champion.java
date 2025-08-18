@@ -20,6 +20,8 @@ public class Champion {
     private int magicResist;
     private int speed;
     private int currentHp;
+    private int critChance; // Critical hit chance (0-100%)
+    private int lifesteal; // Lifesteal percentage (0-100%)
     //public int chanceSpawn;
  
     // Moves
@@ -35,7 +37,7 @@ public class Champion {
  
     // Constructor
     public Champion(String name, String imgName, String region, String role,String role2, int level, int maxHp, int AD, int AP, int armor,
-                    int magicResist, int speed, int evolveAt, String nextEvolution, List<Move> moves) {
+                    int magicResist, int speed, int critChance, int lifesteal, int evolveAt, String nextEvolution, List<Move> moves) {
         this.name = name;
         this.imageName = imgName;
         this.region = region;
@@ -49,6 +51,8 @@ public class Champion {
         this.armor = armor;
         this.magicResist = magicResist;
         this.speed = speed;
+        this.critChance = critChance;
+        this.lifesteal = lifesteal;
         this.currentHp = maxHp;
         this.evolveAt = evolveAt;
         this.nextEvolution = nextEvolution;
@@ -95,8 +99,28 @@ public class Champion {
         return speed;
     }
     
+    public int getCritChance() {
+        return critChance;
+    }
+    
+    public int getLifesteal() {
+        return lifesteal;
+    }
+    
     public String getImageName() {
         return imageName;
+    }
+    
+    public int getExp() {
+        return exp;
+    }
+    
+    public int getExpToNextLevel() {
+        return level * 10; // Example: Next level requires 10 * current level experience
+    }
+    
+    public void setCurrentHp(int hp) {
+        this.currentHp = Math.min(hp, maxHp); // Don't exceed max HP
     }
 
     
@@ -113,30 +137,43 @@ public class Champion {
     }
 
     // Leveling Methods
-    public void gainExp(int exp) {
+    public StatIncrease gainExp(int exp) {
         this.exp += exp;
         if (this.exp >= getExpToNextLevel()) {
-            levelUp();
+            return levelUp();
         }
+        return null; // No level up
     }
 
-    private void levelUp() {
+    private StatIncrease levelUp() {
         level++;
         exp = 0; // Reset experience for the next level
-        maxHp += 5; // Example stat increases
-        AD += 2;
-        AP += 2;
-        armor += 1;
-        magicResist += 1;
-        speed += 1;
+        
+        // Define stat increases
+        int hpInc = 5;
+        int adInc = 2;
+        int apInc = 2;
+        int armorInc = 1;
+        int magicResistInc = 1;
+        int speedInc = 1;
+        int critInc = 0; // Will be modified by items only
+        int lifestealInc = 0; // Will be modified by items only
+        
+        // Apply stat increases
+        maxHp += hpInc;
+        AD += adInc;
+        AP += apInc;
+        armor += armorInc;
+        magicResist += magicResistInc;
+        speed += speedInc;
+        // critChance and lifesteal remain unchanged - will be modified by items only
         currentHp = maxHp; // Heal on level up
 
         checkEvolution();
+        
+        return new StatIncrease(hpInc, adInc, apInc, armorInc, magicResistInc, speedInc, critInc, lifestealInc);
     }
 
-    private int getExpToNextLevel() {
-        return level * 10; // Example: Next level requires 10 * current level experience
-    }
 
     // Evolution
     private void checkEvolution() {

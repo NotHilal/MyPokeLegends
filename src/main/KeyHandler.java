@@ -2,6 +2,7 @@ package main;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import main.BattleManager.BattleState;
 
 public class KeyHandler implements KeyListener{
 
@@ -251,39 +252,74 @@ public class KeyHandler implements KeyListener{
 		}
 		// BATTLE STATE
 		else if (gp.gameState == gp.battleState) {
-		    if (code == KeyEvent.VK_W) { 
-		        if(gp.ui.battleNum!=0) {
-		        	gp.playSE(9);
+		    // Handle input based on battle state
+		    if (gp.battleManager.getBattleState() == BattleState.MAIN_MENU) {
+		        // Main menu navigation (Fight/Items/Party/Run)
+		        if (code == KeyEvent.VK_W) { 
+		            if(gp.ui.battleNum!=0) {
+		            	gp.playSE(9);
+		            }
+		        	gp.ui.battleNum = 0;
 		        }
-		    	gp.ui.battleNum = 0;
-		    }
-		    if (code == KeyEvent.VK_A) { 
-		    	if(gp.ui.battleNum!=1) {
-		        	gp.playSE(9);
+		        if (code == KeyEvent.VK_A) { 
+		        	if(gp.ui.battleNum!=1) {
+		            	gp.playSE(9);
+		            }
+		        	gp.ui.battleNum = 1;
 		        }
-		    	gp.ui.battleNum = 1;
-		    }
-		    if (code == KeyEvent.VK_D) {
-		    	if(gp.ui.battleNum!=2) {
-		        	gp.playSE(9);
+		        if (code == KeyEvent.VK_D) {
+		        	if(gp.ui.battleNum!=2) {
+		            	gp.playSE(9);
+		            }
+		        	gp.ui.battleNum = 2;
 		        }
-		    	gp.ui.battleNum = 2;
-		    }
-		    
-		    
-		    if (code == KeyEvent.VK_S) { 
-		    	if(gp.ui.battleNum!=3) {
-		        	gp.playSE(9);
+		        if (code == KeyEvent.VK_S) { 
+		        	if(gp.ui.battleNum!=3) {
+		            	gp.playSE(9);
+		            }
+		        	gp.ui.battleNum = 3;
 		        }
-		    	gp.ui.battleNum = 3;
+		    } else if (gp.battleManager.getBattleState() == BattleState.MOVE_SELECTION) {
+		        // Move selection navigation (up to 4 moves)
+		        // Get the player champion to check available moves
+		        int maxMoves = Math.min(gp.player.getFirstChampion().getMoves().size(), 4);
+		        
+		        if (code == KeyEvent.VK_W) { 
+		            if(gp.ui.battleNum > 1) {
+		                gp.ui.battleNum -= 2; // Move up in grid
+		                gp.playSE(9);
+		            }
+		        }
+		        if (code == KeyEvent.VK_S) { 
+		            if(gp.ui.battleNum < 2 && gp.ui.battleNum + 2 < maxMoves) {
+		                gp.ui.battleNum += 2; // Move down in grid
+		                gp.playSE(9);
+		            }
+		        }
+		        if (code == KeyEvent.VK_A) { 
+		            if(gp.ui.battleNum % 2 == 1) {
+		                gp.ui.battleNum--; // Move left
+		                gp.playSE(9);
+		            }
+		        }
+		        if (code == KeyEvent.VK_D) {
+		            if(gp.ui.battleNum % 2 == 0 && gp.ui.battleNum + 1 < maxMoves) {
+		                gp.ui.battleNum++; // Move right
+		                gp.playSE(9);
+		            }
+		        }
 		    }
-		    
 		    
 		    if (code == KeyEvent.VK_ENTER) {
 		    	 gp.playSE(11);
-		    	  
 		    	 gp.battleManager.handleBattleAction(gp.ui.battleNum);
-		    	 
+		    }
+		    
+		    // Allow back navigation in move selection
+		    if (code == KeyEvent.VK_ESCAPE && gp.battleManager.getBattleState() == BattleState.MOVE_SELECTION) {
+		        gp.battleManager.returnToMainMenu();
+		        gp.ui.battleNum = 0; // Reset to Fight option
+		        gp.playSE(9);
 		    }
 		}
 

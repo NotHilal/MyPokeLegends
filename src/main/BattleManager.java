@@ -1,12 +1,15 @@
 package main;
 
 import Champions.Champion;
+import Champions.Move;
+import Champions.StatIncrease;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 
@@ -15,6 +18,28 @@ public class BattleManager {
     private GamePanel gp;
     private Champion playerChampion;
     private Champion wildChampion;
+    
+    // Battle state management
+    private BattleState battleState;
+    private boolean playerTurn;
+    private int selectedMoveIndex = 0;
+    private Random random = new Random();
+    private String battleMessage = "";
+    private int messageTimer = 0;
+    private boolean xpAwarded = false; // Prevent multiple XP awards
+    
+    // Level up display
+    private boolean showLevelUpStats = false;
+    private StatIncrease levelUpStats = null;
+    private Champion levelUpChampion = null;
+    
+    // Battle states
+    public enum BattleState {
+        MAIN_MENU,     // Fight/Items/Party/Run selection
+        MOVE_SELECTION, // Selecting which move to use
+        EXECUTING,     // Executing moves and showing results
+        BATTLE_END     // Battle finished
+    }
 
     public BattleManager(GamePanel gamePanel) {
         this.gp = gamePanel;
@@ -23,13 +48,55 @@ public class BattleManager {
     public void startBattle(Champion playerChampion, Champion wildChampion) {
         this.playerChampion = playerChampion;
         this.wildChampion = wildChampion;
-        gp.gameState = gp.battleState; // Switch to battle state
+        this.battleState = BattleState.MAIN_MENU;
+        this.playerTurn = determineFirstTurn();
+        this.selectedMoveIndex = 0;
+        this.battleMessage = "A wild " + wildChampion.getName() + " appeared!";
+        this.messageTimer = 120; // Display message for 2 seconds at 60fps
+        this.xpAwarded = false; // Reset XP award flag
+        
+        gp.gameState = gp.battleState;
         System.out.println("Battle started! Player: " + playerChampion.getName() + 
                            " vs Wild: " + wildChampion.getName());
     }
  
     public void update() {
-        // Add battle logic here
+        if (messageTimer > 0) {
+            messageTimer--;
+        }
+        
+        // Check for battle end conditions
+        if (playerChampion.isFainted()) {
+            battleState = BattleState.BATTLE_END;
+            battleMessage = playerChampion.getName() + " fainted! You lost!";
+            messageTimer = 180; // 3 seconds
+        } else if (wildChampion.isFainted() && !xpAwarded) {
+            battleState = BattleState.BATTLE_END;
+            int expGained = wildChampion.getLevel() * 5;
+            StatIncrease statIncrease = playerChampion.gainExp(expGained);
+            
+            if (statIncrease != null) {
+                // Level up occurred - show stats display
+                battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
+                               "You won!\n" +
+                               playerChampion.getName() + " gained " + expGained + " XP!\n" + 
+                               playerChampion.getName() + " leveled up to level " + playerChampion.getLevel() + "!";
+                showLevelUpStats = true;
+                levelUpStats = statIncrease;
+                levelUpChampion = playerChampion;
+            } else {
+                battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
+                               "You won!\n" +
+                               playerChampion.getName() + " gained " + expGained + " XP!";
+            }
+            xpAwarded = true; // Mark XP as awarded
+            // No timer set - message will persist until user action
+        }
+        
+        // Auto-execute AI turn if it's not player turn and in executing state
+        if (battleState == BattleState.EXECUTING && !playerTurn && messageTimer <= 0) {
+            executeAITurn();
+        }
     }
 
     public void draw(Graphics2D g2) {
@@ -100,111 +167,229 @@ public class BattleManager {
             }
         }
 
-        // Draw champion info
+        // Draw champion info with XP and level
         drawChampionInfo(
             g2, wildChampion.getName(), wildChampion.getCurrentHp(), wildChampion.getMaxHp(),
-            50, 50, 200, 20
+            wildChampion.getLevel(), wildChampion.getExp(), wildChampion.getExpToNextLevel(),
+            50, 50, 200, 20, false // false = enemy (no XP bar)
         );
 
         drawChampionInfo(
             g2, playerChampion.getName(), playerChampion.getCurrentHp(), playerChampion.getMaxHp(),
-            gp.screenWidth - 250, blackStartY - 40, 200, 20
+            playerChampion.getLevel(), playerChampion.getExp(), playerChampion.getExpToNextLevel(),
+            gp.screenWidth - 250, blackStartY - 48, 200, 20, true // true = player (show XP bar) - moved 8px higher
         );
 
-        // Draw the battle buttons in a diamond shape
-        drawBattleButtons(g2);
+        // Always draw the text box first
+        drawBattleTextBox(g2);
+        
+        // Draw battle UI based on current state
+        switch (battleState) {
+            case MAIN_MENU:
+                drawBattleButtons(g2);
+                break;
+            case MOVE_SELECTION:
+                drawMoveSelection(g2);
+                break;
+            case EXECUTING:
+            case BATTLE_END:
+                // Just show the battle message in text box
+                break;
+        }
+        
+        // Draw level up stats box if needed
+        if (showLevelUpStats && levelUpStats != null && levelUpChampion != null) {
+            drawLevelUpStatsBox(g2);
+        }
     }
 
     private void drawBattleButtons(Graphics2D g2) {
-        int centerX = gp.screenWidth / 2;
         int blackStartY = (int) (gp.screenHeight * (2.0 / 3.0)); // Start of the black area
-        int centerY = blackStartY + ((gp.screenHeight - blackStartY) / 2); // Center of the black area
+        int blackAreaHeight = gp.screenHeight - blackStartY;
+        
+        // Right side for buttons (about 60% of the width)
+        int rightSideStart = (int) (gp.screenWidth * 0.4);
+        int rightSideWidth = gp.screenWidth - rightSideStart;
+        int rightCenterX = rightSideStart + (rightSideWidth / 2);
+        int rightCenterY = blackStartY + (blackAreaHeight / 2);
 
-        int buttonWidth = 150;
+        int buttonWidth = 140;
         int buttonHeight = 50;
-        int verticalSpacing = 40; // Increased vertical spacing
-        int horizontalSpacing = 60; // Horizontal spacing between buttons
-        int cornerArc = 25; // Corner arc for rounded rectangles
+        int verticalSpacing = 55;
+        int horizontalSpacing = 140; // Increased spacing even more
+        int cornerArc = 25;
 
-        // Button positions within the black area
-        int fightX = centerX - buttonWidth / 2; // Centered horizontally
-        int fightY = centerY - verticalSpacing*2 - 15;    // Top button (adjusted to move higher)
+        // Button positions in diamond formation on the right side (more spaced)
+        int fightX = rightCenterX - buttonWidth / 2; // Top button
+        int fightY = rightCenterY - 25 - 65; // 65 pixels above BAG button
 
-        int itemsX = centerX - horizontalSpacing - buttonWidth; // Left button
-        int itemsY = centerY - buttonHeight / 2;      // Centered vertically
+        int itemsX = rightCenterX - horizontalSpacing - (buttonWidth / 2); // Left button (more to the left)
+        int itemsY = rightCenterY - buttonHeight / 2;
 
-        int partyX = centerX + horizontalSpacing;       // Right button
-        int partyY = centerY - buttonHeight / 2; // Centered vertically
+        int partyX = rightCenterX + horizontalSpacing - (buttonWidth / 2); // Right button (more to the right)
+        int partyY = rightCenterY - buttonHeight / 2;
 
-        int runX = centerX - buttonWidth / 2;  // Centered horizontally
-        int runY = centerY + verticalSpacing;      // Bottom button (adjusted to move lower)
+        int runX = rightCenterX - buttonWidth / 2; // Bottom button
+        int runY = rightCenterY + verticalSpacing - 15; // Same spacing as fight button (5 pixels lower)
 
-        // Draw "Fight" button
-        drawRoundedButton(g2, "Fight", fightX, fightY, buttonWidth, buttonHeight, cornerArc, new Color(255, 0, 0, 150));
+        // Draw buttons with better styling
+        drawEnhancedButton(g2, "FIGHT", fightX, fightY, buttonWidth, buttonHeight, cornerArc, 
+                          new Color(220, 20, 20), new Color(180, 0, 0), gp.ui.battleNum == 0);
 
-        // Draw "Items" button
-        drawRoundedButton(g2, "Items", itemsX, itemsY, buttonWidth, buttonHeight, cornerArc, new Color(0, 255, 0, 150));
+        // Draw "Bag" button (renamed from Items)
+        drawEnhancedButton(g2, "BAG", itemsX, itemsY, buttonWidth, buttonHeight, cornerArc, 
+                          new Color(20, 180, 20), new Color(0, 140, 0), gp.ui.battleNum == 1);
 
         // Draw "Party" button
-        drawRoundedButton(g2, "Party", partyX, partyY, buttonWidth, buttonHeight, cornerArc, new Color(0, 0, 255, 150));
+        drawEnhancedButton(g2, "PARTY", partyX, partyY, buttonWidth, buttonHeight, cornerArc, 
+                          new Color(20, 100, 220), new Color(0, 60, 180), gp.ui.battleNum == 2);
 
         // Draw "Run" button
-        drawRoundedButton(g2, "Run", runX, runY, buttonWidth, buttonHeight, cornerArc, new Color(255, 255, 0, 150));
+        drawEnhancedButton(g2, "RUN", runX, runY, buttonWidth, buttonHeight, cornerArc, 
+                          new Color(220, 180, 20), new Color(180, 140, 0), gp.ui.battleNum == 3);
 
-        // Highlight selected button
-        int highlightX = 0, highlightY = 0;
-
-        switch (gp.ui.battleNum) {
-            case 0 -> { highlightX = fightX; highlightY = fightY; }
-            case 1 -> { highlightX = itemsX; highlightY = itemsY; }
-            case 2 -> { highlightX = partyX; highlightY = partyY; }
-            case 3 -> { highlightX = runX; highlightY = runY; }
-        }
-
-        g2.setColor(new Color(255, 255, 255, 230)); 
-        g2.setStroke(new BasicStroke(3)); // Highlight thickness
-        g2.drawRoundRect(highlightX, highlightY, buttonWidth, buttonHeight, cornerArc, cornerArc);
     }
 
     /**
-     * Draws a button with rounded corners, specified label, and background color.
+     * Draws an enhanced button with gradient, shadow, and selection highlighting.
      */
-    private void drawRoundedButton(Graphics2D g2, String label, int x, int y, int width, int height, int arc, Color bgColor) {
-        // Draw button background with rounded corners
-        g2.setColor(bgColor);
+    private void drawEnhancedButton(Graphics2D g2, String label, int x, int y, int width, int height, int arc, 
+                                   Color topColor, Color bottomColor, boolean selected) {
+        // Create gradient paint
+        java.awt.GradientPaint gradient = new java.awt.GradientPaint(
+            x, y, topColor,
+            x, y + height, bottomColor
+        );
+        
+        // Draw shadow first (offset down and right)
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.fillRoundRect(x + 3, y + 3, width, height, arc, arc);
+        
+        // Draw button background with gradient
+        g2.setPaint(gradient);
         g2.fillRoundRect(x, y, width, height, arc, arc);
-
-        // Draw button border with rounded corners
-        g2.setColor(Color.BLACK);
+        
+        // Draw selection highlight if selected
+        if (selected) {
+            g2.setColor(new Color(255, 255, 255, 200));
+            g2.setStroke(new BasicStroke(4));
+            g2.drawRoundRect(x - 2, y - 2, width + 4, height + 4, arc + 2, arc + 2);
+            
+            // Inner glow
+            g2.setColor(new Color(255, 255, 255, 100));
+            g2.setStroke(new BasicStroke(2));
+            g2.drawRoundRect(x, y, width, height, arc, arc);
+        }
+        
+        // Draw button border
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.setStroke(new BasicStroke(2));
         g2.drawRoundRect(x, y, width, height, arc, arc);
-
-        // Draw button label
-        g2.setFont(g2.getFont().deriveFont(20f)); // Font size
-        g2.setColor(Color.WHITE);
+        
+        // Draw button label with shadow
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
         int textWidth = g2.getFontMetrics().stringWidth(label);
         int textX = x + (width - textWidth) / 2;
-        int textY = y + (height / 2) + 7; // Vertically centered
+        int textY = y + (height / 2) + 6;
+        
+        // Text shadow
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.drawString(label, textX + 1, textY + 1);
+        
+        // Main text
+        g2.setColor(Color.WHITE);
         g2.drawString(label, textX, textY);
+    }
+    
+    /**
+     * Draws an enhanced move button with move details, type coloring, and selection highlighting.
+     */
+    private void drawEnhancedMoveButton(Graphics2D g2, Move move, int x, int y, int width, int height, 
+                                       Color topColor, Color bottomColor, boolean selected) {
+        // Create gradient paint
+        java.awt.GradientPaint gradient = new java.awt.GradientPaint(
+            x, y, topColor,
+            x, y + height, bottomColor
+        );
+        
+        // Draw shadow
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.fillRoundRect(x + 2, y + 2, width, height, 12, 12);
+        
+        // Draw button background with gradient
+        g2.setPaint(gradient);
+        g2.fillRoundRect(x, y, width, height, 12, 12);
+        
+        // Draw selection highlight if selected
+        if (selected) {
+            g2.setColor(new Color(255, 255, 255, 220));
+            g2.setStroke(new BasicStroke(3));
+            g2.drawRoundRect(x - 2, y - 2, width + 4, height + 4, 14, 14);
+        }
+        
+        // Draw button border
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x, y, width, height, 12, 12);
+        
+        // Draw move name
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+        String moveName = move.getName();
+        // No truncation - show full move name with larger buttons
+        
+        // Text shadow
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.drawString(moveName, x + 8 + 1, y + 20 + 1);
+        
+        // Main text
+        if (move.getPp() <= 0) {
+            g2.setColor(new Color(150, 150, 150));
+        } else {
+            g2.setColor(Color.WHITE);
+        }
+        g2.drawString(moveName, x + 8, y + 20);
+        
+        // Draw move details
+        g2.setFont(g2.getFont().deriveFont(11f));
+        g2.setColor(new Color(220, 220, 220));
+        
+        // PP info
+        String info = "PP: " + move.getPp();
+        g2.setColor(new Color(220, 220, 220));
+        g2.drawString(info, x + 8, y + 37);
+        
+        // Type and power
+        String typeInfo = move.getType();
+        g2.drawString(typeInfo, x + 8, y + 50);
+        
+        String powerInfo = "PWR: " + move.getPower();
+        g2.drawString(powerInfo, x + width - 60, y + 50);
+        
+        // Add a small type indicator
+        Color typeIndicator;
+        if (move.getType().equals("Physical")) {
+            typeIndicator = new Color(255, 100, 100);
+        } else if (move.getType().equals("Magic")) {
+            typeIndicator = new Color(100, 100, 255);
+        } else {
+            typeIndicator = new Color(200, 200, 200);
+        }
+        
+        g2.setColor(typeIndicator);
+        g2.fillRoundRect(x + width - 15, y + 5, 8, 8, 4, 4);
     }
 
 
     /**
-     * Draw champion info including name, HP bar, and HP value.
-     *
-     * @param g2       The graphics context
-     * @param name     The name of the champion
-     * @param currentHp The current HP of the champion
-     * @param maxHp    The maximum HP of the champion
-     * @param x        X position of the name/HP bar
-     * @param y        Y position of the name
-     * @param barWidth Width of the HP bar
-     * @param barHeight Height of the HP bar
+     * Draw champion info including name, level, HP bar, XP bar, and values.
      */
-    private void drawChampionInfo(Graphics2D g2, String name, int currentHp, int maxHp, int x, int y, int barWidth, int barHeight) {
-        // Draw champion name
+    private void drawChampionInfo(Graphics2D g2, String name, int currentHp, int maxHp, int level, 
+                                 int currentExp, int expToNext, int x, int y, int barWidth, int barHeight, boolean showXP) {
+        // Draw champion name with level
         g2.setColor(Color.WHITE);
-        g2.setFont(g2.getFont().deriveFont(18f)); // Font size for name
-        g2.drawString(name, x, y - 10); // Name above the bar
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
+        String nameWithLevel = name + " (Lv." + level + ")";
+        g2.drawString(nameWithLevel, x, y - 10);
 
         // Draw the HP bar background
         g2.setColor(Color.GRAY);
@@ -223,43 +408,483 @@ public class BattleManager {
 
         // Draw the HP value inside the bar
         g2.setColor(Color.WHITE);
-        g2.setFont(g2.getFont().deriveFont(14f)); // Font size for HP
+        g2.setFont(g2.getFont().deriveFont(12f));
         String hpText = currentHp + " / " + maxHp;
         int textWidth = g2.getFontMetrics().stringWidth(hpText);
         int textX = x + (barWidth - textWidth) / 2;
-        int textY = y + barHeight - 5; // Slightly above the bottom of the bar
+        int textY = y + barHeight - 6;
         g2.drawString(hpText, textX, textY);
+        
+        // Draw XP bar for player champion only
+        if (showXP) {
+            int xpBarY = y + barHeight + 5;
+            int xpBarHeight = 8;
+            
+            // XP bar background
+            g2.setColor(new Color(100, 100, 100));
+            g2.fillRect(x, xpBarY, barWidth, xpBarHeight);
+            
+            // Calculate XP percentage
+            float xpPercentage = (currentExp / (float) expToNext);
+            int xpWidth = (int) (xpPercentage * barWidth);
+            
+            // Draw XP bar (blue for XP)
+            g2.setColor(new Color(100, 150, 255));
+            g2.fillRect(x, xpBarY, xpWidth, xpBarHeight);
+            
+            // XP bar border
+            g2.setColor(Color.BLACK);
+            g2.drawRect(x, xpBarY, barWidth, xpBarHeight);
+            
+            // XP text
+            g2.setColor(Color.WHITE);
+            g2.setFont(g2.getFont().deriveFont(10f));
+            String xpText = "XP: " + currentExp + " / " + expToNext;
+            g2.drawString(xpText, x + 2, xpBarY + xpBarHeight + 12);
+        }
     }
     
     public void handleBattleAction(int actionIndex) {
+        // Handle level up stats display first
+        if (showLevelUpStats) {
+            showLevelUpStats = false;
+            levelUpStats = null;
+            levelUpChampion = null;
+            return; // Don't process other actions while showing stats
+        }
+        
+        if (battleState == BattleState.BATTLE_END) {
+            // End battle and return to play state
+            endBattle();
+            return;
+        }
+        
+        switch (battleState) {
+            case MAIN_MENU:
+                handleMainMenuAction(actionIndex);
+                break;
+            case MOVE_SELECTION:
+                handleMoveSelection(actionIndex);
+                break;
+        }
+    }
+    
+    private void handleMainMenuAction(int actionIndex) {
         switch (actionIndex) {
             case 0 -> {
-                System.out.println("You chose to Fight!");
-                // Add logic to start a fight sequence here
+                battleState = BattleState.MOVE_SELECTION;
+                selectedMoveIndex = 0;
+                // Don't clear battle message when switching to move selection
             }
             case 1 -> {
-                System.out.println("You opened your Bag!");
-                // Add logic to display the Bag interface here
+                battleMessage = "No items available!";
+                messageTimer = 60;
             }
             case 2 -> {
-            	System.out.println("You opened your Party!");
-                // Add logic for attempting to flee here
+                battleMessage = "No other champions available!";
+                messageTimer = 60;
             }
             case 3 -> {
-            	System.out.println("You chose to Run!");
-                
-                // Add logic to switch champions here
-            	if(gp.player.numchamp<gp.champList.size()) {
-            		gp.player.numchamp++;
-            		gp.player.initializeParty();
-            	}
-            	
-            	gp.ui.battleNum=0;
-            	gp.gameState=gp.playState;
-            	gp.playMusic(gp.currentMusic);
+                if (attemptRun()) {
+                    battleMessage = "Got away safely!";
+                    messageTimer = 60;
+                    battleState = BattleState.BATTLE_END;
+                } else {
+                    battleMessage = "Couldn't escape!";
+                    messageTimer = 60;
+                }
             }
-            default -> System.out.println("Invalid action!");
         }
+    }
+    
+    private void handleMoveSelection(int moveIndex) {
+        if (moveIndex < playerChampion.getMoves().size()) {
+            Move selectedMove = playerChampion.getMoves().get(moveIndex);
+            if (selectedMove.isOutOfPP()) {
+                battleMessage = selectedMove.getName() + " is out of PP!";
+                messageTimer = 60;
+            } else {
+                battleState = BattleState.EXECUTING;
+                executePlayerMove(selectedMove);
+            }
+        }
+    }
+    
+    // New battle system methods
+    private boolean determineFirstTurn() {
+        return playerChampion.getSpeed() >= wildChampion.getSpeed();
+    }
+    
+    private void executePlayerMove(Move move) {
+        int[] damageResult = calculateDamageWithCrit(move, playerChampion, wildChampion);
+        int damage = damageResult[0];
+        boolean isCrit = damageResult[1] == 1;
+        
+        wildChampion.takeDamage(damage);
+        move.useMove();
+        
+        // Apply lifesteal if damage was dealt
+        if (damage > 0) {
+            int healAmount = (damage * playerChampion.getLifesteal()) / 100;
+            if (healAmount > 0) {
+                int newHp = Math.min(playerChampion.getCurrentHp() + healAmount, playerChampion.getMaxHp());
+                playerChampion.setCurrentHp(newHp);
+            }
+        }
+        
+        String critText = isCrit ? "\nCritical hit!" : "";
+        battleMessage = playerChampion.getName() + " used " + move.getName() + "!\nDealt " + damage + " damage!" + critText;
+        messageTimer = 90;
+        
+        playerTurn = false;
+    }
+    
+    private void executeAITurn() {
+        // Simple AI: choose random available move
+        Move[] availableMoves = wildChampion.getMoves().stream()
+            .filter(move -> !move.isOutOfPP()) // Check only PP
+            .toArray(Move[]::new);
+            
+        if (availableMoves.length > 0) {
+            Move aiMove = availableMoves[random.nextInt(availableMoves.length)];
+            int[] damageResult = calculateDamageWithCrit(aiMove, wildChampion, playerChampion);
+            int damage = damageResult[0];
+            boolean isCrit = damageResult[1] == 1;
+            
+            playerChampion.takeDamage(damage);
+            aiMove.useMove();
+            
+            // Apply lifesteal for AI if damage was dealt
+            if (damage > 0) {
+                int healAmount = (damage * wildChampion.getLifesteal()) / 100;
+                if (healAmount > 0) {
+                    int newHp = Math.min(wildChampion.getCurrentHp() + healAmount, wildChampion.getMaxHp());
+                    wildChampion.setCurrentHp(newHp);
+                }
+            }
+            
+            String critText = isCrit ? "\nCritical hit!" : "";
+            battleMessage = "Wild " + wildChampion.getName() + " used " + aiMove.getName() + "!\nDealt " + damage + " damage!" + critText;
+            messageTimer = 90;
+        } else {
+            battleMessage = "Wild " + wildChampion.getName() + " has no moves left!";
+            messageTimer = 90;
+        }
+        
+        playerTurn = true;
+        battleState = BattleState.MAIN_MENU;
+    }
+    
+    private int calculateDamage(Move move, Champion attacker, Champion defender) {
+        if (move.getPower() == 0) return 0; // Non-damaging moves
+        
+        double baseDamage;
+        double defense;
+        
+        // Calculate base damage and defense based on move type
+        if (move.getType().equals("Physical")) {
+            baseDamage = attacker.getAD();
+            defense = defender.getArmor();
+        } else { // Magic
+            baseDamage = attacker.getAP();
+            defense = defender.getMagicResist();
+        }
+        
+        // League of Legends style damage formula: Base damage reduced by percentage
+        double baseDamageCalc = (baseDamage * move.getPower()) / 50.0;
+        
+        // Convert defense to damage reduction percentage (like League of Legends)
+        // Formula: Damage Reduction = Defense / (Defense + 100)
+        double damageReduction = defense / (defense + 100.0);
+        
+        // Apply damage reduction: Final damage = Base damage × (1 - damage reduction)
+        double finalDamage = baseDamageCalc * (1.0 - damageReduction);
+        
+        // Always deal at least 1 damage (like League of Legends true damage minimum)
+        return Math.max(1, (int) finalDamage);
+    }
+    
+    private int[] calculateDamageWithCrit(Move move, Champion attacker, Champion defender) {
+        // Calculate base damage
+        int baseDamage = calculateDamage(move, attacker, defender);
+        boolean isCrit = false;
+        
+        // Check for critical hit
+        if (random.nextInt(100) < attacker.getCritChance()) {
+            baseDamage = (int) (baseDamage * 2.0); // 2x damage on crit
+            isCrit = true;
+        }
+        
+        return new int[]{baseDamage, isCrit ? 1 : 0};
+    }
+    
+    private boolean attemptRun() {
+        // Base 50% run chance, modified by speed difference
+        int speedDiff = playerChampion.getSpeed() - wildChampion.getSpeed();
+        int runChance = 50 + (speedDiff / 4); // +/- 1% per 4 speed difference
+        runChance = Math.max(10, Math.min(90, runChance)); // Clamp between 10-90%
+        
+        return random.nextInt(100) < runChance;
+    }
+    
+    private void drawMoveSelection(Graphics2D g2) {
+        int blackStartY = (int) (gp.screenHeight * (2.0 / 3.0));
+        int blackAreaHeight = gp.screenHeight - blackStartY;
+        
+        // Right side for move selection (60% of screen width)
+        int rightSideStart = (int) (gp.screenWidth * 0.4);
+        int rightSideWidth = gp.screenWidth - rightSideStart;
+        
+        // Draw background for move selection on right side
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.fillRoundRect(rightSideStart + 10, blackStartY + 10, rightSideWidth - 20, blackAreaHeight - 20, 15, 15);
+        g2.setColor(Color.WHITE);
+        g2.setStroke(new java.awt.BasicStroke(2));
+        g2.drawRoundRect(rightSideStart + 10, blackStartY + 10, rightSideWidth - 20, blackAreaHeight - 20, 15, 15);
+        
+        // Title
+        g2.setColor(Color.WHITE);
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
+        g2.drawString("SELECT MOVE:", rightSideStart + 25, blackStartY + 40);
+        
+        // Draw moves in a 2x2 grid - centered with more spacing (first size modification)
+        int moveButtonWidth = 180;
+        int moveButtonHeight = 70;
+        int horizontalSpacing = 40;
+        int verticalSpacing = 25;
+        
+        // Calculate centered starting position for the 2x2 grid
+        int gridWidth = (2 * moveButtonWidth) + horizontalSpacing;
+        int gridStartX = rightSideStart + (rightSideWidth - gridWidth) / 2;
+        
+        for (int i = 0; i < playerChampion.getMoves().size() && i < 4; i++) {
+            Move move = playerChampion.getMoves().get(i);
+            int col = i % 2;
+            int row = i / 2;
+            int x = gridStartX + col * (moveButtonWidth + horizontalSpacing);
+            int y = blackStartY + 52 + row * (moveButtonHeight + verticalSpacing);
+            
+            // Determine move colors based on type
+            Color moveColor1, moveColor2;
+            if (move.getType().equals("Physical")) {
+                moveColor1 = new Color(200, 100, 100);
+                moveColor2 = new Color(160, 60, 60);
+            } else if (move.getType().equals("Magic")) {
+                moveColor1 = new Color(100, 100, 200);
+                moveColor2 = new Color(60, 60, 160);
+            } else {
+                moveColor1 = new Color(150, 150, 150);
+                moveColor2 = new Color(100, 100, 100);
+            }
+            
+            // Dim colors if out of PP
+            if (move.getPp() <= 0) {
+                moveColor1 = new Color(80, 80, 80);
+                moveColor2 = new Color(60, 60, 60);
+            }
+            
+            // Draw enhanced move button
+            drawEnhancedMoveButton(g2, move, x, y, moveButtonWidth, moveButtonHeight, 
+                                 moveColor1, moveColor2, i == gp.ui.battleNum);
+        }
+    }
+    
+    private void drawBattleTextBox(Graphics2D g2) {
+        int blackStartY = (int) (gp.screenHeight * (2.0 / 3.0));
+        int blackAreaHeight = gp.screenHeight - blackStartY;
+        
+        // Left side text box (40% of screen width)
+        int leftSideWidth = (int) (gp.screenWidth * 0.4);
+        int textBoxX = 10;
+        int textBoxY = blackStartY + 10;
+        int textBoxWidth = leftSideWidth - 20;
+        int textBoxHeight = blackAreaHeight - 20;
+        
+        // Draw text box background
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.fillRoundRect(textBoxX, textBoxY, textBoxWidth, textBoxHeight, 15, 15);
+        g2.setColor(Color.WHITE);
+        g2.setStroke(new java.awt.BasicStroke(2));
+        g2.drawRoundRect(textBoxX, textBoxY, textBoxWidth, textBoxHeight, 15, 15);
+        
+        // Determine what text to show
+        String displayText = battleMessage;
+        if (displayText.isEmpty()) {
+            switch (battleState) {
+                case MAIN_MENU:
+                    displayText = "What will " + playerChampion.getName() + " do?";
+                    break;
+                case MOVE_SELECTION:
+                    displayText = "Choose a move for " + playerChampion.getName() + ".";
+                    break;
+                case EXECUTING:
+                    displayText = "Battle in progress...";
+                    break;
+                case BATTLE_END:
+                    displayText = "Battle ended.";
+                    break;
+                default:
+                    displayText = "...";
+                    break;
+            }
+        }
+        
+        // Draw battle text
+        g2.setFont(g2.getFont().deriveFont(14f));
+        g2.setColor(Color.WHITE);
+        
+        // Handle line breaks and word wrap, limiting to 5 lines maximum
+        String[] lines = displayText.split("\n");
+        int lineY = textBoxY + 25;
+        int lineHeight = 18;
+        int maxLines = 5;
+        int linesDrawn = 0;
+        
+        for (String line : lines) {
+            if (linesDrawn >= maxLines) break; // Limit to 5 lines
+            
+            // Word wrap each line to fit in the text box
+            String[] words = line.split(" ");
+            StringBuilder currentLine = new StringBuilder();
+            
+            for (String word : words) {
+                if (linesDrawn >= maxLines) break; // Limit to 5 lines
+                
+                String testLine = currentLine.length() == 0 ? word : currentLine + " " + word;
+                int textWidth = g2.getFontMetrics().stringWidth(testLine);
+                
+                if (textWidth > textBoxWidth - 20 && currentLine.length() > 0) {
+                    // Draw current line and start new line
+                    g2.drawString(currentLine.toString(), textBoxX + 10, lineY);
+                    lineY += lineHeight;
+                    linesDrawn++;
+                    currentLine = new StringBuilder(word);
+                } else {
+                    currentLine = new StringBuilder(testLine);
+                }
+            }
+            
+            // Draw the last part of this line
+            if (currentLine.length() > 0 && linesDrawn < maxLines) {
+                g2.drawString(currentLine.toString(), textBoxX + 10, lineY);
+                lineY += lineHeight;
+                linesDrawn++;
+            }
+        }
+    }
+    
+    private void drawLevelUpStatsBox(Graphics2D g2) {
+        // Position above player's HP bar
+        int blackStartY = (int) (gp.screenHeight * (2.0 / 3.0));
+        int playerHpX = gp.screenWidth - 250;
+        int playerHpY = blackStartY - 48;
+        
+        int boxWidth = 320;
+        int boxHeight = 380;
+        int boxX = playerHpX - 70; // Position to the left of HP bar
+        int boxY = playerHpY - boxHeight - 10; // Position above HP bar
+        
+        // Draw background with border (black box)
+        g2.setColor(new Color(0, 0, 0, 240));
+        g2.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 15, 15);
+        
+        // Draw border
+        g2.setColor(new Color(255, 255, 255));
+        g2.setStroke(new BasicStroke(3));
+        g2.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 15, 15);
+        
+        // Draw title
+        g2.setColor(Color.WHITE);
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
+        String title = levelUpChampion.getName() + " grew to level " + levelUpChampion.getLevel() + "!";
+        int titleWidth = g2.getFontMetrics().stringWidth(title);
+        g2.drawString(title, boxX + (boxWidth - titleWidth) / 2, boxY + 25);
+        
+        // Draw stats header
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+        g2.drawString("Stats increased:", boxX + 15, boxY + 55);
+        
+        // Draw stats with increases
+        g2.setFont(g2.getFont().deriveFont(12f));
+        int startY = boxY + 80;
+        int lineHeight = 22;
+        int currentY = startY;
+        
+        // HP
+        String hpText = "HP        " + (levelUpChampion.getMaxHp() - levelUpStats.hpIncrease) + " + " + levelUpStats.hpIncrease + " = " + levelUpChampion.getMaxHp();
+        g2.drawString(hpText, boxX + 20, currentY);
+        currentY += lineHeight;
+        
+        // Attack Damage
+        String adText = "AD        " + (levelUpChampion.getAD() - levelUpStats.adIncrease) + " + " + levelUpStats.adIncrease + " = " + levelUpChampion.getAD();
+        g2.drawString(adText, boxX + 20, currentY);
+        currentY += lineHeight;
+        
+        // Ability Power
+        String apText = "AP        " + (levelUpChampion.getAP() - levelUpStats.apIncrease) + " + " + levelUpStats.apIncrease + " = " + levelUpChampion.getAP();
+        g2.drawString(apText, boxX + 20, currentY);
+        currentY += lineHeight;
+        
+        // Armor
+        String armorText = "ARMOR     " + (levelUpChampion.getArmor() - levelUpStats.armorIncrease) + " + " + levelUpStats.armorIncrease + " = " + levelUpChampion.getArmor();
+        g2.drawString(armorText, boxX + 20, currentY);
+        currentY += lineHeight;
+        
+        // Magic Resist
+        String mrText = "MAG RES   " + (levelUpChampion.getMagicResist() - levelUpStats.magicResistIncrease) + " + " + levelUpStats.magicResistIncrease + " = " + levelUpChampion.getMagicResist();
+        g2.drawString(mrText, boxX + 20, currentY);
+        currentY += lineHeight;
+        
+        // Speed
+        String speedText = "SPEED     " + (levelUpChampion.getSpeed() - levelUpStats.speedIncrease) + " + " + levelUpStats.speedIncrease + " = " + levelUpChampion.getSpeed();
+        g2.drawString(speedText, boxX + 20, currentY);
+        currentY += lineHeight;
+        
+        // Crit Chance
+        String critText = "CRIT      " + (levelUpChampion.getCritChance() - levelUpStats.critIncrease) + " + " + levelUpStats.critIncrease + " = " + levelUpChampion.getCritChance();
+        g2.drawString(critText, boxX + 20, currentY);
+        currentY += lineHeight;
+        
+        // Lifesteal
+        String lifestealText = "LIFESTEAL " + (levelUpChampion.getLifesteal() - levelUpStats.lifestealIncrease) + " + " + levelUpStats.lifestealIncrease + " = " + levelUpChampion.getLifesteal();
+        g2.drawString(lifestealText, boxX + 20, currentY);
+        currentY += lineHeight;
+        
+        // Draw continue prompt
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.ITALIC, 11f));
+        g2.setColor(new Color(180, 180, 180));
+        String continueText = "Press any key to continue...";
+        int continueWidth = g2.getFontMetrics().stringWidth(continueText);
+        g2.drawString(continueText, boxX + (boxWidth - continueWidth) / 2, boxY + boxHeight - 15);
+    }
+    
+    private void endBattle() {
+        gp.ui.battleNum = 0;
+        gp.gameState = gp.playState;
+        gp.playMusic(gp.currentMusic);
+        
+        // Reset battle state
+        battleState = BattleState.MAIN_MENU;
+        battleMessage = "";
+        messageTimer = 0;
+        
+        // Reset level up display
+        showLevelUpStats = false;
+        levelUpStats = null;
+        levelUpChampion = null;
+    }
+    
+    // Getters for battle state
+    public BattleState getBattleState() {
+        return battleState;
+    }
+    
+    public boolean isPlayerTurn() {
+        return playerTurn;
+    }
+    
+    public void returnToMainMenu() {
+        battleState = BattleState.MAIN_MENU;
     }
 
 }
