@@ -24,8 +24,10 @@ public class Move {
     private int magicResistStageChange;
     private boolean targetsSelf; // true = affects user, false = affects target
     
-    // Cooldown system
-    private boolean onCooldown; // true if move was used last turn
+    // Ultimate cooldown system
+    private boolean isUltimate; // true if this is an ultimate (R) move
+    private int ultimateCooldown; // Current cooldown turns remaining
+    private static final int ULTIMATE_COOLDOWN_TURNS = 4; // 4 turns cooldown for ultimates
 
     // Constructor
     public Move(String name, String type, int power, int accuracy, int maxPp, String effect, int effectChance) {
@@ -45,7 +47,8 @@ public class Move {
         this.apStageChange = 0;
         this.magicResistStageChange = 0;
         this.targetsSelf = true; // Default to self-targeting
-        this.onCooldown = false; // Initialize cooldown as false
+        this.isUltimate = false; // Default to not ultimate
+        this.ultimateCooldown = 0;
     }
     
     // Constructor with stat stage changes
@@ -58,7 +61,15 @@ public class Move {
         this.apStageChange = apChange;
         this.magicResistStageChange = magicResistChange;
         this.targetsSelf = targetsSelf;
-        this.onCooldown = false; // Initialize cooldown as false
+        this.isUltimate = false; // Default to not ultimate
+        this.ultimateCooldown = 0;
+    }
+    
+    // Constructor for ultimate moves
+    public Move(String name, String type, int power, int accuracy, int maxPp, String effect, int effectChance, boolean isUltimate) {
+        this(name, type, power, accuracy, maxPp, effect, effectChance);
+        this.isUltimate = isUltimate;
+        this.ultimateCooldown = 0;
     }
 
     // Getters and Setters
@@ -86,27 +97,45 @@ public class Move {
         return pp <= 0;
     }
     
-    public boolean isOnCooldown() {
-        return onCooldown;
+    public boolean isUsable() {
+        return !isOutOfPP() && !isUltimateOnCooldown();
     }
     
-    public boolean isUsable() {
-        return !isOutOfPP() && !onCooldown;
+    public boolean isUltimate() {
+        return isUltimate;
+    }
+    
+    public boolean isUltimateOnCooldown() {
+        return isUltimate && ultimateCooldown > 0;
+    }
+    
+    public int getUltimateCooldown() {
+        return ultimateCooldown;
     }
 
     // Methods
     public boolean useMove() {
-        if (pp > 0 && !onCooldown) {
+        if (isUsable()) {
             pp--;
-            onCooldown = true; // Move goes on cooldown after use
+            if (isUltimate) {
+                ultimateCooldown = ULTIMATE_COOLDOWN_TURNS; // Start cooldown for ultimates
+            }
             return true;
         } else {
-            return false; // Move cannot be used if out of PP or on cooldown
+            return false; // Move cannot be used if out of PP or ultimate on cooldown
         }
     }
     
-    public void resetCooldown() {
-        this.onCooldown = false;
+    // Reduce ultimate cooldown (called each turn)
+    public void reduceUltimateCooldown() {
+        if (ultimateCooldown > 0) {
+            ultimateCooldown--;
+        }
+    }
+    
+    // Reset ultimate cooldown (for battle start/end)
+    public void resetUltimateCooldown() {
+        ultimateCooldown = 0;
     }
 
     public boolean applyEffect() {

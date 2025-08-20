@@ -33,6 +33,10 @@ public class BattleManager {
     private StatIncrease levelUpStats = null;
     private Champion levelUpChampion = null;
     
+    // Champion info popups
+    private boolean showPlayerInfoPopup = false;
+    private boolean showEnemyInfoPopup = false;
+    
     // Battle states
     public enum BattleState {
         MAIN_MENU,     // Fight/Items/Party/Run selection
@@ -55,6 +59,19 @@ public class BattleManager {
         this.messageTimer = 120; // Display message for 2 seconds at 60fps
         this.xpAwarded = false; // Reset XP award flag
         
+        // Reset passive states for new battle
+        playerChampion.resetPassiveStates();
+        wildChampion.resetPassiveStates();
+        
+        // Trigger start of battle passives
+        StringBuilder startMessage = new StringBuilder();
+        handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.START_OF_BATTLE, 0, startMessage);
+        handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.START_OF_BATTLE, 0, startMessage);
+        
+        if (startMessage.length() > 0) {
+            battleMessage += startMessage.toString();
+        }
+        
         gp.gameState = gp.battleState;
         System.out.println("Battle started! Player: " + playerChampion.getName() + 
                            " vs Wild: " + wildChampion.getName());
@@ -67,42 +84,81 @@ public class BattleManager {
         
         // Check for battle end conditions
         if (playerChampion.isFainted()) {
-            battleState = BattleState.BATTLE_END;
-            battleMessage = playerChampion.getName() + " fainted! You lost!";
-            messageTimer = 180; // 3 seconds
-        } else if (wildChampion.isFainted() && !xpAwarded) {
-            battleState = BattleState.BATTLE_END;
+            // Check for death defiance passives
+            StringBuilder deathMessage = new StringBuilder();
+            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.DEATH_DEFIANCE, 0, deathMessage);
             
-            // Trigger ON_KILL passive
-            StringBuilder killMessage = new StringBuilder();
-            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_KILL, 0, killMessage);
-            
-            int expGained = wildChampion.getLevel() * 5;
-            StatIncrease statIncrease = playerChampion.gainExp(expGained);
-            
-            if (statIncrease != null) {
-                // Level up occurred - show stats display
-                battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
-                               "You won!\n" +
-                               playerChampion.getName() + " gained " + expGained + " XP!\n" + 
-                               playerChampion.getName() + " leveled up to level " + playerChampion.getLevel() + "!" +
-                               killMessage.toString();
-                showLevelUpStats = true;
-                levelUpStats = statIncrease;
-                levelUpChampion = playerChampion;
-            } else {
-                battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
-                               "You won!\n" +
-                               playerChampion.getName() + " gained " + expGained + " XP!" +
-                               killMessage.toString();
+            if (playerChampion.isFainted()) { // Still fainted after death defiance check
+                battleState = BattleState.BATTLE_END;
+                battleMessage = playerChampion.getName() + " fainted! You lost!";
+                messageTimer = 180; // 3 seconds
+            } else if (deathMessage.length() > 0) {
+                battleMessage = deathMessage.toString();
+                messageTimer = 120;
             }
-            xpAwarded = true; // Mark XP as awarded
-            // No timer set - message will persist until user action
+        } else if (wildChampion.isFainted() && !xpAwarded) {
+            // Check for death defiance passives
+            StringBuilder deathMessage = new StringBuilder();
+            handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.DEATH_DEFIANCE, 0, deathMessage);
+            
+            if (wildChampion.isFainted()) { // Still fainted after death defiance check
+                battleState = BattleState.BATTLE_END;
+                
+                // Trigger ON_KILL passive
+                StringBuilder killMessage = new StringBuilder();
+                handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_KILL, 0, killMessage);
+                
+                int expGained = wildChampion.getLevel() * 5;
+                StatIncrease statIncrease = playerChampion.gainExp(expGained);
+                
+                if (statIncrease != null) {
+                    // Level up occurred - show stats display
+                    battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
+                                   "You won!\n" +
+                                   playerChampion.getName() + " gained " + expGained + " XP!\n" + 
+                                   playerChampion.getName() + " leveled up to level " + playerChampion.getLevel() + "!" +
+                                   killMessage.toString();
+                    showLevelUpStats = true;
+                    levelUpStats = statIncrease;
+                    levelUpChampion = playerChampion;
+                } else {
+                    battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
+                                   "You won!\n" +
+                                   playerChampion.getName() + " gained " + expGained + " XP!" +
+                                   killMessage.toString();
+                }
+                xpAwarded = true; // Mark XP as awarded
+                // No timer set - message will persist until user action
+            } else if (deathMessage.length() > 0) {
+                battleMessage = deathMessage.toString();
+                messageTimer = 120;
+            }
         }
         
         // Auto-execute AI turn if it's not player turn and in executing state
         if (battleState == BattleState.EXECUTING && !playerTurn && messageTimer <= 0) {
             executeAITurn();
+        }
+        
+        // Update passive states each frame
+        if (playerChampion != null) {
+            // Check HP threshold passives
+            StringBuilder hpMessage = new StringBuilder();
+            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.HP_THRESHOLD, 0, hpMessage);
+            if (hpMessage.length() > 0 && messageTimer <= 0) {
+                battleMessage = hpMessage.toString();
+                messageTimer = 90;
+            }
+        }
+        
+        if (wildChampion != null) {
+            // Check HP threshold passives
+            StringBuilder hpMessage = new StringBuilder();
+            handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.HP_THRESHOLD, 0, hpMessage);
+            if (hpMessage.length() > 0 && messageTimer <= 0) {
+                battleMessage = hpMessage.toString();
+                messageTimer = 90;
+            }
         }
     }
 
@@ -203,6 +259,14 @@ public class BattleManager {
         // Draw level up stats box if needed
         if (showLevelUpStats && levelUpStats != null && levelUpChampion != null) {
             drawLevelUpStatsBox(g2);
+        }
+        
+        // Draw champion info popups if needed
+        if (showPlayerInfoPopup && playerChampion != null) {
+            drawChampionInfoPopup(g2, playerChampion, "YOUR CHAMPION");
+        }
+        if (showEnemyInfoPopup && wildChampion != null) {
+            drawChampionInfoPopup(g2, wildChampion, "ENEMY CHAMPION");
         }
     }
 
@@ -365,8 +429,15 @@ public class BattleManager {
         String typeInfo = move.getType();
         g2.drawString(typeInfo, x + 8, y + 50);
         
-        String powerInfo = "PWR: " + move.getPower();
-        g2.drawString(powerInfo, x + width - 60, y + 50);
+        // Show ultimate cooldown or power
+        if (move.isUltimate() && move.isUltimateOnCooldown()) {
+            String cooldownInfo = "CD: " + move.getUltimateCooldown();
+            g2.setColor(new Color(255, 100, 100)); // Red for cooldown
+            g2.drawString(cooldownInfo, x + width - 60, y + 50);
+        } else {
+            String powerInfo = "PWR: " + move.getPower();
+            g2.drawString(powerInfo, x + width - 60, y + 50);
+        }
         
         // Add a small type indicator
         Color typeIndicator;
@@ -548,8 +619,8 @@ public class BattleManager {
             if (!selectedMove.isUsable()) {
                 if (selectedMove.isOutOfPP()) {
                     battleMessage = selectedMove.getName() + " is out of PP!";
-                } else if (selectedMove.isOnCooldown()) {
-                    battleMessage = selectedMove.getName() + " was used last turn and can't be used again!";
+                } else if (selectedMove.isUltimateOnCooldown()) {
+                    battleMessage = selectedMove.getName() + " is on cooldown! (" + selectedMove.getUltimateCooldown() + " turns left)";
                 }
                 messageTimer = 60;
             } else {
@@ -565,8 +636,25 @@ public class BattleManager {
     }
     
     private void executePlayerMove(Move move) {
+        // Update passive states at start of turn
+        playerChampion.updatePassiveStatesStartOfTurn();
+        
+        // Trigger start of turn passives
+        StringBuilder startTurnMessage = new StringBuilder();
+        handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
+        
         StringBuilder message = new StringBuilder();
         message.append(playerChampion.getName()).append(" used ").append(move.getName()).append("!");
+        
+        // Add start of turn passive messages
+        if (startTurnMessage.length() > 0) {
+            message.append(startTurnMessage);
+        }
+        
+        // Mark enemy as attacked for first attack tracking
+        if (playerChampion.isFirstAttackOnEnemy()) {
+            playerChampion.addAttackedEnemy(wildChampion.getName());
+        }
         
         // Handle damage
         int[] damageResult = calculateDamageWithCrit(move, playerChampion, wildChampion);
@@ -576,7 +664,11 @@ public class BattleManager {
         if (damage > 0) {
             wildChampion.takeDamage(damage);
             message.append("\nDealt ").append(damage).append(" damage!");
-            if (isCrit) message.append("\nCritical hit!");
+            if (isCrit) {
+                message.append("\nCritical hit!");
+                // Trigger critical hit passives
+                handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_CRITICAL, damage, message);
+            }
             
             // Apply lifesteal if damage was dealt
             int healAmount = (damage * playerChampion.getLifesteal()) / 100;
@@ -584,6 +676,9 @@ public class BattleManager {
                 int newHp = Math.min(playerChampion.getCurrentHp() + healAmount, playerChampion.getMaxHp());
                 playerChampion.setCurrentHp(newHp);
             }
+            
+            // Trigger retaliation passives on defender
+            handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.RETALIATION, damage, message, playerChampion);
         }
         
         // Handle stat stage changes
@@ -598,25 +693,54 @@ public class BattleManager {
         
         // Check for passive triggers after attack
         if (damage > 0) {
-            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_ATTACK, damage, message);
+            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_ATTACK, damage, message, wildChampion);
+            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.STACKING_ATTACK, damage, message);
         }
+        
+        // Trigger ability use passives
+        handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_ABILITY_USE, 0, message);
+        
+        // Trigger turn-based passives
+        handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.EVERY_N_TURNS, 0, message);
         
         battleMessage = message.toString();
         messageTimer = 120;
         
         playerTurn = false;
+        
+        // Set first attack flag to false after first attack
+        if (playerChampion.isFirstAttackOnEnemy()) {
+            playerChampion.setFirstAttackOnEnemy(false);
+        }
     }
     
     private void executeAITurn() {
+        // Update passive states at start of turn
+        wildChampion.updatePassiveStatesStartOfTurn();
+        
+        // Trigger start of turn passives
+        StringBuilder startTurnMessage = new StringBuilder();
+        handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
+        
         // Simple AI: choose random available move
         Move[] availableMoves = wildChampion.getMoves().stream()
-            .filter(move -> move.isUsable()) // Check PP and cooldown
+            .filter(move -> move.isUsable()) // Check PP only
             .toArray(Move[]::new);
             
         if (availableMoves.length > 0) {
             Move aiMove = availableMoves[random.nextInt(availableMoves.length)];
             StringBuilder message = new StringBuilder();
             message.append("Wild ").append(wildChampion.getName()).append(" used ").append(aiMove.getName()).append("!");
+            
+            // Add start of turn passive messages
+            if (startTurnMessage.length() > 0) {
+                message.append(startTurnMessage);
+            }
+            
+            // Mark enemy as attacked for first attack tracking
+            if (wildChampion.isFirstAttackOnEnemy()) {
+                wildChampion.addAttackedEnemy(playerChampion.getName());
+            }
             
             // Handle damage
             int[] damageResult = calculateDamageWithCrit(aiMove, wildChampion, playerChampion);
@@ -626,7 +750,11 @@ public class BattleManager {
             if (damage > 0) {
                 playerChampion.takeDamage(damage);
                 message.append("\nDealt ").append(damage).append(" damage!");
-                if (isCrit) message.append("\nCritical hit!");
+                if (isCrit) {
+                    message.append("\nCritical hit!");
+                    // Trigger critical hit passives
+                    handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.ON_CRITICAL, damage, message);
+                }
                 
                 // Apply lifesteal for AI if damage was dealt
                 int healAmount = (damage * wildChampion.getLifesteal()) / 100;
@@ -634,6 +762,9 @@ public class BattleManager {
                     int newHp = Math.min(wildChampion.getCurrentHp() + healAmount, wildChampion.getMaxHp());
                     wildChampion.setCurrentHp(newHp);
                 }
+                
+                // Trigger retaliation passives on defender
+                handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.RETALIATION, damage, message, wildChampion);
             }
             
             // Handle stat stage changes
@@ -648,11 +779,23 @@ public class BattleManager {
             
             // Check for passive triggers after attack
             if (damage > 0) {
-                handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.ON_ATTACK, damage, message);
+                handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.ON_ATTACK, damage, message, playerChampion);
+                handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.STACKING_ATTACK, damage, message);
             }
+            
+            // Trigger ability use passives
+            handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.ON_ABILITY_USE, 0, message);
+            
+            // Trigger turn-based passives
+            handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.EVERY_N_TURNS, 0, message);
             
             battleMessage = message.toString();
             messageTimer = 120;
+            
+            // Set first attack flag to false after first attack
+            if (wildChampion.isFirstAttackOnEnemy()) {
+                wildChampion.setFirstAttackOnEnemy(false);
+            }
         } else {
             battleMessage = "Wild " + wildChampion.getName() + " has no moves left!";
             messageTimer = 90;
@@ -717,42 +860,322 @@ public class BattleManager {
     }
     
     private void handlePassiveTrigger(Champion champion, Champions.Passive.PassiveType triggerType, int damageDealt, StringBuilder message) {
+        handlePassiveTrigger(champion, triggerType, damageDealt, message, null);
+    }
+    
+    private void handlePassiveTrigger(Champion champion, Champions.Passive.PassiveType triggerType, int damageDealt, StringBuilder message, Champion target) {
         Champions.Passive passive = champion.getPassive();
         if (passive == null || passive.getType() != triggerType) return;
         
         // Check if passive should trigger
         if (!passive.shouldTrigger()) return;
         
+        // Mark passive as used this turn for certain types
+        if (triggerType == Champions.Passive.PassiveType.ON_ATTACK || 
+            triggerType == Champions.Passive.PassiveType.ON_ABILITY_USE) {
+            champion.setUsedPassiveThisTurn(true);
+        }
+        
         switch (passive.getType()) {
             case ON_ATTACK:
-                if (passive.getName().equals("Darkin Blade")) {
-                    // Heal for percentage of damage dealt
-                    int healAmount = (damageDealt * passive.getValue()) / 100;
-                    int oldHp = champion.getCurrentHp();
-                    int newHp = Math.min(oldHp + healAmount, champion.getMaxHp());
-                    champion.setCurrentHp(newHp);
-                    int actualHeal = newHp - oldHp;
-                    if (actualHeal > 0) {
-                        message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
-                               .append(" healed ").append(actualHeal).append(" HP!");
-                    }
-                } else if (passive.getName().equals("Assassin's Mark")) {
-                    // This would be handled in damage calculation, but we can show message
+                handleOnAttackPassives(champion, passive, damageDealt, message, target);
+                break;
+            case ON_KILL:
+                handleOnKillPassives(champion, passive, message);
+                break;
+            case ON_CRITICAL:
+                handleOnCriticalPassives(champion, passive, damageDealt, message);
+                break;
+            case STACKING_ATTACK:
+                handleStackingAttackPassives(champion, passive, message);
+                break;
+            case START_OF_TURN:
+                handleStartOfTurnPassives(champion, passive, message);
+                break;
+            case END_OF_TURN:
+                handleEndOfTurnPassives(champion, passive, message);
+                break;
+            case EVERY_N_TURNS:
+                handleEveryNTurnsPassives(champion, passive, message);
+                break;
+            case HP_THRESHOLD:
+                handleHpThresholdPassives(champion, passive, message);
+                break;
+            case FIRST_ATTACK:
+                handleFirstAttackPassives(champion, passive, damageDealt, message);
+                break;
+            case TRANSFORMATION:
+                handleTransformationPassives(champion, passive, message);
+                break;
+            case RETALIATION:
+                handleRetaliationPassives(champion, passive, damageDealt, message, target);
+                break;
+            case DEATH_DEFIANCE:
+                handleDeathDefiancePassives(champion, passive, message);
+                break;
+            default:
+                break;
+        }
+    }
+    
+    private void handleOnAttackPassives(Champion champion, Champions.Passive passive, int damageDealt, StringBuilder message, Champion target) {
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Darkin Blade":
+                // Heal for percentage of damage dealt
+                int healAmount = (damageDealt * passive.getValue()) / 100;
+                int oldHp = champion.getCurrentHp();
+                int newHp = Math.min(oldHp + healAmount, champion.getMaxHp());
+                champion.setCurrentHp(newHp);
+                int actualHeal = newHp - oldHp;
+                if (actualHeal > 0) {
+                    message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                           .append(" healed ").append(actualHeal).append(" HP!");
+                }
+                break;
+                
+            case "Assassin's Mark":
+                // +25% damage when attacking first - handled in damage calculation
+                if (champion.isFirstAttackOnEnemy()) {
                     message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
                            .append(" activated!");
                 }
                 break;
-            case ON_KILL:
-                if (passive.getName().equals("Essence Theft")) {
-                    // Heal fixed amount when enemy is defeated
-                    int healAmount = passive.getValue();
-                    int newHp = Math.min(champion.getCurrentHp() + healAmount, champion.getMaxHp());
-                    champion.setCurrentHp(newHp);
-                    message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
-                           .append(" healed ").append(healAmount).append(" HP!");
+                
+            case "Going Rogue":
+                // 30% chance to act twice - handled in turn system
+                message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                       .append(" grants a second attack!");
+                break;
+                
+            case "Cursed Touch":
+                // Attackers take recoil damage - handled in retaliation
+                break;
+                
+            case "Frost Shot":
+                // Reduce enemy speed - handled with passive cooldown system
+                if (target != null && !passive.isOnCooldown()) {
+                    target.modifySpeedStage(-1);
+                    message.append("\n").append(target.getName()).append("'s speed fell!");
+                    passive.resetCooldown(); // 3 turn cooldown
                 }
                 break;
-            default:
+                
+            case "Concussive Blows":
+                // Every 4 turns paralyze enemy
+                passive.addStack();
+                if (passive.getStacks() >= 4) {
+                    message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                           .append(" paralyzed the enemy!");
+                    passive.resetStacks();
+                }
+                break;
+                
+            case "Moonsilver Blade":
+                // Every 3rd attack deals +30% damage
+                champion.incrementConsecutiveAttacks();
+                if (champion.getConsecutiveAttacks() % 3 == 0) {
+                    message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                           .append(" deals bonus damage!");
+                }
+                break;
+        }
+    }
+    
+    private void handleOnKillPassives(Champion champion, Champions.Passive passive, StringBuilder message) {
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Essence Theft":
+                // Heal 10% HP and gain 6pp of last used ability
+                int healAmount = (champion.getMaxHp() * passive.getValue()) / 100;
+                int newHp = Math.min(champion.getCurrentHp() + healAmount, champion.getMaxHp());
+                champion.setCurrentHp(newHp);
+                message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                       .append(" healed ").append(healAmount).append(" HP!");
+                break;
+                
+            case "Bel'Veth":
+                // +1 Attack after defeating enemy
+                champion.modifyAttackStage(1);
+                message.append("\n").append(champion.getName()).append("'s attack rose!");
+                break;
+                
+            case "Feast":
+                // Gains +10% HP when defeating enemy (until end of battle)
+                int hpBonus = (champion.getMaxHp() * 10) / 100;
+                // This would need to be implemented as a temporary stat boost
+                message.append("\n").append(champion.getName()).append(" grew larger!");
+                break;
+                
+            case "League of Draven":
+                // +1 AD boost each kill
+                champion.modifyAttackStage(1);
+                message.append("\n").append(champion.getName()).append("'s attack rose!");
+                break;
+                
+            case "Get Excited":
+                // +2 Speed for 2 turns
+                champion.modifySpeedStage(2);
+                message.append("\n").append(champion.getName()).append(" got excited! Speed rose sharply!");
+                break;
+        }
+    }
+    
+    private void handleOnCriticalPassives(Champion champion, Champions.Passive passive, int damageDealt, StringBuilder message) {
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Blast Shield":
+                // Gains shield worth 20% max HP after landing critical hit
+                int shieldAmount = (champion.getMaxHp() * 20) / 100;
+                message.append("\n").append(champion.getName()).append(" gained a shield!");
+                break;
+        }
+    }
+    
+    private void handleStackingAttackPassives(Champion champion, Champions.Passive passive, StringBuilder message) {
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Hemorrhage":
+                // Each hit applies stack, at 5 stacks gain +3 AD boost
+                passive.addStack();
+                if (passive.getStacks() >= 5) {
+                    champion.modifyAttackStage(3);
+                    message.append("\n").append(champion.getName()).append(" is bleeding out the enemy!");
+                    passive.resetStacks();
+                }
+                break;
+        }
+    }
+    
+    private void handleStartOfTurnPassives(Champion champion, Champions.Passive passive, StringBuilder message) {
+        // Handle passives that trigger at start of turn
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Salvation":
+                // Heals 10% HP at start of turn when below 30% HP
+                if (champion.getCurrentHp() < (champion.getMaxHp() * 30 / 100)) {
+                    int healAmount = (champion.getMaxHp() * 10) / 100;
+                    int newHp = Math.min(champion.getCurrentHp() + healAmount, champion.getMaxHp());
+                    champion.setCurrentHp(newHp);
+                    message.append("\n").append(champion.getName()).append(" was healed by ").append(passive.getName()).append("!");
+                }
+                break;
+        }
+    }
+    
+    private void handleEndOfTurnPassives(Champion champion, Champions.Passive passive, StringBuilder message) {
+        // Handle passives that trigger at end of turn
+    }
+    
+    private void handleEveryNTurnsPassives(Champion champion, Champions.Passive passive, StringBuilder message) {
+        // Handle passives that trigger every N turns
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Triumphant Roar":
+                // Every 3 turns heal all team by 10% max HP
+                if (champion.getTurnsInBattle() % 3 == 0) {
+                    int healAmount = (champion.getMaxHp() * 10) / 100;
+                    int newHp = Math.min(champion.getCurrentHp() + healAmount, champion.getMaxHp());
+                    champion.setCurrentHp(newHp);
+                    message.append("\n").append(champion.getName()).append(" let out a triumphant roar!");
+                }
+                break;
+        }
+    }
+    
+    private void handleHpThresholdPassives(Champion champion, Champions.Passive passive, StringBuilder message) {
+        String passiveName = passive.getName();
+        int hpPercentage = (champion.getCurrentHp() * 100) / champion.getMaxHp();
+        
+        switch (passiveName) {
+            case "Rage Gene":
+                // When below 50% HP transform and get +2 AD and -1 speed
+                if (hpPercentage < 50 && !champion.isTransformed()) {
+                    champion.transform("Mega Gnar", -1); // -1 means permanent until end of battle
+                    champion.modifyAttackStage(2);
+                    champion.modifySpeedStage(-1);
+                    message.append("\n").append(champion.getName()).append(" transformed into Mega Gnar!");
+                }
+                break;
+                
+            case "Ionian Fervor":
+                // +2 Speed when below 50% HP
+                if (hpPercentage < 50) {
+                    champion.modifySpeedStage(2);
+                    message.append("\n").append(champion.getName()).append("'s fervor increased their speed!");
+                }
+                break;
+        }
+    }
+    
+    private void handleFirstAttackPassives(Champion champion, Champions.Passive passive, int damageDealt, StringBuilder message) {
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Granite Shield":
+                // First attack each battle deals 50% damage
+                if (champion.isFirstAttackOnEnemy()) {
+                    message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                           .append(" reduced the damage!");
+                    champion.setFirstAttackOnEnemy(false);
+                }
+                break;
+        }
+    }
+    
+    private void handleTransformationPassives(Champion champion, Champions.Passive passive, StringBuilder message) {
+        // Handle transformation-based passives
+    }
+    
+    private void handleRetaliationPassives(Champion champion, Champions.Passive passive, int damageDealt, StringBuilder message, Champion attacker) {
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Cursed Touch":
+                // Attackers take 8% recoil damage
+                if (attacker != null) {
+                    int recoilDamage = (damageDealt * 8) / 100;
+                    attacker.takeDamage(recoilDamage);
+                    message.append("\n").append(attacker.getName()).append(" was hurt by ").append(passive.getName()).append("!");
+                }
+                break;
+                
+            case "Spiked Shell":
+                // Reflects 20% of AD damage taken
+                if (attacker != null) {
+                    int reflectedDamage = (damageDealt * 20) / 100;
+                    attacker.takeDamage(reflectedDamage);
+                    message.append("\n").append(attacker.getName()).append(" was hurt by spikes!");
+                }
+                break;
+        }
+    }
+    
+    private void handleDeathDefiancePassives(Champion champion, Champions.Passive passive, StringBuilder message) {
+        String passiveName = passive.getName();
+        
+        switch (passiveName) {
+            case "Rebirth":
+                // Survive KO with 1 HP (once per battle)
+                if (!passive.isUsedThisBattle()) {
+                    champion.setCurrentHp(1);
+                    passive.setUsedThisBattle(true);
+                    message.append("\n").append(champion.getName()).append(" was reborn from the ashes!");
+                }
+                break;
+                
+            case "Death Defied":
+                // Can use one move after being defeated
+                if (!passive.isUsedThisBattle()) {
+                    passive.setUsedThisBattle(true);
+                    message.append("\n").append(champion.getName()).append(" refuses to die!");
+                }
                 break;
         }
     }
@@ -846,9 +1269,13 @@ public class BattleManager {
             int x = gridStartX + col * (moveButtonWidth + horizontalSpacing);
             int y = blackStartY + 52 + row * (moveButtonHeight + verticalSpacing);
             
-            // Determine move colors based on type
+            // Determine move colors based on type and ultimate status
             Color moveColor1, moveColor2;
-            if (move.getType().equals("Physical")) {
+            if (move.isUltimate()) {
+                // Ultimate moves have golden colors
+                moveColor1 = new Color(255, 215, 0); // Gold
+                moveColor2 = new Color(218, 165, 32); // Darker gold
+            } else if (move.getType().equals("Physical")) {
                 moveColor1 = new Color(200, 100, 100);
                 moveColor2 = new Color(160, 60, 60);
             } else if (move.getType().equals("Magic")) {
@@ -859,7 +1286,7 @@ public class BattleManager {
                 moveColor2 = new Color(100, 100, 100);
             }
             
-            // Dim colors if unusable (out of PP or on cooldown)
+            // Dim colors if unusable (out of PP or ultimate on cooldown)
             if (!move.isUsable()) {
                 moveColor1 = new Color(80, 80, 80);
                 moveColor2 = new Color(60, 60, 60);
@@ -1040,6 +1467,378 @@ public class BattleManager {
         g2.drawString(continueText, boxX + (boxWidth - continueWidth) / 2, boxY + boxHeight - 15);
     }
     
+    private void drawChampionInfoPopup(Graphics2D g2, Champion champion, String title) {
+        // Create a large popup that covers most of the screen
+        int popupWidth = (int) (gp.screenWidth * 0.9);
+        int popupHeight = (int) (gp.screenHeight * 0.85) + 40;
+        int popupX = (gp.screenWidth - popupWidth) / 2;
+        int popupY = (gp.screenHeight - popupHeight) / 2;
+        
+        // Draw semi-transparent overlay with animated opacity
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+        
+        // Draw outer glow effect
+        for (int i = 0; i < 8; i++) {
+            g2.setColor(new Color(100, 150, 255, 15 - i * 2));
+            g2.fillRoundRect(popupX - i, popupY - i, popupWidth + i * 2, popupHeight + i * 2, 25 + i, 25 + i);
+        }
+        
+        // Draw main popup background with gradient
+        java.awt.GradientPaint backgroundGradient = new java.awt.GradientPaint(
+            popupX, popupY, new Color(25, 30, 35),
+            popupX, popupY + popupHeight, new Color(40, 45, 50)
+        );
+        g2.setPaint(backgroundGradient);
+        g2.fillRoundRect(popupX, popupY, popupWidth, popupHeight, 25, 25);
+        
+        // Draw inner border with gradient
+        java.awt.GradientPaint borderGradient = new java.awt.GradientPaint(
+            popupX, popupY, new Color(120, 160, 255),
+            popupX + popupWidth, popupY, new Color(255, 180, 120)
+        );
+        g2.setPaint(borderGradient);
+        g2.setStroke(new BasicStroke(4));
+        g2.drawRoundRect(popupX + 2, popupY + 2, popupWidth - 4, popupHeight - 4, 23, 23);
+        
+        // Draw outer border
+        g2.setColor(new Color(200, 220, 255));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(popupX, popupY, popupWidth, popupHeight, 25, 25);
+        
+        // Draw title background
+        int titleBgHeight = 50;
+        java.awt.GradientPaint titleGradient = new java.awt.GradientPaint(
+            popupX, popupY, new Color(60, 80, 120, 200),
+            popupX, popupY + titleBgHeight, new Color(40, 60, 100, 200)
+        );
+        g2.setPaint(titleGradient);
+        g2.fillRoundRect(popupX + 5, popupY + 5, popupWidth - 10, titleBgHeight, 20, 20);
+        
+        // Draw title with shadow effect
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 26f));
+        int titleWidth = g2.getFontMetrics().stringWidth(title);
+        
+        // Title shadow
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.drawString(title, popupX + (popupWidth - titleWidth) / 2 + 2, popupY + 37);
+        
+        // Main title
+        g2.setColor(new Color(255, 255, 255));
+        g2.drawString(title, popupX + (popupWidth - titleWidth) / 2, popupY + 35);
+        
+        // Divide popup into two halves with decorative separator
+        int leftPanelWidth = popupWidth / 2 - 25;
+        int rightPanelWidth = popupWidth / 2 - 25;
+        int panelStartY = popupY + 70;
+        int panelHeight = popupHeight - 140; // Reduced by 20 to add space between abilities and close text
+        
+        // Draw vertical separator line with gradient
+        int separatorX = popupX + popupWidth / 2;
+        java.awt.GradientPaint separatorGradient = new java.awt.GradientPaint(
+            separatorX, panelStartY, new Color(100, 150, 255, 150),
+            separatorX, panelStartY + panelHeight, new Color(255, 150, 100, 150)
+        );
+        g2.setPaint(separatorGradient);
+        g2.setStroke(new BasicStroke(2));
+        g2.drawLine(separatorX, panelStartY + 20, separatorX, panelStartY + panelHeight - 20);
+        
+        // Left panel - Champion image and basic stats
+        drawChampionBasicInfo(g2, champion, popupX + 20, panelStartY, leftPanelWidth, panelHeight);
+        
+        // Right panel - Abilities and passive  
+        drawChampionAbilities(g2, champion, popupX + leftPanelWidth + 35, panelStartY, rightPanelWidth, panelHeight);
+        
+        // Draw close instruction with background
+        int instructionBgHeight = 30;
+        g2.setColor(new Color(50, 50, 50, 180));
+        g2.fillRoundRect(popupX + 5, popupY + popupHeight - instructionBgHeight - 5, popupWidth - 10, instructionBgHeight, 15, 15);
+        
+        g2.setColor(new Color(255, 255, 100));
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+        String closeText = "Press ESC to close";
+        int closeWidth = g2.getFontMetrics().stringWidth(closeText);
+        g2.drawString(closeText, popupX + (popupWidth - closeWidth) / 2, popupY + popupHeight - 15);
+    }
+    
+    private void drawChampionBasicInfo(Graphics2D g2, Champion champion, int x, int y, int width, int height) {
+        int currentY = y;
+        
+        // Draw champion image with frame
+        BufferedImage championImage = null;
+        try {
+            championImage = ImageIO.read(getClass().getResourceAsStream("/championsImg/" + champion.getImageName() + ".png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
+        if (championImage != null) {
+            int imageSize = Math.min(width - 40, 180);
+            int imageX = x + (width - imageSize) / 2;
+            int imageY = currentY + 15; // Back to original position with +15
+            
+            // Draw image frame with gradient
+            java.awt.GradientPaint frameGradient = new java.awt.GradientPaint(
+                imageX - 8, imageY - 8, new Color(120, 160, 255),
+                imageX + imageSize + 8, imageY + imageSize + 8, new Color(255, 180, 120)
+            );
+            g2.setPaint(frameGradient);
+            g2.fillRoundRect(imageX - 8, imageY - 8, imageSize + 16, imageSize + 16, 15, 15);
+            
+            // Inner frame
+            g2.setColor(new Color(40, 40, 40));
+            g2.fillRoundRect(imageX - 5, imageY - 5, imageSize + 10, imageSize + 10, 12, 12);
+            
+            // Draw image
+            g2.drawImage(championImage, imageX, imageY, imageSize, imageSize, null);
+            currentY = imageY + imageSize + 40; // Add 15 pixels (25 + 15)
+        } else {
+            currentY += 45; // Add 15 pixels (30 + 15)
+        }
+        
+        // Draw champion name with shadow and background
+        g2.setColor(new Color(30, 30, 30, 150));
+        g2.fillRoundRect(x + 5, currentY - 25, width - 10, 35, 10, 10);
+        
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 22f));
+        String nameText = champion.getName();
+        int nameWidth = g2.getFontMetrics().stringWidth(nameText);
+        
+        // Name shadow
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.drawString(nameText, x + (width - nameWidth) / 2 + 1, currentY + 1);
+        
+        // Main name
+        g2.setColor(new Color(255, 255, 255));
+        g2.drawString(nameText, x + (width - nameWidth) / 2, currentY);
+        currentY += 35;
+        
+        // Level with background
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
+        String levelText = "Level " + champion.getLevel();
+        int levelWidth = g2.getFontMetrics().stringWidth(levelText);
+        
+        g2.setColor(new Color(100, 150, 255, 100));
+        g2.fillRoundRect(x + (width - levelWidth) / 2 - 8, currentY - 18, levelWidth + 16, 25, 12, 12);
+        
+        g2.setColor(new Color(255, 255, 255));
+        g2.drawString(levelText, x + (width - levelWidth) / 2, currentY);
+        currentY += 35;
+        
+        // Draw region and role with icons on same line
+        g2.setColor(new Color(220, 220, 220));
+        g2.setFont(g2.getFont().deriveFont(14f));
+        
+        // Region
+        g2.setColor(new Color(150, 200, 255));
+        g2.drawString("⚔ " + champion.getRegion(), x + 15, currentY);
+        
+        // Role (200 pixels to the right of region)
+        g2.setColor(new Color(255, 200, 150));
+        String roleText = "◆ " + champion.getRole() + (champion.getRole2() != null && !champion.getRole2().equals("None") ? "/" + champion.getRole2() : "");
+        g2.drawString(roleText, x + 310, currentY); // 365 - 55 pixels to the left
+        currentY += 35;
+        
+        // Draw stats section with background - raised by 10px
+        int statsStartY = currentY - 10; // Raised by 10 pixels
+        int statsHeight = 220; // Increased height to fit all stats
+        g2.setColor(new Color(20, 25, 30, 180));
+        g2.fillRoundRect(x + 5, statsStartY - 5, width - 10, statsHeight, 15, 15);
+        
+        g2.setColor(new Color(120, 160, 255));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x + 5, statsStartY - 5, width - 10, statsHeight, 15, 15);
+        
+        // Stats title
+        g2.setColor(new Color(255, 255, 255));
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
+        g2.drawString("⚡ STATS", x + 15, currentY + 15);
+        currentY += 35;
+        
+        g2.setFont(g2.getFont().deriveFont(14f));
+        String[] statLabels = {"HP:", "AD:", "AP:", "Armor:", "Magic Resist:", "Speed:", "Crit Chance:", "Lifesteal:"};
+        String[] statIcons = {"❤", "⚔", "✦", "🛡", "🔮", "💨", "⚡", "🩸"};
+        Color[] statColors = {
+            new Color(255, 100, 100), new Color(255, 150, 100), new Color(150, 150, 255),
+            new Color(200, 200, 100), new Color(150, 255, 200), new Color(255, 255, 150),
+            new Color(255, 200, 100), new Color(255, 100, 150)
+        };
+        int[] statValues = {
+            champion.getMaxHp(), champion.getAD(), champion.getAP(),
+            champion.getArmor(), champion.getMagicResist(), champion.getSpeed(),
+            champion.getCritChance(), champion.getLifesteal()
+        };
+        
+        for (int i = 0; i < statLabels.length; i++) {
+            // Draw stat icon and label
+            g2.setColor(statColors[i]);
+            g2.drawString(statIcons[i], x + 15, currentY);
+            
+            g2.setColor(new Color(200, 200, 200));
+            g2.drawString(statLabels[i], x + 35, currentY);
+            
+            // Draw stat value
+            g2.setColor(new Color(255, 255, 255));
+            String valueText = String.valueOf(statValues[i]);
+            if (i == 6 || i == 7) valueText += "%"; // Add % for crit chance and lifesteal
+            g2.drawString(valueText, x + width - 60, currentY);
+            
+            currentY += 22;
+        }
+        
+        // Draw current HP if different from max
+        if (champion.getCurrentHp() != champion.getMaxHp()) {
+            currentY += 10;
+            g2.setColor(new Color(255, 100, 100, 200));
+            g2.fillRoundRect(x + 10, currentY - 15, width - 20, 25, 8, 8);
+            
+            g2.setColor(new Color(255, 255, 255));
+            g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+            g2.drawString("💔 Current HP: " + champion.getCurrentHp() + "/" + champion.getMaxHp(), x + 15, currentY);
+        }
+    }
+    
+    private void drawChampionAbilities(Graphics2D g2, Champion champion, int x, int y, int width, int height) {
+        int currentY = y + 40; // Move everything lower by 40 pixels
+        
+        // Draw abilities title first
+        g2.setColor(new Color(150, 200, 255));
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
+        g2.drawString("⚔ ABILITIES", x, currentY);
+        currentY += 35;
+        
+        // Draw passive with enhanced styling (moved under abilities title)
+        if (champion.getPassive() != null) {
+            // Passive background - changed to green
+            int passiveHeight = 85;
+            java.awt.GradientPaint passiveGradient = new java.awt.GradientPaint(
+                x, currentY, new Color(100, 255, 100, 100),
+                x + width, currentY, new Color(50, 200, 50, 100)
+            );
+            g2.setPaint(passiveGradient);
+            g2.fillRoundRect(x, currentY, width, passiveHeight, 15, 15);
+            
+            g2.setColor(new Color(100, 255, 100));
+            g2.setStroke(new BasicStroke(2));
+            g2.drawRoundRect(x, currentY, width, passiveHeight, 15, 15);
+            
+            currentY += 18;
+            
+            // Passive title with icon
+            g2.setColor(new Color(100, 255, 100));
+            g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
+            g2.drawString("🌟 PASSIVE", x + 10, currentY);
+            currentY += 22;
+            
+            // Passive name
+            g2.setColor(Color.WHITE);
+            g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+            g2.drawString(champion.getPassive().getName(), x + 10, currentY);
+            currentY += 18;
+            
+            // Passive description with word wrap
+            g2.setColor(new Color(220, 220, 220));
+            g2.setFont(g2.getFont().deriveFont(11f));
+            
+            String description = champion.getPassive().getDescription();
+            String[] words = description.split(" ");
+            StringBuilder currentLine = new StringBuilder();
+            
+            for (String word : words) {
+                String testLine = currentLine.length() == 0 ? word : currentLine + " " + word;
+                int textWidth = g2.getFontMetrics().stringWidth(testLine);
+                
+                if (textWidth > width - 20 && currentLine.length() > 0) {
+                    g2.drawString(currentLine.toString(), x + 10, currentY);
+                    currentY += 14;
+                    currentLine = new StringBuilder(word);
+                } else {
+                    currentLine = new StringBuilder(testLine);
+                }
+            }
+            
+            if (currentLine.length() > 0) {
+                g2.drawString(currentLine.toString(), x + 10, currentY);
+            }
+            
+            currentY += 35;
+        }
+        
+        // Add extra spacing before abilities list
+        currentY += 40; // Added 25 more pixels spacing between passive and abilities
+        
+        if (champion.getMoves() != null) {
+            for (int i = 0; i < champion.getMoves().size(); i++) {
+                Move move = champion.getMoves().get(i);
+                
+                // Ability background
+                int abilityHeight = 45;
+                Color bgColor, borderColor;
+                
+                if (move.isUltimate()) {
+                    bgColor = new Color(255, 215, 0, 50);
+                    borderColor = new Color(255, 215, 0);
+                } else if (move.getType().equals("Physical")) {
+                    bgColor = new Color(255, 100, 100, 50);
+                    borderColor = new Color(255, 150, 150);
+                } else {
+                    bgColor = new Color(100, 150, 255, 50);
+                    borderColor = new Color(150, 150, 255);
+                }
+                
+                g2.setColor(bgColor);
+                g2.fillRoundRect(x, currentY - 5, width, abilityHeight, 12, 12);
+                
+                g2.setColor(borderColor);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(x, currentY - 5, width, abilityHeight, 12, 12);
+                
+                // Draw ability key and name
+                g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
+                String keyBinding;
+                switch (i) {
+                    case 0: keyBinding = "Q"; break;
+                    case 1: keyBinding = "W"; break;
+                    case 2: keyBinding = "E"; break;
+                    case 3: keyBinding = "R"; break;
+                    default: keyBinding = "?"; break;
+                }
+                
+                // Key background
+                g2.setColor(new Color(30, 30, 30, 200));
+                g2.fillRoundRect(x + 5, currentY - 2, 25, 20, 8, 8);
+                
+                // Key text
+                g2.setColor(borderColor);
+                g2.drawString(keyBinding, x + 12, currentY + 12);
+                
+                // Ability name
+                g2.setColor(Color.WHITE);
+                g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+                String abilityName = move.getName();
+                if (move.isUltimate()) abilityName += " (ULT)";
+                g2.drawString(abilityName, x + 38, currentY + 12);
+                
+                currentY += 20;
+                
+                // Draw ability details
+                g2.setColor(new Color(200, 200, 200));
+                g2.setFont(g2.getFont().deriveFont(11f));
+                
+                String typeIcon = move.getType().equals("Physical") ? "⚔" : "✦";
+                String details = typeIcon + " " + move.getType() + " | PWR: " + move.getPower() + " | PP: " + move.getPp();
+                
+                if (move.isUltimate() && move.isUltimateOnCooldown()) {
+                    details += " | CD: " + move.getUltimateCooldown();
+                    g2.setColor(new Color(255, 150, 150));
+                }
+                
+                g2.drawString(details, x + 10, currentY + 10);
+                currentY += 55; // Added 20 more pixels spacing between abilities
+            }
+        }
+    }
+    
     private void endBattle() {
         gp.ui.battleNum = 0;
         gp.gameState = gp.playState;
@@ -1077,6 +1876,38 @@ public class BattleManager {
     public void returnToMainMenu() {
         battleState = BattleState.MAIN_MENU;
         gp.ui.battleNum = 0; // Reset cursor to attack option
+    }
+    
+    // Champion info popup methods
+    public void togglePlayerInfoPopup() {
+        showPlayerInfoPopup = !showPlayerInfoPopup;
+        if (showPlayerInfoPopup) {
+            showEnemyInfoPopup = false; // Close other popup
+        }
+    }
+    
+    public void toggleEnemyInfoPopup() {
+        showEnemyInfoPopup = !showEnemyInfoPopup;
+        if (showEnemyInfoPopup) {
+            showPlayerInfoPopup = false; // Close other popup
+        }
+    }
+    
+    public boolean isPlayerInfoPopupOpen() {
+        return showPlayerInfoPopup;
+    }
+    
+    public boolean isEnemyInfoPopupOpen() {
+        return showEnemyInfoPopup;
+    }
+    
+    public boolean isAnyPopupOpen() {
+        return showPlayerInfoPopup || showEnemyInfoPopup;
+    }
+    
+    public void closeAllPopups() {
+        showPlayerInfoPopup = false;
+        showEnemyInfoPopup = false;
     }
 
 }

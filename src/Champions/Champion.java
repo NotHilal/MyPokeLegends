@@ -37,8 +37,17 @@ public class Champion {
     // Passive ability
     private Passive passive;
     
-    // Last used move for cooldown tracking
-    private Move lastUsedMove;
+    // Passive state tracking
+    private boolean isTransformed; // For transformation passives
+    private int transformationTurns; // Turns remaining in transformation
+    private String currentForm; // Current form name (for display)
+    private boolean hasUsedPassiveThisTurn; // Prevent multiple triggers per turn
+    private int consecutiveAttacks; // For tracking consecutive actions
+    private boolean firstAttackOnEnemy; // For first-attack bonuses
+    private int turnsInBattle; // Total turns in current battle
+    private java.util.Set<String> enemiesAttacked; // Track which enemies were attacked
+    
+    // Last used move for cooldown tracking - REMOVED
 
     // Evolution
     private int evolveAt; // Level required for evolution
@@ -71,7 +80,16 @@ public class Champion {
         this.nextEvolution = nextEvolution;
         this.moves = moves;
         this.passive = passive;
-        this.lastUsedMove = null; // No move used initially
+        
+        // Initialize passive state tracking
+        this.isTransformed = false;
+        this.transformationTurns = 0;
+        this.currentForm = "Normal";
+        this.hasUsedPassiveThisTurn = false;
+        this.consecutiveAttacks = 0;
+        this.firstAttackOnEnemy = true;
+        this.turnsInBattle = 0;
+        this.enemiesAttacked = new java.util.HashSet<>();
         
         // Initialize stat stages to 0 (neutral)
         this.speedStage = 0;
@@ -253,24 +271,9 @@ public class Champion {
     
     public Passive getPassive() { return passive; }
     
-    // Cooldown management methods
+    // Move usage methods
     public void useMove(Move move) {
-        // Reset cooldown on previous move
-        if (lastUsedMove != null) {
-            lastUsedMove.resetCooldown();
-        }
-        // Set new last used move
-        lastUsedMove = move;
         move.useMove();
-    }
-    
-    public void resetAllCooldowns() {
-        if (moves != null) {
-            for (Move move : moves) {
-                move.resetCooldown();
-            }
-        }
-        lastUsedMove = null;
     }
 
     
@@ -375,5 +378,94 @@ public class Champion {
         return abilities;
     }
     
+    // Passive state tracking getters/setters
+    public boolean isTransformed() { return isTransformed; }
+    public void setTransformed(boolean transformed) { this.isTransformed = transformed; }
     
+    public int getTransformationTurns() { return transformationTurns; }
+    public void setTransformationTurns(int turns) { this.transformationTurns = turns; }
+    
+    public String getCurrentForm() { return currentForm; }
+    public void setCurrentForm(String form) { this.currentForm = form; }
+    
+    public boolean hasUsedPassiveThisTurn() { return hasUsedPassiveThisTurn; }
+    public void setUsedPassiveThisTurn(boolean used) { this.hasUsedPassiveThisTurn = used; }
+    
+    public int getConsecutiveAttacks() { return consecutiveAttacks; }
+    public void setConsecutiveAttacks(int attacks) { this.consecutiveAttacks = attacks; }
+    public void incrementConsecutiveAttacks() { this.consecutiveAttacks++; }
+    public void resetConsecutiveAttacks() { this.consecutiveAttacks = 0; }
+    
+    public boolean isFirstAttackOnEnemy() { return firstAttackOnEnemy; }
+    public void setFirstAttackOnEnemy(boolean first) { this.firstAttackOnEnemy = first; }
+    
+    public int getTurnsInBattle() { return turnsInBattle; }
+    public void incrementTurnsInBattle() { this.turnsInBattle++; }
+    public void resetTurnsInBattle() { this.turnsInBattle = 0; }
+    
+    public boolean hasAttackedEnemy(String enemyName) { return enemiesAttacked.contains(enemyName); }
+    public void addAttackedEnemy(String enemyName) { enemiesAttacked.add(enemyName); }
+    public void resetAttackedEnemies() { enemiesAttacked.clear(); }
+    
+    // Reset all passive states for new battle
+    public void resetPassiveStates() {
+        if (passive != null) {
+            passive.resetForBattle();
+        }
+        
+        // Reset ultimate cooldowns for all moves
+        if (moves != null) {
+            for (Move move : moves) {
+                move.resetUltimateCooldown();
+            }
+        }
+        
+        isTransformed = false;
+        transformationTurns = 0;
+        currentForm = "Normal";
+        hasUsedPassiveThisTurn = false;
+        consecutiveAttacks = 0;
+        firstAttackOnEnemy = true;
+        turnsInBattle = 0;
+        enemiesAttacked.clear();
+    }
+    
+    // Update passive states at start of turn
+    public void updatePassiveStatesStartOfTurn() {
+        hasUsedPassiveThisTurn = false;
+        incrementTurnsInBattle();
+        
+        if (passive != null) {
+            passive.incrementTurnCounter();
+            passive.reduceCooldown();
+        }
+        
+        // Reduce ultimate cooldowns for all moves
+        if (moves != null) {
+            for (Move move : moves) {
+                move.reduceUltimateCooldown();
+            }
+        }
+        
+        // Handle transformation duration
+        if (isTransformed && transformationTurns > 0) {
+            transformationTurns--;
+            if (transformationTurns <= 0) {
+                revertTransformation();
+            }
+        }
+    }
+    
+    // Transformation management
+    public void transform(String formName, int duration) {
+        setTransformed(true);
+        setCurrentForm(formName);
+        setTransformationTurns(duration);
+    }
+    
+    public void revertTransformation() {
+        setTransformed(false);
+        setCurrentForm("Normal");
+        setTransformationTurns(0);
+    }
 }

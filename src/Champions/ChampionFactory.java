@@ -23,9 +23,9 @@ public class ChampionFactory {
         	        new Move("The Darkin Blade", "Physical", 70, 90, 15, null, 0),
         	        new Move("Infernal Chains", "Physical", 50, 100, 10, "Root", 30),
         	        new Move("World Ender", "Physical", 0, 100, 30, "Heal", 0),
-        	        new Move("Deathbringer Stance", "Physical", 0, 100, 0, "Bonus damage", 0)
+        	        new Move("Deathbringer Stance", "Physical", 100, 100, 3, "Bonus damage", 0, true) // Ultimate move
         	    ),
-        	    new Passive("Darkin Blade", "30% chance to heal for 35% of damage dealt", Passive.PassiveType.ON_ATTACK, 35, 30)
+        	    new Passive("Darkin Blade", "30% chance to heal for 35% of damage dealt", Passive.PassiveType.ON_ATTACK, 35, 0, 30, 0, 0, 0)
         	)); 
 
         	champions.add(new Champion(
@@ -34,9 +34,9 @@ public class ChampionFactory {
         	        new Move("Orb of Deception", "Magic", 60, 100, 20, null, 0),
         	        new Move("Charm", "Magic", 40, 85, 10, "Stun", 40),
         	        new Move("Fox-Fire", "Magic", 50, 95, 10, null, 0),
-        	        new Move("Spirit Rush", "Magic", 70, 90, 50, null, 0)
+        	        new Move("Spirit Rush", "Magic", 120, 90, 3, null, 0, true) // Ultimate move
         	    ),
-        	    new Passive("Essence Theft", "Heals 8% HP when defeating an enemy", Passive.PassiveType.ON_KILL, 8, 100)
+        	    new Passive("Essence Theft", "Heals 10% HP and gain 6pp of last used ability when defeating an enemy", Passive.PassiveType.ON_KILL, 10, 6, 100, 0, 0, 0)
         	));
 
         	champions.add(new Champion(
@@ -45,9 +45,9 @@ public class ChampionFactory {
         	        new Move("Five Point Strike", "Physical", 60, 90, 10, null, 0),
         	        new Move("Twilight Shroud", "Physical", 0, 100, 5, "Invisibility", 0),
         	        new Move("Shuriken Flip", "Physical", 70, 95, 15, null, 0),
-        	        new Move("Perfect Execution", "Physical", 100, 90, 40, null, 0)
+        	        new Move("Perfect Execution", "Physical", 150, 90, 2, null, 0, true) // Ultimate move
         	    ),
-        	    new Passive("Assassin's Mark", "Deals +25% damage when attacking first in a turn", Passive.PassiveType.ON_ATTACK, 25, 100)
+        	    new Passive("Assassin's Mark", "Deals +25% damage when attacking first in a turn", Passive.PassiveType.FIRST_ATTACK, 25, 0, 100, 0, 0, 0)
         	));
         	
         	champions.add(new Champion(
@@ -56,9 +56,9 @@ public class ChampionFactory {
         		        new Move("Avengerang", "Physical", 60, 95, 10, "Boomerang damage", 0),
         		        new Move("Going Rogue", "Magic", 0, 100, 15, "Camouflage", 0),
         		        new Move("Heroic Swing", "Physical", 70, 90, 10, "Swing and shoot", 0),
-        		        new Move("Comeuppance", "Physical", 120, 85, 50, "Execute", 0)
+        		        new Move("Comeuppance", "Physical", 180, 85, 2, "Execute", 0, true) // Ultimate move
         		    ),
-        		    new Passive("Going Rogue", "20% chance to act twice in one turn", Passive.PassiveType.ON_ATTACK, 1, 20)
+        		    new Passive("Going Rogue", "30% chance to act twice in one turn, second attack does 60% damage", Passive.PassiveType.ON_ATTACK, 60, 0, 30, 0, 0, 0)
         		));
 
         	champions.add(new Champion(
@@ -68,7 +68,8 @@ public class ChampionFactory {
         	        new Move("Headbutt", "Physical", 70, 100, 10, null, 0),
         	        new Move("Trample", "Magic", 40, 90, 10, null, 0),
         	        new Move("Unbreakable Will", "Magic", 0, 100, 50, "Damage reduction", 0)
-        	    )
+        	    ),
+        	    new Passive("Triumphant Roar", "Every 3 turns heal all team by 10% of their max HP", Passive.PassiveType.EVERY_N_TURNS, 10, 0, 100, 0, 0, 3)
         	));
         	
         	champions.add(new Champion(
@@ -88,7 +89,8 @@ public class ChampionFactory {
         	        new Move("Despair", "Magic", 5, 100, 5, "HP Drain", 0),
         	        new Move("Tantrum", "Physical", 75, 90, 10, null, 0),
         	        new Move("Curse of the Sad Mummy", "Magic", 100, 90, 50, "Stun", 100)
-        	    )
+        	    ),
+        	    new Passive("Cursed Touch", "Attackers take 8% recoil damage", Passive.PassiveType.RETALIATION, 8, 0, 100, 0, 0, 0)
         	));
 
         	champions.add(new Champion(
@@ -98,7 +100,8 @@ public class ChampionFactory {
         	        new Move("Frostbite", "Magic", 70, 100, 10, null, 0),
         	        new Move("Crystallize", "Magic", 0, 100, 5, "Wall creation", 0),
         	        new Move("Glacial Storm", "Magic", 90, 95, 30, "Area slow", 0)
-        	    )
+        	    ),
+        	    new Passive("Rebirth", "Survive a KO with 1 HP (once per battle)", Passive.PassiveType.DEATH_DEFIANCE, 1, 0, 100, -1, 0, 0)
         	));
         	
         	champions.add(new Champion(

@@ -252,7 +252,28 @@ public class KeyHandler implements KeyListener{
 		}
 		// BATTLE STATE
 		else if (gp.gameState == gp.battleState) {
-		    // Handle input based on battle state
+		    // Champion info popups - always handle these first
+		    if (code == KeyEvent.VK_U) {
+		        gp.battleManager.toggleEnemyInfoPopup();
+		        gp.playSE(9);
+		        return; // Don't process other keys
+		    }
+		    if (code == KeyEvent.VK_I) {
+		        gp.battleManager.togglePlayerInfoPopup();
+		        gp.playSE(9);
+		        return; // Don't process other keys
+		    }
+		    
+		    // If any popup is open, only allow ESC to close it
+		    if (gp.battleManager.isAnyPopupOpen()) {
+		        if (code == KeyEvent.VK_ESCAPE) {
+		            gp.battleManager.closeAllPopups();
+		            gp.playSE(11);
+		        }
+		        return; // Block all other input when popup is open
+		    }
+		    
+		    // Handle normal battle input only if no popup is open
 		    if (gp.battleManager.getBattleState() == BattleState.MAIN_MENU) {
 		        // Main menu navigation (Fight/Items/Party/Run)
 		        if (code == KeyEvent.VK_W) { 
