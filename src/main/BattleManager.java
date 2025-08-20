@@ -660,8 +660,11 @@ public class BattleManager {
         int[] damageResult = calculateDamageWithCrit(move, playerChampion, wildChampion);
         int damage = damageResult[0];
         boolean isCrit = damageResult[1] == 1;
+        boolean isMiss = damageResult[1] == -1;
         
-        if (damage > 0) {
+        if (isMiss) {
+            message.append("\n").append(playerChampion.getName()).append("'s ").append(move.getName()).append(" missed!");
+        } else if (damage > 0) {
             wildChampion.takeDamage(damage);
             message.append("\nDealt ").append(damage).append(" damage!");
             if (isCrit) {
@@ -746,8 +749,11 @@ public class BattleManager {
             int[] damageResult = calculateDamageWithCrit(aiMove, wildChampion, playerChampion);
             int damage = damageResult[0];
             boolean isCrit = damageResult[1] == 1;
+            boolean isMiss = damageResult[1] == -1;
             
-            if (damage > 0) {
+            if (isMiss) {
+                message.append("\n").append(wildChampion.getName()).append("'s ").append(aiMove.getName()).append(" missed!");
+            } else if (damage > 0) {
                 playerChampion.takeDamage(damage);
                 message.append("\nDealt ").append(damage).append(" damage!");
                 if (isCrit) {
@@ -1210,6 +1216,11 @@ public class BattleManager {
     }
     
     private int[] calculateDamageWithCrit(Move move, Champion attacker, Champion defender) {
+        // Check hit chance first
+        if (!doesMoveHit(move, attacker, defender)) {
+            return new int[]{0, -1}; // Miss: 0 damage, -1 indicates miss
+        }
+        
         // Calculate base damage
         int baseDamage = calculateDamage(move, attacker, defender);
         boolean isCrit = false;
@@ -1221,6 +1232,19 @@ public class BattleManager {
         }
         
         return new int[]{baseDamage, isCrit ? 1 : 0};
+    }
+    
+    private boolean doesMoveHit(Move move, Champion attacker, Champion defender) {
+        int hitChance = move.getAccuracy();
+        
+        // Speed difference modifier: faster champions are harder to hit
+        int speedDiff = defender.getEffectiveSpeed() - attacker.getEffectiveSpeed();
+        int evasionBonus = Math.max(0, speedDiff / 20); // +1% evasion per 20 speed difference
+        
+        // Apply evasion bonus (up to 15% max)
+        hitChance = Math.max(30, hitChance - Math.min(15, evasionBonus));
+        
+        return random.nextInt(100) < hitChance;
     }
     
     private boolean attemptRun() {

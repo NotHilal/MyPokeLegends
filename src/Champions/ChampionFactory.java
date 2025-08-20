@@ -20,10 +20,10 @@ public class ChampionFactory {
         champions.add(new Champion(
         	    "Aatrox","Aatrox1", "Darkin", "Top","None", 1, 580, 65, 0, 38, 32, 345, 0, 0, -1, null,
         	    List.of(
-        	        new Move("The Darkin Blade", "Physical", 70, 90, 15, null, 0),
-        	        new Move("Infernal Chains", "Physical", 50, 100, 10, "Root", 30),
-        	        new Move("World Ender", "Physical", 0, 100, 30, "Heal", 0),
-        	        new Move("Deathbringer Stance", "Physical", 100, 100, 3, "Bonus damage", 0, true) // Ultimate move
+        	        new Move("The Darkin Blade", "Physical", 70, 95, 15, null, 0), // Skillshot Q (70%)
+        	        new Move("Infernal Chains", "Physical", 50, 95, 10, "Root", 30), // Chain W (70%)
+        	        new Move("World Ender", "Physical", 0, 100, 30, "Heal", 0), // Self-buff E (20%)
+        	        new Move("Deathbringer Stance", "Physical", 100, 75, 3, "Bonus damage", 0, true) // Ultimate R (10%)
         	    ),
         	    new Passive("Darkin Blade", "30% chance to heal for 35% of damage dealt", Passive.PassiveType.ON_ATTACK, 35, 0, 30, 0, 0, 0)
         	)); 
@@ -31,10 +31,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         	    "Ahri","Ahri1", "Ionia", "Mid","None", 1, 526, 0, 53, 21, 30, 330, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Orb of Deception", "Magic", 60, 100, 20, null, 0),
-        	        new Move("Charm", "Magic", 40, 85, 10, "Stun", 40),
-        	        new Move("Fox-Fire", "Magic", 50, 95, 10, null, 0),
-        	        new Move("Spirit Rush", "Magic", 120, 90, 3, null, 0, true) // Ultimate move
+        	        new Move("Orb of Deception", "Magic", 60, 95, 20, null, 0), // Linear skillshot Q (70%)
+        	        new Move("Charm", "Magic", 40, 95, 10, "Stun", 40), // Narrow skillshot W (70%)
+        	        new Move("Fox-Fire", "Magic", 50, 95, 10, null, 0), // Auto-targeting E (20%)
+        	        new Move("Spirit Rush", "Magic", 120, 75, 3, null, 0, true) // Ultimate R (10%)
         	    ),
         	    new Passive("Essence Theft", "Heals 10% HP and gain 6pp of last used ability when defeating an enemy", Passive.PassiveType.ON_KILL, 10, 6, 100, 0, 0, 0)
         	));
@@ -42,10 +42,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         	    "Akali","Akali1", "Ionia", "Top","Mid", 1, 500, 65, 0, 23, 37, 345, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Five Point Strike", "Physical", 60, 90, 10, null, 0),
-        	        new Move("Twilight Shroud", "Physical", 0, 100, 5, "Invisibility", 0),
-        	        new Move("Shuriken Flip", "Physical", 70, 95, 15, null, 0),
-        	        new Move("Perfect Execution", "Physical", 150, 90, 2, null, 0, true) // Ultimate move
+        	        new Move("Five Point Strike", "Physical", 60, 95, 10, null, 0), // Q (70%)
+        	        new Move("Twilight Shroud", "Physical", 0, 100, 5, "Invisibility", 0), // W (20%)
+        	        new Move("Shuriken Flip", "Physical", 70, 95, 15, null, 0), // E (70%)
+        	        new Move("Perfect Execution", "Physical", 150, 75, 2, null, 0, true) // Ultimate R (10%)
         	    ),
         	    new Passive("Assassin's Mark", "Deals +25% damage when attacking first in a turn", Passive.PassiveType.FIRST_ATTACK, 25, 0, 100, 0, 0, 0)
         	));
@@ -53,10 +53,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         		    "Akshan","Akshan1", "Shurima", "Top","Adc", 1, 540, 65, 0, 30, 30, 330, 0, 0, -1, null,
         		    List.of(
-        		        new Move("Avengerang", "Physical", 60, 95, 10, "Boomerang damage", 0),
-        		        new Move("Going Rogue", "Magic", 0, 100, 15, "Camouflage", 0),
-        		        new Move("Heroic Swing", "Physical", 70, 90, 10, "Swing and shoot", 0),
-        		        new Move("Comeuppance", "Physical", 180, 85, 2, "Execute", 0, true) // Ultimate move
+        		        new Move("Avengerang", "Physical", 60, 95, 10, "Boomerang damage", 0), // Q (70%)
+        		        new Move("Going Rogue", "Magic", 0, 100, 15, "Camouflage", 0), // W (20%)
+        		        new Move("Heroic Swing", "Physical", 70, 95, 10, "Swing and shoot", 0), // E (70%)
+        		        new Move("Comeuppance", "Physical", 180, 75, 2, "Execute", 0, true) // Ultimate R (10%)
         		    ),
         		    new Passive("Going Rogue", "30% chance to act twice in one turn, second attack does 60% damage", Passive.PassiveType.ON_ATTACK, 60, 0, 30, 0, 0, 0)
         		));
@@ -64,10 +64,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         	    "Alistar","Alistar1", "Demacia", "Supp","None", 1, 600, 62, 0, 40, 32, 330, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Pulverize", "Physical", 50, 95, 10, "Knockup", 50),
-        	        new Move("Headbutt", "Physical", 70, 100, 10, null, 0),
-        	        new Move("Trample", "Magic", 40, 90, 10, null, 0),
-        	        new Move("Unbreakable Will", "Magic", 0, 100, 50, "Damage reduction", 0)
+        	        new Move("Pulverize", "Physical", 50, 95, 10, "Knockup", 50), // Q (70%)
+        	        new Move("Headbutt", "Physical", 70, 100, 10, null, 0), // W (20%)
+        	        new Move("Trample", "Magic", 40, 95, 10, null, 0), // E (70%)
+        	        new Move("Unbreakable Will", "Magic", 0, 100, 50, "Damage reduction", 0) // R (20% - not ultimate)
         	    ),
         	    new Passive("Triumphant Roar", "Every 3 turns heal all team by 10% of their max HP", Passive.PassiveType.EVERY_N_TURNS, 10, 0, 100, 0, 0, 3)
         	));
@@ -75,20 +75,20 @@ public class ChampionFactory {
         	champions.add(new Champion(
         		    "Ambessa","Ambessa1", "Noxus", "Top","None", 1, 600, 75, 0, 45, 40, 330, 0, 0, -1, null,
         		    List.of(
-        		        new Move("Iron Will", "Physical", 80, 95, 10, "Shield Slam", 0),
-        		        new Move("Warlord's Shout", "Magic", 0, 100, 15, "Area taunt", 0),
-        		        new Move("Steel Charge", "Physical", 70, 90, 10, "Dash and knockup", 0),
-        		        new Move("Imperial Onslaught", "Physical", 120, 85, 50, "Massive AoE slam", 0)
+        		        new Move("Iron Will", "Physical", 80, 95, 10, "Shield Slam", 0), // Q (70%)
+        		        new Move("Warlord's Shout", "Magic", 0, 100, 15, "Area taunt", 0), // W (20%)
+        		        new Move("Steel Charge", "Physical", 70, 95, 10, "Dash and knockup", 0), // E (70%)
+        		        new Move("Imperial Onslaught", "Physical", 120, 75, 50, "Massive AoE slam", 0) // R (10% - ultimate)
         		    )
         		));
 
         	champions.add(new Champion(
         			"Amumu","Amumu1", "Shurima", "Jgl","Supp", 1, 620, 55, 0, 40, 35, 335, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Bandage Toss", "Magic", 60, 100, 10, "Stun", 30),
-        	        new Move("Despair", "Magic", 5, 100, 5, "HP Drain", 0),
-        	        new Move("Tantrum", "Physical", 75, 90, 10, null, 0),
-        	        new Move("Curse of the Sad Mummy", "Magic", 100, 90, 50, "Stun", 100)
+        	        new Move("Bandage Toss", "Magic", 60, 95, 10, "Stun", 30), // Q (70%)
+        	        new Move("Despair", "Magic", 5, 100, 5, "HP Drain", 0), // W (20%)
+        	        new Move("Tantrum", "Physical", 75, 95, 10, null, 0), // E (70%)
+        	        new Move("Curse of the Sad Mummy", "Magic", 100, 75, 50, "Stun", 100) // R (10% - ultimate)
         	    ),
         	    new Passive("Cursed Touch", "Attackers take 8% recoil damage", Passive.PassiveType.RETALIATION, 8, 0, 100, 0, 0, 0)
         	));

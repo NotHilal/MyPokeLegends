@@ -71,6 +71,43 @@ public class Move {
         this.isUltimate = isUltimate;
         this.ultimateCooldown = 0;
     }
+    
+    // Convenience constructor with difficulty-based accuracy
+    public Move(String name, String type, int power, String difficulty, int maxPp, String effect, int effectChance, boolean isUltimate) {
+        this(name, type, power, getDifficultyAccuracy(difficulty), maxPp, effect, effectChance, isUltimate);
+    }
+    
+    // Convenience constructor with difficulty-based accuracy (non-ultimate)
+    public Move(String name, String type, int power, String difficulty, int maxPp, String effect, int effectChance) {
+        this(name, type, power, getDifficultyAccuracy(difficulty), maxPp, effect, effectChance, false);
+    }
+    
+    // Helper method to convert difficulty to accuracy percentage
+    private static int getDifficultyAccuracy(String difficulty) {
+        switch (difficulty.toLowerCase()) {
+            case "easy":
+            case "guaranteed": 
+                return 98 + (int)(Math.random() * 3); // 98-100%
+            case "medium":
+            case "normal":
+                return 93 + (int)(Math.random() * 8); // 93-100%
+            case "hard":
+                return 90 + (int)(Math.random() * 11); // 90-100%
+            case "very hard":
+            case "veryhard":
+                return 90 + (int)(Math.random() * 6); // 90-95%
+            case "ult_easy":
+                return 85 + (int)(Math.random() * 16); // 85-100% for easy ultimates
+            case "ult_medium":
+                return 75 + (int)(Math.random() * 16); // 75-90% for medium ultimates
+            case "ult_hard":
+                return 60 + (int)(Math.random() * 21); // 60-80% for hard ultimates
+            case "ult_very_hard":
+                return 45 + (int)(Math.random() * 21); // 45-65% for very hard ultimates
+            default:
+                return 95; // Default high accuracy
+        }
+    }
 
     // Getters and Setters
     public String getName() {
