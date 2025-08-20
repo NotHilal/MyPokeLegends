@@ -3,6 +3,7 @@ package main;
 import Champions.Champion;
 import Champions.Move;
 import Champions.StatIncrease;
+import Champions.StatusEffect;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -463,6 +464,10 @@ public class BattleManager {
         g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
         String nameWithLevel = champion.getName() + " (Lv." + champion.getLevel() + ")";
         g2.drawString(nameWithLevel, x, y - 10);
+        
+        // Draw status effect indicators next to the name
+        int nameWidth = g2.getFontMetrics().stringWidth(nameWithLevel);
+        drawStatusEffectIndicators(g2, champion, x + nameWidth + 10, y - 25, 20);
 
         // Draw the HP bar background
         g2.setColor(Color.GRAY);
@@ -560,6 +565,158 @@ public class BattleManager {
         g2.drawString(stageText, textX, y + 12);
     }
     
+    private void drawStatusEffectIndicators(Graphics2D g2, Champion champion, int x, int y, int iconSize) {
+        java.util.List<StatusEffect> statusEffects = champion.getStatusEffects();
+        if (statusEffects.isEmpty()) return;
+        
+        int currentX = x;
+        int iconsPerRow = 6; // Max icons per row
+        int iconSpacing = iconSize + 2;
+        int currentIcon = 0;
+        
+        for (StatusEffect effect : statusEffects) {
+            // Calculate position (wrap to new row after 6 icons)
+            int iconX = currentX + (currentIcon % iconsPerRow) * iconSpacing;
+            int iconY = y + (currentIcon / iconsPerRow) * (iconSize + 2);
+            
+            // Get color and symbol for the status effect
+            Color effectColor = getStatusEffectColor(effect.getType());
+            String effectSymbol = getStatusEffectSymbol(effect.getType());
+            
+            // Draw icon background circle
+            g2.setColor(effectColor);
+            g2.fillOval(iconX, iconY, iconSize, iconSize);
+            
+            // Draw icon border
+            g2.setColor(Color.BLACK);
+            g2.setStroke(new BasicStroke(2));
+            g2.drawOval(iconX, iconY, iconSize, iconSize);
+            
+            // Draw effect symbol
+            g2.setColor(Color.WHITE);
+            g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, iconSize * 0.6f));
+            java.awt.FontMetrics fm = g2.getFontMetrics();
+            int symbolWidth = fm.stringWidth(effectSymbol);
+            int symbolHeight = fm.getAscent();
+            int symbolX = iconX + (iconSize - symbolWidth) / 2;
+            int symbolY = iconY + (iconSize + symbolHeight) / 2 - 2;
+            g2.drawString(effectSymbol, symbolX, symbolY);
+            
+            // Draw duration if > 1
+            if (effect.getDuration() > 1) {
+                g2.setFont(g2.getFont().deriveFont(8f));
+                g2.setColor(Color.YELLOW);
+                String durationText = String.valueOf(effect.getDuration());
+                g2.drawString(durationText, iconX + iconSize - 8, iconY + 10);
+            }
+            
+            currentIcon++;
+        }
+        
+        // Reset stroke
+        g2.setStroke(new BasicStroke(1));
+    }
+    
+    private Color getStatusEffectColor(StatusEffect.StatusType type) {
+        switch (type) {
+            // Damage over time effects - Red tones
+            case BURN:
+            case BLEED:
+                return new Color(255, 100, 100);
+            case POISON:
+                return new Color(150, 100, 255);
+                
+            // Crowd control effects - Orange/Purple tones
+            case STUN:
+                return new Color(255, 150, 0);
+            case SLOW:
+                return new Color(150, 150, 255);
+            case BLIND:
+                return new Color(100, 100, 100);
+            case CONFUSION:
+                return new Color(255, 100, 255);
+                
+            // Positive effects - Green tones
+            case ATTACK_BOOST:
+            case AP_BOOST:
+                return new Color(100, 255, 100);
+            case SPEED_BOOST:
+                return new Color(100, 255, 200);
+            case ARMOR_BOOST:
+            case MAGIC_RESIST_BOOST:
+                return new Color(150, 200, 255);
+            case CRIT_BOOST:
+            case LIFESTEAL_BOOST:
+                return new Color(255, 200, 100);
+                
+            // Defensive effects - Blue tones
+            case SHIELD:
+                return new Color(100, 150, 255);
+            case DAMAGE_REDUCTION:
+                return new Color(150, 150, 200);
+            case STEALTH:
+                return new Color(80, 80, 80);
+                
+            // Healing effects - Light green
+            case REGENERATION:
+                return new Color(150, 255, 150);
+                
+            // Negative effects - Dark red tones
+            case ATTACK_REDUCTION:
+            case AP_REDUCTION:
+            case SPEED_REDUCTION:
+            case ARMOR_REDUCTION:
+            case MAGIC_RESIST_REDUCTION:
+            case ACCURACY_REDUCTION:
+                return new Color(200, 80, 80);
+                
+            default:
+                return new Color(200, 200, 200); // Default gray
+        }
+    }
+    
+    private String getStatusEffectSymbol(StatusEffect.StatusType type) {
+        switch (type) {
+            // Damage over time
+            case BURN: return "🔥";
+            case POISON: return "☠";
+            case BLEED: return "💧";
+            
+            // Crowd control
+            case STUN: return "⚡";
+            case SLOW: return "❄";
+            case BLIND: return "👁";
+            case CONFUSION: return "❓";
+            
+            // Positive stat effects
+            case ATTACK_BOOST: return "⚔";
+            case AP_BOOST: return "✨";
+            case SPEED_BOOST: return "💨";
+            case ARMOR_BOOST: return "🛡";
+            case MAGIC_RESIST_BOOST: return "🔮";
+            case CRIT_BOOST: return "💥";
+            case LIFESTEAL_BOOST: return "🩸";
+            
+            // Defensive effects
+            case SHIELD: return "🛡";
+            case DAMAGE_REDUCTION: return "🛡";
+            case STEALTH: return "👤";
+            
+            // Healing
+            case REGENERATION: return "❤";
+            
+            // Negative stat effects
+            case ATTACK_REDUCTION: return "⚔";
+            case AP_REDUCTION: return "✨";
+            case SPEED_REDUCTION: return "💨";
+            case ARMOR_REDUCTION: return "🛡";
+            case MAGIC_RESIST_REDUCTION: return "🔮";
+            case ACCURACY_REDUCTION: return "👁";
+            
+            default: return "?";
+        }
+    }
+    
     public void handleBattleAction(int actionIndex) {
         // Handle level up stats display first
         if (showLevelUpStats) {
@@ -639,6 +796,16 @@ public class BattleManager {
         // Update passive states at start of turn
         playerChampion.updatePassiveStatesStartOfTurn();
         
+        // Process status effects at start of turn
+        StringBuilder statusMessage = playerChampion.processStatusEffectsStartOfTurn();
+        
+        // Check if player is stunned
+        if (isChampionStunned(playerChampion)) {
+            battleMessage = playerChampion.getName() + " is stunned and cannot act!" + statusMessage.toString();
+            playerTurn = false; // Switch to AI turn
+            return;
+        }
+        
         // Trigger start of turn passives
         StringBuilder startTurnMessage = new StringBuilder();
         handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
@@ -646,7 +813,10 @@ public class BattleManager {
         StringBuilder message = new StringBuilder();
         message.append(playerChampion.getName()).append(" used ").append(move.getName()).append("!");
         
-        // Add start of turn passive messages
+        // Add status effect and start of turn passive messages
+        if (statusMessage.length() > 0) {
+            message.append(statusMessage);
+        }
         if (startTurnMessage.length() > 0) {
             message.append(startTurnMessage);
         }
@@ -682,6 +852,9 @@ public class BattleManager {
             
             // Trigger retaliation passives on defender
             handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.RETALIATION, damage, message, playerChampion);
+            
+            // Apply status effects from the move
+            applyMoveStatusEffects(move, playerChampion, wildChampion, message);
         }
         
         // Handle stat stage changes
@@ -721,6 +894,17 @@ public class BattleManager {
         // Update passive states at start of turn
         wildChampion.updatePassiveStatesStartOfTurn();
         
+        // Process status effects at start of turn
+        StringBuilder statusMessage = wildChampion.processStatusEffectsStartOfTurn();
+        
+        // Check if AI is stunned
+        if (isChampionStunned(wildChampion)) {
+            battleMessage = "Wild " + wildChampion.getName() + " is stunned and cannot act!" + statusMessage.toString();
+            playerTurn = true; // Switch to player turn
+            battleState = BattleState.MAIN_MENU;
+            return;
+        }
+        
         // Trigger start of turn passives
         StringBuilder startTurnMessage = new StringBuilder();
         handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
@@ -735,7 +919,10 @@ public class BattleManager {
             StringBuilder message = new StringBuilder();
             message.append("Wild ").append(wildChampion.getName()).append(" used ").append(aiMove.getName()).append("!");
             
-            // Add start of turn passive messages
+            // Add status effect and start of turn passive messages
+            if (statusMessage.length() > 0) {
+                message.append(statusMessage);
+            }
             if (startTurnMessage.length() > 0) {
                 message.append(startTurnMessage);
             }
@@ -771,6 +958,9 @@ public class BattleManager {
                 
                 // Trigger retaliation passives on defender
                 handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.RETALIATION, damage, message, wildChampion);
+                
+                // Apply status effects from the move
+                applyMoveStatusEffects(aiMove, wildChampion, playerChampion, message);
             }
             
             // Handle stat stage changes
@@ -1234,8 +1424,36 @@ public class BattleManager {
         return new int[]{baseDamage, isCrit ? 1 : 0};
     }
     
+    // Enhanced hit chance calculation that considers status effects
     private boolean doesMoveHit(Move move, Champion attacker, Champion defender) {
         int hitChance = move.getAccuracy();
+        
+        // Check for blind effect on attacker
+        if (attacker.hasStatusEffect(StatusEffect.StatusType.BLIND)) {
+            return false; // Blind causes automatic miss
+        }
+        
+        // Check for stealth effect on defender
+        if (defender.hasStatusEffect(StatusEffect.StatusType.STEALTH)) {
+            defender.removeStatusEffect(StatusEffect.StatusType.STEALTH); // Stealth is consumed
+            return false; // Stealth causes automatic miss
+        }
+        
+        // Check for confusion on attacker
+        if (attacker.hasStatusEffect(StatusEffect.StatusType.CONFUSION)) {
+            StatusEffect confusion = attacker.getStatusEffect(StatusEffect.StatusType.CONFUSION);
+            if (random.nextInt(100) < confusion.getValue()) {
+                // Confused champion hits themselves
+                attacker.takeDamage(move.getPower() / 2); // Reduced self-damage
+                return false; // Original attack misses
+            }
+        }
+        
+        // Apply accuracy reduction
+        StatusEffect accuracyReduction = attacker.getStatusEffect(StatusEffect.StatusType.ACCURACY_REDUCTION);
+        if (accuracyReduction != null) {
+            hitChance -= accuracyReduction.getValue();
+        }
         
         // Speed difference modifier: faster champions are harder to hit
         int speedDiff = defender.getEffectiveSpeed() - attacker.getEffectiveSpeed();
@@ -1932,6 +2150,81 @@ public class BattleManager {
     public void closeAllPopups() {
         showPlayerInfoPopup = false;
         showEnemyInfoPopup = false;
+    }
+    
+    // ========== STATUS EFFECTS PROCESSING ==========
+    
+    private void applyMoveStatusEffects(Move move, Champion attacker, Champion defender, StringBuilder message) {
+        if (!move.hasStatusEffects()) {
+            return;
+        }
+        
+        for (StatusEffect effect : move.getStatusEffects()) {
+            Champion target = move.appliesStatusToSelf() ? attacker : defender;
+            
+            // Apply the status effect
+            target.addStatusEffect(effect);
+            
+            // Add message
+            String targetName = (target == attacker) ? attacker.getName() : 
+                               (target == playerChampion) ? playerChampion.getName() : "Wild " + wildChampion.getName();
+            
+            message.append("\n").append(targetName).append(" is affected by ").append(effect.getName()).append("!");
+            
+            // Special handling for immediate effects
+            switch (effect.getType()) {
+                case SHIELD:
+                    target.setShieldAmount(effect.getValue());
+                    message.append(" (").append(effect.getValue()).append(" shield)");
+                    break;
+                    
+                case STUN:
+                    // Stun effect will be processed at start of next turn
+                    break;
+                    
+                case CLEANSE:
+                    // Cleanse removes all debuffs
+                    target.getStatusEffects().removeIf(existingEffect -> 
+                        isDebuffEffect(existingEffect.getType()));
+                    message.append(" All debuffs removed!");
+                    break;
+                    
+                case PP_RESTORE:
+                    // Restore PP to all moves
+                    if (target.getMoves() != null) {
+                        for (Move targetMove : target.getMoves()) {
+                            targetMove.restorePP();
+                        }
+                    }
+                    message.append(" All PP restored!");
+                    break;
+                    
+                default:
+                    // Most effects are handled during start of turn processing
+                    break;
+            }
+        }
+    }
+    
+    private boolean isDebuffEffect(StatusEffect.StatusType type) {
+        return type == StatusEffect.StatusType.ATTACK_REDUCTION ||
+               type == StatusEffect.StatusType.AP_REDUCTION ||
+               type == StatusEffect.StatusType.SPEED_REDUCTION ||
+               type == StatusEffect.StatusType.ARMOR_REDUCTION ||
+               type == StatusEffect.StatusType.MAGIC_RESIST_REDUCTION ||
+               type == StatusEffect.StatusType.ACCURACY_REDUCTION ||
+               type == StatusEffect.StatusType.BURN ||
+               type == StatusEffect.StatusType.POISON ||
+               type == StatusEffect.StatusType.BLEED ||
+               type == StatusEffect.StatusType.STUN ||
+               type == StatusEffect.StatusType.SLOW ||
+               type == StatusEffect.StatusType.BLIND ||
+               type == StatusEffect.StatusType.CONFUSION;
+    }
+    
+    // Check if champion is stunned (cannot act)
+    public boolean isChampionStunned(Champion champion) {
+        return champion.hasStatusEffect(StatusEffect.StatusType.STUN);
     }
 
 }

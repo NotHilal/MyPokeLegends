@@ -13,8 +13,12 @@ public class Move {
     private int maxPp; // Maximum PP
 
     // Effects
-    private String effect; // e.g., Burn, Paralyze, Heal
+    private String effect; // e.g., Burn, Paralyze, Heal (legacy)
     private int effectChance; // Percentage (0-100)
+    
+    // New Status Effects System
+    private java.util.List<StatusEffect> statusEffects; // Status effects to apply on hit
+    private boolean appliesStatusToSelf; // true = apply to caster, false = apply to target
     
     // Stat stage modifications
     private int speedStageChange;
@@ -39,6 +43,10 @@ public class Move {
         this.maxPp = maxPp;
         this.effect = effect;
         this.effectChance = effectChance;
+        
+        // Initialize status effects system
+        this.statusEffects = new java.util.ArrayList<>();
+        this.appliesStatusToSelf = false; // Default to targeting enemy
         
         // Initialize stat stage changes to 0
         this.speedStageChange = 0;
@@ -199,5 +207,109 @@ public class Move {
     public boolean hasStatStageChanges() {
         return speedStageChange != 0 || attackStageChange != 0 || armorStageChange != 0 || 
                apStageChange != 0 || magicResistStageChange != 0;
+    }
+    
+    // ========== STATUS EFFECTS METHODS ==========
+    
+    // Add a status effect to this move
+    public Move addStatusEffect(StatusEffect effect) {
+        this.statusEffects.add(effect);
+        return this; // For method chaining
+    }
+    
+    // Add a status effect that targets the caster
+    public Move addSelfStatusEffect(StatusEffect effect) {
+        this.statusEffects.add(effect);
+        this.appliesStatusToSelf = true;
+        return this; // For method chaining
+    }
+    
+    // Get all status effects
+    public java.util.List<StatusEffect> getStatusEffects() {
+        return new java.util.ArrayList<>(statusEffects);
+    }
+    
+    // Check if move has status effects
+    public boolean hasStatusEffects() {
+        return !statusEffects.isEmpty();
+    }
+    
+    // Get targeting for status effects
+    public boolean appliesStatusToSelf() {
+        return appliesStatusToSelf;
+    }
+    
+    // Set status effect targeting
+    public void setAppliesStatusToSelf(boolean appliesStatusToSelf) {
+        this.appliesStatusToSelf = appliesStatusToSelf;
+    }
+    
+    // Convenience methods for adding common status effects
+    public Move withBurn(int damage, int duration) {
+        return addStatusEffect(StatusEffect.createBurn(damage, duration));
+    }
+    
+    public Move withPoison(int damage, int duration) {
+        return addStatusEffect(StatusEffect.createPoison(damage, duration));
+    }
+    
+    public Move withBleed(int damage, int duration) {
+        return addStatusEffect(StatusEffect.createBleed(damage, duration));
+    }
+    
+    public Move withStun(int duration) {
+        return addStatusEffect(StatusEffect.createStun(duration));
+    }
+    
+    public Move withSlow(int stages, int duration) {
+        return addStatusEffect(StatusEffect.createSlow(stages, duration));
+    }
+    
+    public Move withBlind(int duration) {
+        return addStatusEffect(StatusEffect.createBlind(duration));
+    }
+    
+    public Move withConfusion(int duration) {
+        return addStatusEffect(StatusEffect.createConfusion(duration));
+    }
+    
+    public Move withShield(int amount, int duration) {
+        return addSelfStatusEffect(StatusEffect.createShield(amount, duration));
+    }
+    
+    public Move withRegeneration(int healing, int duration) {
+        return addSelfStatusEffect(StatusEffect.createRegeneration(healing, duration));
+    }
+    
+    public Move withAttackBoost(int stages, int duration) {
+        return addSelfStatusEffect(StatusEffect.createAttackBoost(stages, duration));
+    }
+    
+    public Move withSpeedBoost(int stages, int duration) {
+        return addSelfStatusEffect(StatusEffect.createSpeedBoost(stages, duration));
+    }
+    
+    public Move withArmorBoost(int stages, int duration) {
+        return addSelfStatusEffect(StatusEffect.createArmorBoost(stages, duration));
+    }
+    
+    public Move withMagicResistBoost(int stages, int duration) {
+        return addSelfStatusEffect(StatusEffect.createMagicResistBoost(stages, duration));
+    }
+    
+    public Move withCritBoost(int percentage, int duration) {
+        return addSelfStatusEffect(StatusEffect.createCritBoost(percentage, duration));
+    }
+    
+    public Move withLifestealBoost(int percentage, int duration) {
+        return addSelfStatusEffect(StatusEffect.createLifestealBoost(percentage, duration));
+    }
+    
+    public Move withDamageReduction(int percentage, int duration) {
+        return addSelfStatusEffect(StatusEffect.createDamageReduction(percentage, duration));
+    }
+    
+    public Move withStealth(int duration) {
+        return addSelfStatusEffect(StatusEffect.createStealth(duration));
     }
 }

@@ -20,10 +20,10 @@ public class ChampionFactory {
         champions.add(new Champion(
         	    "Aatrox","Aatrox1", "Darkin", "Top","None", 1, 580, 65, 0, 38, 32, 345, 0, 0, -1, null,
         	    List.of(
-        	        new Move("The Darkin Blade", "Physical", 70, 95, 15, null, 0), // Skillshot Q (70%)
-        	        new Move("Infernal Chains", "Physical", 50, 95, 10, "Root", 30), // Chain W (70%)
-        	        new Move("World Ender", "Physical", 0, 100, 30, "Heal", 0), // Self-buff E (20%)
-        	        new Move("Deathbringer Stance", "Physical", 100, 75, 3, "Bonus damage", 0, true) // Ultimate R (10%)
+        	        new Move("The Darkin Blade", "Physical", 70, 95, 15, null, 0).withBleed(12, 3), // Q: Bleed 12 dmg for 3 turns
+        	        new Move("Infernal Chains", "Physical", 50, 95, 10, null, 0).withSlow(2, 3), // W: Slow -2 speed for 3 turns  
+        	        new Move("World Ender", "Physical", 0, 100, 30, null, 0).withAttackBoost(2, 5).withRegeneration(15, 4), // E: +2 attack, heal 15/turn for 4 turns
+        	        new Move("Deathbringer Stance", "Physical", 100, 75, 3, null, 0, true).withDamageReduction(40, 3).withLifestealBoost(25, 5) // R: 40% damage reduction, +25% lifesteal
         	    ),
         	    new Passive("Darkin Blade", "30% chance to heal for 35% of damage dealt", Passive.PassiveType.ON_ATTACK, 35, 0, 30, 0, 0, 0)
         	)); 
@@ -31,10 +31,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         	    "Ahri","Ahri1", "Ionia", "Mid","None", 1, 526, 0, 53, 21, 30, 330, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Orb of Deception", "Magic", 60, 95, 20, null, 0), // Linear skillshot Q (70%)
-        	        new Move("Charm", "Magic", 40, 95, 10, "Stun", 40), // Narrow skillshot W (70%)
-        	        new Move("Fox-Fire", "Magic", 50, 95, 10, null, 0), // Auto-targeting E (20%)
-        	        new Move("Spirit Rush", "Magic", 120, 75, 3, null, 0, true) // Ultimate R (10%)
+        	        new Move("Orb of Deception", "Magic", 60, 95, 20, null, 0).withBurn(8, 3), // Q: Burn 8 magic dmg for 3 turns
+        	        new Move("Charm", "Magic", 40, 95, 10, null, 0).withConfusion(2), // W: Confusion for 2 turns (25% self-hit)
+        	        new Move("Fox-Fire", "Magic", 50, 95, 10, null, 0).withSpeedBoost(1, 3), // E: +1 speed for 3 turns  
+        	        new Move("Spirit Rush", "Magic", 120, 75, 3, null, 0, true).withStealth(1).withSpeedBoost(2, 4) // R: Stealth 1 turn + +2 speed for 4 turns
         	    ),
         	    new Passive("Essence Theft", "Heals 10% HP and gain 6pp of last used ability when defeating an enemy", Passive.PassiveType.ON_KILL, 10, 6, 100, 0, 0, 0)
         	));
@@ -42,10 +42,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         	    "Akali","Akali1", "Ionia", "Top","Mid", 1, 500, 65, 0, 23, 37, 345, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Five Point Strike", "Physical", 60, 95, 10, null, 0), // Q (70%)
-        	        new Move("Twilight Shroud", "Physical", 0, 100, 5, "Invisibility", 0), // W (20%)
-        	        new Move("Shuriken Flip", "Physical", 70, 95, 15, null, 0), // E (70%)
-        	        new Move("Perfect Execution", "Physical", 150, 75, 2, null, 0, true) // Ultimate R (10%)
+        	        new Move("Five Point Strike", "Physical", 60, 95, 10, null, 0).withPoison(6, 4), // Q: Poison 6 dmg for 4 turns
+        	        new Move("Twilight Shroud", "Physical", 0, 100, 5, null, 0).withStealth(2).withDamageReduction(50, 3), // W: Stealth 2 turns + 50% damage reduction
+        	        new Move("Shuriken Flip", "Physical", 70, 95, 15, null, 0).withBlind(1), // E: Blind enemy for 1 turn
+        	        new Move("Perfect Execution", "Physical", 150, 75, 2, null, 0, true).withCritBoost(50, 3).withAttackBoost(2, 4) // R: +50% crit, +2 attack for 4 turns
         	    ),
         	    new Passive("Assassin's Mark", "Deals +25% damage when attacking first in a turn", Passive.PassiveType.FIRST_ATTACK, 25, 0, 100, 0, 0, 0)
         	));
@@ -53,10 +53,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         		    "Akshan","Akshan1", "Shurima", "Top","Adc", 1, 540, 65, 0, 30, 30, 330, 0, 0, -1, null,
         		    List.of(
-        		        new Move("Avengerang", "Physical", 60, 95, 10, "Boomerang damage", 0), // Q (70%)
-        		        new Move("Going Rogue", "Magic", 0, 100, 15, "Camouflage", 0), // W (20%)
-        		        new Move("Heroic Swing", "Physical", 70, 95, 10, "Swing and shoot", 0), // E (70%)
-        		        new Move("Comeuppance", "Physical", 180, 75, 2, "Execute", 0, true) // Ultimate R (10%)
+        		        new Move("Avengerang", "Physical", 60, 95, 10, null, 0).withBleed(10, 3), // Q: Bleed 10 dmg for 3 turns
+        		        new Move("Going Rogue", "Magic", 0, 100, 15, null, 0).withStealth(1).withSpeedBoost(2, 4), // W: Stealth 1 turn + +2 speed
+        		        new Move("Heroic Swing", "Physical", 70, 95, 10, null, 0).withSlow(1, 2), // E: Slow -1 speed for 2 turns
+        		        new Move("Comeuppance", "Physical", 180, 75, 2, null, 0, true).withStun(1).withLifestealBoost(40, 5) // R: Stun 1 turn + +40% lifesteal
         		    ),
         		    new Passive("Going Rogue", "30% chance to act twice in one turn, second attack does 60% damage", Passive.PassiveType.ON_ATTACK, 60, 0, 30, 0, 0, 0)
         		));
@@ -64,10 +64,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         	    "Alistar","Alistar1", "Demacia", "Supp","None", 1, 600, 62, 0, 40, 32, 330, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Pulverize", "Physical", 50, 95, 10, "Knockup", 50), // Q (70%)
-        	        new Move("Headbutt", "Physical", 70, 100, 10, null, 0), // W (20%)
-        	        new Move("Trample", "Magic", 40, 95, 10, null, 0), // E (70%)
-        	        new Move("Unbreakable Will", "Magic", 0, 100, 50, "Damage reduction", 0) // R (20% - not ultimate)
+        	        new Move("Pulverize", "Physical", 50, 95, 10, null, 0).withStun(1), // Q: Stun for 1 turn
+        	        new Move("Headbutt", "Physical", 70, 100, 10, null, 0).withSlow(2, 3), // W: Slow -2 speed for 3 turns
+        	        new Move("Trample", "Magic", 40, 95, 10, null, 0).withBurn(6, 4), // E: Burn 6 dmg for 4 turns
+        	        new Move("Unbreakable Will", "Magic", 0, 100, 50, null, 0).withDamageReduction(60, 5).withArmorBoost(3, 5) // R: 60% damage reduction + +3 armor
         	    ),
         	    new Passive("Triumphant Roar", "Every 3 turns heal all team by 10% of their max HP", Passive.PassiveType.EVERY_N_TURNS, 10, 0, 100, 0, 0, 3)
         	));
