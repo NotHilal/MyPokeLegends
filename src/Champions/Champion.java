@@ -23,9 +23,22 @@ public class Champion {
     private int critChance; // Critical hit chance (0-100%)
     private int lifesteal; // Lifesteal percentage (0-100%)
     //public int chanceSpawn;
+    
+    // Battle stat stages (-6 to +6, like Pokemon)
+    private int speedStage;
+    private int attackStage;
+    private int armorStage;
+    private int apStage;
+    private int magicResistStage;
  
     // Moves
     private List<Move> moves;
+    
+    // Passive ability
+    private Passive passive;
+    
+    // Last used move for cooldown tracking
+    private Move lastUsedMove;
 
     // Evolution
     private int evolveAt; // Level required for evolution
@@ -35,9 +48,9 @@ public class Champion {
     private String imageName;
     
  
-    // Constructor
+    // Constructor with passive
     public Champion(String name, String imgName, String region, String role,String role2, int level, int maxHp, int AD, int AP, int armor,
-                    int magicResist, int speed, int critChance, int lifesteal, int evolveAt, String nextEvolution, List<Move> moves) {
+                    int magicResist, int speed, int critChance, int lifesteal, int evolveAt, String nextEvolution, List<Move> moves, Passive passive) {
         this.name = name;
         this.imageName = imgName;
         this.region = region;
@@ -57,6 +70,21 @@ public class Champion {
         this.evolveAt = evolveAt;
         this.nextEvolution = nextEvolution;
         this.moves = moves;
+        this.passive = passive;
+        this.lastUsedMove = null; // No move used initially
+        
+        // Initialize stat stages to 0 (neutral)
+        this.speedStage = 0;
+        this.attackStage = 0;
+        this.armorStage = 0;
+        this.apStage = 0;
+        this.magicResistStage = 0;
+    }
+    
+    // Constructor without passive (for backward compatibility)
+    public Champion(String name, String imgName, String region, String role, String role2, int level, int maxHp, int AD, int AP, int armor,
+                    int magicResist, int speed, int critChance, int lifesteal, int evolveAt, String nextEvolution, List<Move> moves) {
+        this(name, imgName, region, role, role2, level, maxHp, AD, AP, armor, magicResist, speed, critChance, lifesteal, evolveAt, nextEvolution, moves, null);
     }
 
     // Getters and Setters
@@ -122,6 +150,128 @@ public class Champion {
     public void setCurrentHp(int hp) {
         this.currentHp = Math.min(hp, maxHp); // Don't exceed max HP
     }
+    
+    // Battle stat stage methods
+    public int getEffectiveSpeed() {
+        return (int) (speed * getAttackAPMultiplier(speedStage));
+    }
+    
+    public int getEffectiveAD() {
+        return (int) (AD * getAttackAPMultiplier(attackStage));
+    }
+    
+    public int getEffectiveArmor() {
+        return (int) (armor * getAttackAPMultiplier(armorStage));
+    }
+    
+    public int getEffectiveAP() {
+        return (int) (AP * getAttackAPMultiplier(apStage));
+    }
+    
+    public int getEffectiveMagicResist() {
+        return (int) (magicResist * getAttackAPMultiplier(magicResistStage));
+    }
+    
+    private double getStatMultiplier(int stage) {
+        // Pokemon-style stat stage multipliers (50% per stage for speed, armor, magic resist)
+        if (stage >= 0) {
+            return 1.0 + (stage * 0.5);
+        } else {
+            return 1.0 / (1.0 + (Math.abs(stage) * 0.5));
+        }
+    }
+    
+    private double getAttackAPMultiplier(int stage) {
+        // Custom multiplier for AD/AP: 30%, 60%, 90% per stage
+        if (stage >= 0) {
+            return 1.0 + (stage * 0.3);
+        } else {
+            return 1.0 / (1.0 + (Math.abs(stage) * 0.3));
+        }
+    }
+    
+    public boolean modifySpeedStage(int change) {
+        return modifyStatStage("speed", change);
+    }
+    
+    public boolean modifyAttackStage(int change) {
+        return modifyStatStage("attack", change);
+    }
+    
+    public boolean modifyArmorStage(int change) {
+        return modifyStatStage("armor", change);
+    }
+    
+    public boolean modifyApStage(int change) {
+        return modifyStatStage("ap", change);
+    }
+    
+    public boolean modifyMagicResistStage(int change) {
+        return modifyStatStage("magicresist", change);
+    }
+    
+    private boolean modifyStatStage(String stat, int change) {
+        int currentStage;
+        switch (stat.toLowerCase()) {
+            case "speed": currentStage = speedStage; break;
+            case "attack": currentStage = attackStage; break;
+            case "armor": currentStage = armorStage; break;
+            case "ap": currentStage = apStage; break;
+            case "magicresist": currentStage = magicResistStage; break;
+            default: return false;
+        }
+        
+        int newStage = Math.max(-3, Math.min(3, currentStage + change));
+        boolean changed = newStage != currentStage;
+        
+        if (changed) {
+            switch (stat.toLowerCase()) {
+                case "speed": speedStage = newStage; break;
+                case "attack": attackStage = newStage; break;
+                case "armor": armorStage = newStage; break;
+                case "ap": apStage = newStage; break;
+                case "magicresist": magicResistStage = newStage; break;
+            }
+        }
+        
+        return changed;
+    }
+    
+    public void resetStatStages() {
+        speedStage = 0;
+        attackStage = 0;
+        armorStage = 0;
+        apStage = 0;
+        magicResistStage = 0;
+    }
+    
+    public int getSpeedStage() { return speedStage; }
+    public int getAttackStage() { return attackStage; }
+    public int getArmorStage() { return armorStage; }
+    public int getApStage() { return apStage; }
+    public int getMagicResistStage() { return magicResistStage; }
+    
+    public Passive getPassive() { return passive; }
+    
+    // Cooldown management methods
+    public void useMove(Move move) {
+        // Reset cooldown on previous move
+        if (lastUsedMove != null) {
+            lastUsedMove.resetCooldown();
+        }
+        // Set new last used move
+        lastUsedMove = move;
+        move.useMove();
+    }
+    
+    public void resetAllCooldowns() {
+        if (moves != null) {
+            for (Move move : moves) {
+                move.resetCooldown();
+            }
+        }
+        lastUsedMove = null;
+    }
 
     
     // Battle Methods
@@ -167,7 +317,7 @@ public class Champion {
         magicResist += magicResistInc;
         speed += speedInc;
         // critChance and lifesteal remain unchanged - will be modified by items only
-        currentHp = maxHp; // Heal on level up
+        currentHp += hpInc; // Add HP increase instead of full heal
 
         checkEvolution();
         

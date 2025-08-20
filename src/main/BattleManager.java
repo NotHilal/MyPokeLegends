@@ -72,6 +72,11 @@ public class BattleManager {
             messageTimer = 180; // 3 seconds
         } else if (wildChampion.isFainted() && !xpAwarded) {
             battleState = BattleState.BATTLE_END;
+            
+            // Trigger ON_KILL passive
+            StringBuilder killMessage = new StringBuilder();
+            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_KILL, 0, killMessage);
+            
             int expGained = wildChampion.getLevel() * 5;
             StatIncrease statIncrease = playerChampion.gainExp(expGained);
             
@@ -80,14 +85,16 @@ public class BattleManager {
                 battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
                                "You won!\n" +
                                playerChampion.getName() + " gained " + expGained + " XP!\n" + 
-                               playerChampion.getName() + " leveled up to level " + playerChampion.getLevel() + "!";
+                               playerChampion.getName() + " leveled up to level " + playerChampion.getLevel() + "!" +
+                               killMessage.toString();
                 showLevelUpStats = true;
                 levelUpStats = statIncrease;
                 levelUpChampion = playerChampion;
             } else {
                 battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
                                "You won!\n" +
-                               playerChampion.getName() + " gained " + expGained + " XP!";
+                               playerChampion.getName() + " gained " + expGained + " XP!" +
+                               killMessage.toString();
             }
             xpAwarded = true; // Mark XP as awarded
             // No timer set - message will persist until user action
@@ -169,15 +176,11 @@ public class BattleManager {
 
         // Draw champion info with XP and level
         drawChampionInfo(
-            g2, wildChampion.getName(), wildChampion.getCurrentHp(), wildChampion.getMaxHp(),
-            wildChampion.getLevel(), wildChampion.getExp(), wildChampion.getExpToNextLevel(),
-            50, 50, 200, 20, false // false = enemy (no XP bar)
+            g2, wildChampion, 50, 50, 200, 20, false // false = enemy (no XP bar)
         );
 
         drawChampionInfo(
-            g2, playerChampion.getName(), playerChampion.getCurrentHp(), playerChampion.getMaxHp(),
-            playerChampion.getLevel(), playerChampion.getExp(), playerChampion.getExpToNextLevel(),
-            gp.screenWidth - 250, blackStartY - 48, 200, 20, true // true = player (show XP bar) - moved 8px higher
+            g2, playerChampion, gp.screenWidth - 250, blackStartY - 48, 200, 20, true // true = player (show XP bar) - moved 8px higher
         );
 
         // Always draw the text box first
@@ -381,14 +384,13 @@ public class BattleManager {
 
 
     /**
-     * Draw champion info including name, level, HP bar, XP bar, and values.
+     * Draw champion info including name, level, HP bar, XP bar, stat stages, and values.
      */
-    private void drawChampionInfo(Graphics2D g2, String name, int currentHp, int maxHp, int level, 
-                                 int currentExp, int expToNext, int x, int y, int barWidth, int barHeight, boolean showXP) {
+    private void drawChampionInfo(Graphics2D g2, Champion champion, int x, int y, int barWidth, int barHeight, boolean showXP) {
         // Draw champion name with level
         g2.setColor(Color.WHITE);
         g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
-        String nameWithLevel = name + " (Lv." + level + ")";
+        String nameWithLevel = champion.getName() + " (Lv." + champion.getLevel() + ")";
         g2.drawString(nameWithLevel, x, y - 10);
 
         // Draw the HP bar background
@@ -396,7 +398,7 @@ public class BattleManager {
         g2.fillRect(x, y, barWidth, barHeight);
 
         // Calculate the current HP percentage
-        int hpWidth = (int) ((currentHp / (float) maxHp) * barWidth);
+        int hpWidth = (int) ((champion.getCurrentHp() / (float) champion.getMaxHp()) * barWidth);
 
         // Draw the HP bar (green for HP)
         g2.setColor(Color.GREEN);
@@ -409,15 +411,18 @@ public class BattleManager {
         // Draw the HP value inside the bar
         g2.setColor(Color.WHITE);
         g2.setFont(g2.getFont().deriveFont(12f));
-        String hpText = currentHp + " / " + maxHp;
+        String hpText = champion.getCurrentHp() + " / " + champion.getMaxHp();
         int textWidth = g2.getFontMetrics().stringWidth(hpText);
         int textX = x + (barWidth - textWidth) / 2;
         int textY = y + barHeight - 6;
         g2.drawString(hpText, textX, textY);
         
+        // Draw stat stage indicators
+        drawStatStageIndicators(g2, champion, x, y + barHeight + 3, barWidth);
+        
         // Draw XP bar for player champion only
         if (showXP) {
-            int xpBarY = y + barHeight + 5;
+            int xpBarY = y + barHeight + 25; // Moved down to make room for stat indicators
             int xpBarHeight = 8;
             
             // XP bar background
@@ -425,7 +430,7 @@ public class BattleManager {
             g2.fillRect(x, xpBarY, barWidth, xpBarHeight);
             
             // Calculate XP percentage
-            float xpPercentage = (currentExp / (float) expToNext);
+            float xpPercentage = (champion.getExp() / (float) champion.getExpToNextLevel());
             int xpWidth = (int) (xpPercentage * barWidth);
             
             // Draw XP bar (blue for XP)
@@ -439,9 +444,49 @@ public class BattleManager {
             // XP text
             g2.setColor(Color.WHITE);
             g2.setFont(g2.getFont().deriveFont(10f));
-            String xpText = "XP: " + currentExp + " / " + expToNext;
+            String xpText = "XP: " + champion.getExp() + " / " + champion.getExpToNextLevel();
             g2.drawString(xpText, x + 2, xpBarY + xpBarHeight + 12);
         }
+    }
+    
+    private void drawStatStageIndicators(Graphics2D g2, Champion champion, int x, int y, int width) {
+        g2.setFont(g2.getFont().deriveFont(9f));
+        int indicatorWidth = width / 5; // 5 stats
+        
+        // ATK indicator
+        drawSingleStatIndicator(g2, "ATK", champion.getAttackStage(), x, y, indicatorWidth);
+        
+        // ARM indicator  
+        drawSingleStatIndicator(g2, "ARM", champion.getArmorStage(), x + indicatorWidth, y, indicatorWidth);
+        
+        // AP indicator
+        drawSingleStatIndicator(g2, "AP", champion.getApStage(), x + indicatorWidth * 2, y, indicatorWidth);
+        
+        // MR indicator
+        drawSingleStatIndicator(g2, "MR", champion.getMagicResistStage(), x + indicatorWidth * 3, y, indicatorWidth);
+        
+        // SPD indicator
+        drawSingleStatIndicator(g2, "SPD", champion.getSpeedStage(), x + indicatorWidth * 4, y, indicatorWidth);
+    }
+    
+    private void drawSingleStatIndicator(Graphics2D g2, String statName, int stage, int x, int y, int width) {
+        if (stage == 0) return; // Don't draw anything for neutral stages
+        
+        // Choose color based on stage
+        Color stageColor;
+        if (stage > 0) {
+            stageColor = new Color(100, 255, 100); // Green for positive
+        } else {
+            stageColor = new Color(255, 100, 100); // Red for negative
+        }
+        
+        g2.setColor(stageColor);
+        
+        // Draw stage text
+        String stageText = statName + (stage > 0 ? "+" : "") + stage;
+        int textWidth = g2.getFontMetrics().stringWidth(stageText);
+        int textX = x + (width - textWidth) / 2;
+        g2.drawString(stageText, textX, y + 12);
     }
     
     public void handleBattleAction(int actionIndex) {
@@ -500,8 +545,12 @@ public class BattleManager {
     private void handleMoveSelection(int moveIndex) {
         if (moveIndex < playerChampion.getMoves().size()) {
             Move selectedMove = playerChampion.getMoves().get(moveIndex);
-            if (selectedMove.isOutOfPP()) {
-                battleMessage = selectedMove.getName() + " is out of PP!";
+            if (!selectedMove.isUsable()) {
+                if (selectedMove.isOutOfPP()) {
+                    battleMessage = selectedMove.getName() + " is out of PP!";
+                } else if (selectedMove.isOnCooldown()) {
+                    battleMessage = selectedMove.getName() + " was used last turn and can't be used again!";
+                }
                 messageTimer = 60;
             } else {
                 battleState = BattleState.EXECUTING;
@@ -512,19 +561,24 @@ public class BattleManager {
     
     // New battle system methods
     private boolean determineFirstTurn() {
-        return playerChampion.getSpeed() >= wildChampion.getSpeed();
+        return playerChampion.getEffectiveSpeed() >= wildChampion.getEffectiveSpeed();
     }
     
     private void executePlayerMove(Move move) {
+        StringBuilder message = new StringBuilder();
+        message.append(playerChampion.getName()).append(" used ").append(move.getName()).append("!");
+        
+        // Handle damage
         int[] damageResult = calculateDamageWithCrit(move, playerChampion, wildChampion);
         int damage = damageResult[0];
         boolean isCrit = damageResult[1] == 1;
         
-        wildChampion.takeDamage(damage);
-        move.useMove();
-        
-        // Apply lifesteal if damage was dealt
         if (damage > 0) {
+            wildChampion.takeDamage(damage);
+            message.append("\nDealt ").append(damage).append(" damage!");
+            if (isCrit) message.append("\nCritical hit!");
+            
+            // Apply lifesteal if damage was dealt
             int healAmount = (damage * playerChampion.getLifesteal()) / 100;
             if (healAmount > 0) {
                 int newHp = Math.min(playerChampion.getCurrentHp() + healAmount, playerChampion.getMaxHp());
@@ -532,9 +586,23 @@ public class BattleManager {
             }
         }
         
-        String critText = isCrit ? "\nCritical hit!" : "";
-        battleMessage = playerChampion.getName() + " used " + move.getName() + "!\nDealt " + damage + " damage!" + critText;
-        messageTimer = 90;
+        // Handle stat stage changes
+        if (move.hasStatStageChanges()) {
+            Champion target = move.targetsSelf() ? playerChampion : wildChampion;
+            String targetName = move.targetsSelf() ? playerChampion.getName() : wildChampion.getName();
+            
+            handleStatStageChanges(move, target, targetName, message);
+        }
+        
+        playerChampion.useMove(move);
+        
+        // Check for passive triggers after attack
+        if (damage > 0) {
+            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_ATTACK, damage, message);
+        }
+        
+        battleMessage = message.toString();
+        messageTimer = 120;
         
         playerTurn = false;
     }
@@ -542,20 +610,25 @@ public class BattleManager {
     private void executeAITurn() {
         // Simple AI: choose random available move
         Move[] availableMoves = wildChampion.getMoves().stream()
-            .filter(move -> !move.isOutOfPP()) // Check only PP
+            .filter(move -> move.isUsable()) // Check PP and cooldown
             .toArray(Move[]::new);
             
         if (availableMoves.length > 0) {
             Move aiMove = availableMoves[random.nextInt(availableMoves.length)];
+            StringBuilder message = new StringBuilder();
+            message.append("Wild ").append(wildChampion.getName()).append(" used ").append(aiMove.getName()).append("!");
+            
+            // Handle damage
             int[] damageResult = calculateDamageWithCrit(aiMove, wildChampion, playerChampion);
             int damage = damageResult[0];
             boolean isCrit = damageResult[1] == 1;
             
-            playerChampion.takeDamage(damage);
-            aiMove.useMove();
-            
-            // Apply lifesteal for AI if damage was dealt
             if (damage > 0) {
+                playerChampion.takeDamage(damage);
+                message.append("\nDealt ").append(damage).append(" damage!");
+                if (isCrit) message.append("\nCritical hit!");
+                
+                // Apply lifesteal for AI if damage was dealt
                 int healAmount = (damage * wildChampion.getLifesteal()) / 100;
                 if (healAmount > 0) {
                     int newHp = Math.min(wildChampion.getCurrentHp() + healAmount, wildChampion.getMaxHp());
@@ -563,9 +636,23 @@ public class BattleManager {
                 }
             }
             
-            String critText = isCrit ? "\nCritical hit!" : "";
-            battleMessage = "Wild " + wildChampion.getName() + " used " + aiMove.getName() + "!\nDealt " + damage + " damage!" + critText;
-            messageTimer = 90;
+            // Handle stat stage changes
+            if (aiMove.hasStatStageChanges()) {
+                Champion target = aiMove.targetsSelf() ? wildChampion : playerChampion;
+                String targetName = aiMove.targetsSelf() ? "Wild " + wildChampion.getName() : playerChampion.getName();
+                
+                handleStatStageChanges(aiMove, target, targetName, message);
+            }
+            
+            wildChampion.useMove(aiMove);
+            
+            // Check for passive triggers after attack
+            if (damage > 0) {
+                handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.ON_ATTACK, damage, message);
+            }
+            
+            battleMessage = message.toString();
+            messageTimer = 120;
         } else {
             battleMessage = "Wild " + wildChampion.getName() + " has no moves left!";
             messageTimer = 90;
@@ -573,6 +660,101 @@ public class BattleManager {
         
         playerTurn = true;
         battleState = BattleState.MAIN_MENU;
+        gp.ui.battleNum = 0; // Reset cursor to attack option
+    }
+    
+    private void handleStatStageChanges(Move move, Champion target, String targetName, StringBuilder message) {
+        boolean anyChanged = false;
+        
+        if (move.getSpeedStageChange() != 0) {
+            boolean changed = target.modifySpeedStage(move.getSpeedStageChange());
+            if (changed) {
+                anyChanged = true;
+                String direction = move.getSpeedStageChange() > 0 ? "rose" : "fell";
+                message.append("\n").append(targetName).append("'s speed ").append(direction).append("!");
+            }
+        }
+        
+        if (move.getAttackStageChange() != 0) {
+            boolean changed = target.modifyAttackStage(move.getAttackStageChange());
+            if (changed) {
+                anyChanged = true;
+                String direction = move.getAttackStageChange() > 0 ? "rose" : "fell";
+                message.append("\n").append(targetName).append("'s attack ").append(direction).append("!");
+            }
+        }
+        
+        if (move.getArmorStageChange() != 0) {
+            boolean changed = target.modifyArmorStage(move.getArmorStageChange());
+            if (changed) {
+                anyChanged = true;
+                String direction = move.getArmorStageChange() > 0 ? "rose" : "fell";
+                message.append("\n").append(targetName).append("'s armor ").append(direction).append("!");
+            }
+        }
+        
+        if (move.getApStageChange() != 0) {
+            boolean changed = target.modifyApStage(move.getApStageChange());
+            if (changed) {
+                anyChanged = true;
+                String direction = move.getApStageChange() > 0 ? "rose" : "fell";
+                message.append("\n").append(targetName).append("'s ability power ").append(direction).append("!");
+            }
+        }
+        
+        if (move.getMagicResistStageChange() != 0) {
+            boolean changed = target.modifyMagicResistStage(move.getMagicResistStageChange());
+            if (changed) {
+                anyChanged = true;
+                String direction = move.getMagicResistStageChange() > 0 ? "rose" : "fell";
+                message.append("\n").append(targetName).append("'s magic resist ").append(direction).append("!");
+            }
+        }
+        
+        if (!anyChanged && move.hasStatStageChanges()) {
+            message.append("\nBut ").append(targetName).append("'s stats can't go any higher/lower!");
+        }
+    }
+    
+    private void handlePassiveTrigger(Champion champion, Champions.Passive.PassiveType triggerType, int damageDealt, StringBuilder message) {
+        Champions.Passive passive = champion.getPassive();
+        if (passive == null || passive.getType() != triggerType) return;
+        
+        // Check if passive should trigger
+        if (!passive.shouldTrigger()) return;
+        
+        switch (passive.getType()) {
+            case ON_ATTACK:
+                if (passive.getName().equals("Darkin Blade")) {
+                    // Heal for percentage of damage dealt
+                    int healAmount = (damageDealt * passive.getValue()) / 100;
+                    int oldHp = champion.getCurrentHp();
+                    int newHp = Math.min(oldHp + healAmount, champion.getMaxHp());
+                    champion.setCurrentHp(newHp);
+                    int actualHeal = newHp - oldHp;
+                    if (actualHeal > 0) {
+                        message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                               .append(" healed ").append(actualHeal).append(" HP!");
+                    }
+                } else if (passive.getName().equals("Assassin's Mark")) {
+                    // This would be handled in damage calculation, but we can show message
+                    message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                           .append(" activated!");
+                }
+                break;
+            case ON_KILL:
+                if (passive.getName().equals("Essence Theft")) {
+                    // Heal fixed amount when enemy is defeated
+                    int healAmount = passive.getValue();
+                    int newHp = Math.min(champion.getCurrentHp() + healAmount, champion.getMaxHp());
+                    champion.setCurrentHp(newHp);
+                    message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
+                           .append(" healed ").append(healAmount).append(" HP!");
+                }
+                break;
+            default:
+                break;
+        }
     }
     
     private int calculateDamage(Move move, Champion attacker, Champion defender) {
@@ -583,11 +765,11 @@ public class BattleManager {
         
         // Calculate base damage and defense based on move type
         if (move.getType().equals("Physical")) {
-            baseDamage = attacker.getAD();
-            defense = defender.getArmor();
+            baseDamage = attacker.getEffectiveAD();
+            defense = defender.getEffectiveArmor();
         } else { // Magic
-            baseDamage = attacker.getAP();
-            defense = defender.getMagicResist();
+            baseDamage = attacker.getEffectiveAP();
+            defense = defender.getEffectiveMagicResist();
         }
         
         // League of Legends style damage formula: Base damage reduced by percentage
@@ -619,8 +801,8 @@ public class BattleManager {
     }
     
     private boolean attemptRun() {
-        // Base 50% run chance, modified by speed difference
-        int speedDiff = playerChampion.getSpeed() - wildChampion.getSpeed();
+        // Base 50% run chance, modified by effective speed difference
+        int speedDiff = playerChampion.getEffectiveSpeed() - wildChampion.getEffectiveSpeed();
         int runChance = 50 + (speedDiff / 4); // +/- 1% per 4 speed difference
         runChance = Math.max(10, Math.min(90, runChance)); // Clamp between 10-90%
         
@@ -677,8 +859,8 @@ public class BattleManager {
                 moveColor2 = new Color(100, 100, 100);
             }
             
-            // Dim colors if out of PP
-            if (move.getPp() <= 0) {
+            // Dim colors if unusable (out of PP or on cooldown)
+            if (!move.isUsable()) {
                 moveColor1 = new Color(80, 80, 80);
                 moveColor2 = new Color(60, 60, 60);
             }
@@ -865,6 +1047,7 @@ public class BattleManager {
         
         // Reset battle state
         battleState = BattleState.MAIN_MENU;
+        gp.ui.battleNum = 0; // Reset cursor to attack option
         battleMessage = "";
         messageTimer = 0;
         
@@ -872,6 +1055,14 @@ public class BattleManager {
         showLevelUpStats = false;
         levelUpStats = null;
         levelUpChampion = null;
+        
+        // Reset stat stages for both champions
+        if (playerChampion != null) {
+            playerChampion.resetStatStages();
+        }
+        if (wildChampion != null) {
+            wildChampion.resetStatStages();
+        }
     }
     
     // Getters for battle state
@@ -885,6 +1076,7 @@ public class BattleManager {
     
     public void returnToMainMenu() {
         battleState = BattleState.MAIN_MENU;
+        gp.ui.battleNum = 0; // Reset cursor to attack option
     }
 
 }

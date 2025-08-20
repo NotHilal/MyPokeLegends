@@ -21,10 +21,11 @@ public class ChampionFactory {
         	    "Aatrox","Aatrox1", "Darkin", "Top","None", 1, 580, 65, 0, 38, 32, 345, 0, 0, -1, null,
         	    List.of(
         	        new Move("The Darkin Blade", "Physical", 70, 90, 15, null, 0),
-        	        new Move("Infernal Chains", "Magic", 50, 100, 10, "Root", 30),
-        	        new Move("World Ender", "Magic", 0, 100, 30, "Heal", 0),
-        	        new Move("Deathbringer Stance", "Passive", 0, 100, 0, "Bonus damage", 0)
-        	    )
+        	        new Move("Infernal Chains", "Physical", 50, 100, 10, "Root", 30),
+        	        new Move("World Ender", "Physical", 0, 100, 30, "Heal", 0),
+        	        new Move("Deathbringer Stance", "Physical", 0, 100, 0, "Bonus damage", 0)
+        	    ),
+        	    new Passive("Darkin Blade", "30% chance to heal for 35% of damage dealt", Passive.PassiveType.ON_ATTACK, 35, 30)
         	)); 
 
         	champions.add(new Champion(
@@ -34,17 +35,19 @@ public class ChampionFactory {
         	        new Move("Charm", "Magic", 40, 85, 10, "Stun", 40),
         	        new Move("Fox-Fire", "Magic", 50, 95, 10, null, 0),
         	        new Move("Spirit Rush", "Magic", 70, 90, 50, null, 0)
-        	    )
+        	    ),
+        	    new Passive("Essence Theft", "Heals 8% HP when defeating an enemy", Passive.PassiveType.ON_KILL, 8, 100)
         	));
 
         	champions.add(new Champion(
         	    "Akali","Akali1", "Ionia", "Top","Mid", 1, 500, 65, 0, 23, 37, 345, 0, 0, -1, null,
         	    List.of(
         	        new Move("Five Point Strike", "Physical", 60, 90, 10, null, 0),
-        	        new Move("Twilight Shroud", "Magic", 0, 100, 5, "Invisibility", 0),
-        	        new Move("Shuriken Flip", "Magic", 70, 95, 15, null, 0),
-        	        new Move("Perfect Execution", "Magic", 100, 90, 40, null, 0)
-        	    )
+        	        new Move("Twilight Shroud", "Physical", 0, 100, 5, "Invisibility", 0),
+        	        new Move("Shuriken Flip", "Physical", 70, 95, 15, null, 0),
+        	        new Move("Perfect Execution", "Physical", 100, 90, 40, null, 0)
+        	    ),
+        	    new Passive("Assassin's Mark", "Deals +25% damage when attacking first in a turn", Passive.PassiveType.ON_ATTACK, 25, 100)
         	));
         	
         	champions.add(new Champion(
@@ -54,7 +57,8 @@ public class ChampionFactory {
         		        new Move("Going Rogue", "Magic", 0, 100, 15, "Camouflage", 0),
         		        new Move("Heroic Swing", "Physical", 70, 90, 10, "Swing and shoot", 0),
         		        new Move("Comeuppance", "Physical", 120, 85, 50, "Execute", 0)
-        		    )
+        		    ),
+        		    new Passive("Going Rogue", "20% chance to act twice in one turn", Passive.PassiveType.ON_ATTACK, 1, 20)
         		));
 
         	champions.add(new Champion(
