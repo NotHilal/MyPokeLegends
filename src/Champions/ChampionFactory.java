@@ -20,10 +20,10 @@ public class ChampionFactory {
         champions.add(new Champion(
         	    "Aatrox","Aatrox1", "Darkin", "Top","None", 1, 580, 65, 0, 38, 32, 345, 0, 0, -1, null,
         	    List.of(
-        	        new Move("The Darkin Blade", "Physical", 70, 95, 15, null, 0).withBleed(12, 3), // Q: Bleed 12 dmg for 3 turns
-        	        new Move("Infernal Chains", "Physical", 50, 95, 10, null, 0).withSlow(2, 3), // W: Slow -2 speed for 3 turns  
-        	        new Move("World Ender", "Physical", 0, 100, 30, null, 0).withAttackBoost(2, 5).withRegeneration(15, 4), // E: +2 attack, heal 15/turn for 4 turns
-        	        new Move("Deathbringer Stance", "Physical", 100, 75, 3, null, 0, true).withDamageReduction(40, 3).withLifestealBoost(25, 5) // R: 40% damage reduction, +25% lifesteal
+        	        new Move("The Darkin Blade", "Physical", 75, 95, 15, null, 0).withLifestealBoost(15, 1), // Q: High damage + heal on hit (lifesteal boost)
+        	        new Move("Infernal Chains", "Physical", 45, 90, 12, null, 0).withSlow(2, 2), // W: Chains that slow enemy
+        	        new Move("Umbral Dash", "Physical", 35, 100, 18, null, 0).withSpeedBoost(1, 2).withRegeneration(20, 1), // E: Dash with healing
+        	        new Move("World Ender", "Physical", 0, 100, 3, null, 0, true).withAttackBoost(3, 6).withSpeedBoost(2, 6).withLifestealBoost(35, 6) // R: Transform with massive buffs
         	    ),
         	    new Passive("Darkin Blade", "30% chance to heal for 35% of damage dealt", Passive.PassiveType.ON_ATTACK, 35, 0, 30, 0, 0, 0)
         	)); 
@@ -31,10 +31,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         	    "Ahri","Ahri1", "Ionia", "Mid","None", 1, 526, 0, 53, 21, 30, 330, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Orb of Deception", "Magic", 60, 95, 20, null, 0).withBurn(8, 3), // Q: Burn 8 magic dmg for 3 turns
-        	        new Move("Charm", "Magic", 40, 95, 10, null, 0).withConfusion(2), // W: Confusion for 2 turns (25% self-hit)
-        	        new Move("Fox-Fire", "Magic", 50, 95, 10, null, 0).withSpeedBoost(1, 3), // E: +1 speed for 3 turns  
-        	        new Move("Spirit Rush", "Magic", 120, 75, 3, null, 0, true).withStealth(1).withSpeedBoost(2, 4) // R: Stealth 1 turn + +2 speed for 4 turns
+        	        new Move("Orb of Deception", "Magic", 70, 95, 18, null, 0), // Q: Pure magic damage, reliable harass
+        	        new Move("Fox-Fire", "Magic", 45, 100, 15, null, 0), // W: Auto-targeting flames, always hits
+        	        new Move("Charm", "Magic", 55, 85, 12, null, 0).withConfusion(2).withSlow(2, 2), // E: Charm makes enemy walk toward you (confusion + slow)
+        	        new Move("Spirit Rush", "Magic", 90, 90, 3, null, 0, true).withSpeedBoost(3, 3) // R: Multiple dashes with high mobility
         	    ),
         	    new Passive("Essence Theft", "Heals 10% HP and gain 6pp of last used ability when defeating an enemy", Passive.PassiveType.ON_KILL, 10, 6, 100, 0, 0, 0)
         	));
@@ -42,10 +42,10 @@ public class ChampionFactory {
         	champions.add(new Champion(
         	    "Akali","Akali1", "Ionia", "Top","Mid", 1, 500, 65, 0, 23, 37, 345, 0, 0, -1, null,
         	    List.of(
-        	        new Move("Five Point Strike", "Physical", 60, 95, 10, null, 0).withPoison(6, 4), // Q: Poison 6 dmg for 4 turns
-        	        new Move("Twilight Shroud", "Physical", 0, 100, 5, null, 0).withStealth(2).withDamageReduction(50, 3), // W: Stealth 2 turns + 50% damage reduction
-        	        new Move("Shuriken Flip", "Physical", 70, 95, 15, null, 0).withBlind(1), // E: Blind enemy for 1 turn
-        	        new Move("Perfect Execution", "Physical", 150, 75, 2, null, 0, true).withCritBoost(50, 3).withAttackBoost(2, 4) // R: +50% crit, +2 attack for 4 turns
+        	        new Move("Five Point Strike", "Magic", 65, 95, 16, null, 0).withRegeneration(15, 1), // Q: Kunai throw with healing when at max energy
+        	        new Move("Twilight Shroud", "Magic", 0, 100, 6, null, 0).withStealth(3).withSpeedBoost(2, 3), // W: Invisibility with movement speed in shroud
+        	        new Move("Shuriken Flip", "Magic", 55, 90, 12, null, 0).withSpeedBoost(1, 2), // E: Shuriken + dash mobility
+        	        new Move("Perfect Execution", "Magic", 120, 85, 2, null, 0, true).withAttackBoost(2, 3) // R: Two-part execute ultimate
         	    ),
         	    new Passive("Assassin's Mark", "Deals +25% damage when attacking first in a turn", Passive.PassiveType.FIRST_ATTACK, 25, 0, 100, 0, 0, 0)
         	));
