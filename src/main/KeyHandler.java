@@ -301,32 +301,48 @@ public class KeyHandler implements KeyListener{
 		        	gp.ui.battleNum = 3;
 		        }
 		    } else if (gp.battleManager.getBattleState() == BattleState.MOVE_SELECTION) {
-		        // Move selection navigation (up to 4 moves)
-		        // Get the player champion to check available moves
-		        int maxMoves = Math.min(gp.player.getFirstChampion().getMoves().size(), 4);
+		        // Move selection navigation: Auto-attack (0) on left, moves (1-4) in 2x2 grid on right
+		        // Layout: [0]    [1] [2] 
+		        //               [3] [4]
 		        
 		        if (code == KeyEvent.VK_W) { 
-		            if(gp.ui.battleNum > 1) {
-		                gp.ui.battleNum -= 2; // Move up in grid
+		            if(gp.ui.battleNum == 3 || gp.ui.battleNum == 4) {
+		                // From bottom row to top row
+		                gp.ui.battleNum -= 2;
 		                gp.playSE(9);
 		            }
 		        }
 		        if (code == KeyEvent.VK_S) { 
-		            if(gp.ui.battleNum < 2 && gp.ui.battleNum + 2 < maxMoves) {
-		                gp.ui.battleNum += 2; // Move down in grid
-		                gp.playSE(9);
+		            if(gp.ui.battleNum == 1 || gp.ui.battleNum == 2) {
+		                // From top row to bottom row (if moves exist)
+		                if(gp.ui.battleNum + 2 <= gp.player.getFirstChampion().getMoves().size()) {
+		                    gp.ui.battleNum += 2;
+		                    gp.playSE(9);
+		                }
 		            }
 		        }
 		        if (code == KeyEvent.VK_A) { 
-		            if(gp.ui.battleNum % 2 == 1) {
-		                gp.ui.battleNum--; // Move left
+		            if(gp.ui.battleNum == 1 || gp.ui.battleNum == 3) {
+		                // From left column moves (top-left or bottom-left) to auto-attack
+		                gp.ui.battleNum = 0;
+		                gp.playSE(9);
+		            } else if(gp.ui.battleNum == 2 || gp.ui.battleNum == 4) {
+		                // Move left in grid (from right column to left column)
+		                gp.ui.battleNum--;
 		                gp.playSE(9);
 		            }
 		        }
 		        if (code == KeyEvent.VK_D) {
-		            if(gp.ui.battleNum % 2 == 0 && gp.ui.battleNum + 1 < maxMoves) {
-		                gp.ui.battleNum++; // Move right
+		            if(gp.ui.battleNum == 0) {
+		                // From auto-attack to first move
+		                gp.ui.battleNum = 1;
 		                gp.playSE(9);
+		            } else if(gp.ui.battleNum == 1 || gp.ui.battleNum == 3) {
+		                // Move right in grid (if move exists)
+		                if(gp.ui.battleNum + 1 <= gp.player.getFirstChampion().getMoves().size()) {
+		                    gp.ui.battleNum++;
+		                    gp.playSE(9);
+		                }
 		            }
 		        }
 		    }

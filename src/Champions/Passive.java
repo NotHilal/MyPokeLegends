@@ -20,22 +20,26 @@ public class Passive {
         // Combat triggers
         ON_ATTACK,        // Triggers when dealing damage
         ON_DAMAGED,       // Triggers when taking damage
+        ON_DAMAGE_TAKEN,  // Alternative name for taking damage
         ON_LOW_HP,        // Triggers when HP is low
         ON_KILL,          // Triggers when defeating an enemy
         ON_CRITICAL,      // Triggers on critical hit
         ON_ABILITY_USE,   // Triggers when using abilities
+        ON_ABILITY_HIT,   // Triggers when abilities hit
         
         // Turn-based
         START_OF_BATTLE,  // Triggers at battle start
         END_OF_TURN,      // Triggers at end of each turn
         START_OF_TURN,    // Triggers at start of each turn
         EVERY_N_TURNS,    // Triggers every N turns
+        EVERY_N_ATTACKS,  // Triggers every N attacks
         
         // Conditional
         FIRST_ATTACK,     // First attack on enemy
         HP_THRESHOLD,     // When HP reaches certain threshold
         STAT_BOOST,       // Stat modifications
         TRANSFORMATION,   // Form changes
+        FORM_CHANGE,      // Alternative name for transformation
         
         // Stacking effects
         STACKING_ATTACK,  // Builds stacks on attack
@@ -43,13 +47,17 @@ public class Passive {
         
         // Special mechanics
         PERMANENT,        // Always active
+        PASSIVE_STAT,     // Passive stat bonuses
+        PASSIVE_EFFECT,   // Passive effects
         ON_SWITCH_IN,     // When entering battle
         DEATH_DEFIANCE,   // Survives fatal damage
         PP_RECOVERY,      // PP related effects
         EXPERIENCE_BOOST, // XP modifiers
         RETALIATION,      // Damage reflection
         MARK_ENEMY,       // Marking mechanics
-        STANCE_CHANGE     // Changing forms/stances
+        STANCE_CHANGE,    // Changing forms/stances
+        REGENERATION,     // Health regeneration
+        STEALTH           // Stealth effects
     }
     
     // Constructor for simple passives

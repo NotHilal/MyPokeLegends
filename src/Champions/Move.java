@@ -9,8 +9,8 @@ public class Move {
     private String type;
     private int power;
     private int accuracy; // Percentage (0-100)
-    private int pp; // Current PP
-    private int maxPp; // Maximum PP
+    private int manaCost; // Mana cost to use this move
+    private int resourceGeneration; // Amount of build-up resource generated when used
 
     // Effects
     private String effect; // e.g., Burn, Paralyze, Heal (legacy)
@@ -34,13 +34,14 @@ public class Move {
     private static final int ULTIMATE_COOLDOWN_TURNS = 4; // 4 turns cooldown for ultimates
 
     // Constructor
-    public Move(String name, String type, int power, int accuracy, int maxPp, String effect, int effectChance) {
+    public Move(String name, String type, int power, int accuracy, int manaCost, String effect, int effectChance) {
         this.name = name;
         this.type = type;
         this.power = power;
         this.accuracy = accuracy;
-        this.pp = maxPp;
-        this.maxPp = maxPp;
+        this.manaCost = manaCost;
+        // Removed percentage cost system
+        this.resourceGeneration = 10; // Default: generate 10 build-up resource when used
         this.effect = effect;
         this.effectChance = effectChance;
         
@@ -60,9 +61,9 @@ public class Move {
     }
     
     // Constructor with stat stage changes
-    public Move(String name, String type, int power, int accuracy, int maxPp, String effect, int effectChance,
+    public Move(String name, String type, int power, int accuracy, int manaCost, String effect, int effectChance,
                 int speedChange, int attackChange, int armorChange, int apChange, int magicResistChange, boolean targetsSelf) {
-        this(name, type, power, accuracy, maxPp, effect, effectChance);
+        this(name, type, power, accuracy, manaCost, effect, effectChance);
         this.speedStageChange = speedChange;
         this.attackStageChange = attackChange;
         this.armorStageChange = armorChange;
@@ -74,20 +75,20 @@ public class Move {
     }
     
     // Constructor for ultimate moves
-    public Move(String name, String type, int power, int accuracy, int maxPp, String effect, int effectChance, boolean isUltimate) {
-        this(name, type, power, accuracy, maxPp, effect, effectChance);
+    public Move(String name, String type, int power, int accuracy, int manaCost, String effect, int effectChance, boolean isUltimate) {
+        this(name, type, power, accuracy, manaCost, effect, effectChance);
         this.isUltimate = isUltimate;
         this.ultimateCooldown = 0;
     }
     
     // Convenience constructor with difficulty-based accuracy
-    public Move(String name, String type, int power, String difficulty, int maxPp, String effect, int effectChance, boolean isUltimate) {
-        this(name, type, power, getDifficultyAccuracy(difficulty), maxPp, effect, effectChance, isUltimate);
+    public Move(String name, String type, int power, String difficulty, int manaCost, String effect, int effectChance, boolean isUltimate) {
+        this(name, type, power, getDifficultyAccuracy(difficulty), manaCost, effect, effectChance, isUltimate);
     }
     
     // Convenience constructor with difficulty-based accuracy (non-ultimate)
-    public Move(String name, String type, int power, String difficulty, int maxPp, String effect, int effectChance) {
-        this(name, type, power, getDifficultyAccuracy(difficulty), maxPp, effect, effectChance, false);
+    public Move(String name, String type, int power, String difficulty, int manaCost, String effect, int effectChance) {
+        this(name, type, power, getDifficultyAccuracy(difficulty), manaCost, effect, effectChance, false);
     }
     
     // Helper method to convert difficulty to accuracy percentage
@@ -134,17 +135,21 @@ public class Move {
         return accuracy;
     }
 
-    public int getPp() {
-        return pp;
-    }
-
-    public boolean isOutOfPP() {
-        return pp <= 0;
+    public int getManaCost() {
+        return manaCost;
     }
     
-    public boolean isUsable() {
-        return !isOutOfPP() && !isUltimateOnCooldown();
+    // Removed percentage-based cost system
+    
+    public int getResourceGeneration() {
+        return resourceGeneration;
     }
+    
+    public boolean isUsable(int currentMana) {
+        return currentMana >= manaCost && !isUltimateOnCooldown();
+    }
+    
+    // Removed percentage-based usability check
     
     public boolean isUltimate() {
         return isUltimate;
@@ -159,15 +164,14 @@ public class Move {
     }
 
     // Methods
-    public boolean useMove() {
-        if (isUsable()) {
-            pp--;
+    public boolean useMove(int currentMana) {
+        if (isUsable(currentMana)) {
             if (isUltimate) {
                 ultimateCooldown = ULTIMATE_COOLDOWN_TURNS; // Start cooldown for ultimates
             }
             return true;
         } else {
-            return false; // Move cannot be used if out of PP or ultimate on cooldown
+            return false; // Move cannot be used if insufficient mana or ultimate on cooldown
         }
     }
     
@@ -192,9 +196,7 @@ public class Move {
         return false;
     }
 
-    public void restorePP() {
-        this.pp = this.maxPp;
-    }
+    // Removed PP restoration - mana is handled by champion resource system
     
     // Stat stage getters
     public int getSpeedStageChange() { return speedStageChange; }

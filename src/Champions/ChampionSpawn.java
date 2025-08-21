@@ -23,7 +23,7 @@ public class ChampionSpawn {
     public static List<ChampionSpawn> createHometownZoneSpawns() {
         List<ChampionSpawn> spawns = new ArrayList<>();
 
-        List<Champion> champions = ChampionFactory.createAllChampions();
+        List<Champion> champions = ChampionFactory.getAllChampions();
 
         // Assign champions with spawn probabilities
         spawns.add(new ChampionSpawn(champions.get(0), 5)); // Aatrox: 10%
@@ -37,7 +37,7 @@ public class ChampionSpawn {
     public static List<ChampionSpawn> createMountainZoneSpawns() {
         List<ChampionSpawn> spawns = new ArrayList<>();
 
-        List<Champion> champions = ChampionFactory.createAllChampions();
+        List<Champion> champions = ChampionFactory.getAllChampions();
 
         // Assign champions with spawn probabilities
         spawns.add(new ChampionSpawn(champions.get(4), 50)); // Amumu: 50%

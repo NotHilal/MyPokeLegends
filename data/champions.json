@@ -1,0 +1,341 @@
+{
+  "champions": [
+    {
+      "name": "Aatrox",
+      "imageName": "Aatrox1",
+      "region": "Darkin",
+      "role": "Top",
+      "role2": null,
+      "championClass": "FIGHTER",
+      "resourceType": "BLOODWELL",
+      "stats": {
+        "health": 650,
+        "attackDamage": 60,
+        "abilityPower": 0,
+        "armor": 38,
+        "magicResist": 32,
+        "moveSpeed": 345,
+        "mana": 0,
+        "critChance": 0,
+        "lifesteal": 0
+      },
+      "moves": [
+        {
+          "name": "The Darkin Blade",
+          "type": "Physical",
+          "power": 75,
+          "accuracy": 95,
+          "manaCost": 0,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": [
+            {
+              "type": "LIFESTEAL_BOOST",
+              "duration": 1,
+              "value": 15,
+              "appliesTo": true
+            }
+          ]
+        },
+        {
+          "name": "Infernal Chains",
+          "type": "Physical",
+          "power": 45,
+          "accuracy": 90,
+          "manaCost": 0,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": [
+            {
+              "type": "SLOW",
+              "duration": 2,
+              "value": 2,
+              "appliesTo": false
+            }
+          ]
+        },
+        {
+          "name": "Umbral Dash",
+          "type": "Physical",
+          "power": 35,
+          "accuracy": 100,
+          "manaCost": 0,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": [
+            {
+              "type": "SPEED_BOOST",
+              "duration": 2,
+              "value": 1,
+              "appliesTo": true
+            },
+            {
+              "type": "REGENERATION",
+              "duration": 1,
+              "value": 20,
+              "appliesTo": true
+            }
+          ]
+        },
+        {
+          "name": "World Ender",
+          "type": "Physical",
+          "power": 0,
+          "accuracy": 100,
+          "manaCost": 0,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": true,
+          "statusEffects": [
+            {
+              "type": "ATTACK_BOOST",
+              "duration": 6,
+              "value": 3,
+              "appliesTo": true
+            },
+            {
+              "type": "SPEED_BOOST",
+              "duration": 6,
+              "value": 2,
+              "appliesTo": true
+            },
+            {
+              "type": "LIFESTEAL_BOOST",
+              "duration": 6,
+              "value": 35,
+              "appliesTo": true
+            }
+          ]
+        }
+      ],
+      "passive": {
+        "name": "Darkin Blade",
+        "description": "30% chance to heal for 35% of damage dealt",
+        "type": "ON_ATTACK",
+        "value1": 35,
+        "value2": 0,
+        "chance": 30,
+        "cooldown": 0,
+        "duration": 0,
+        "triggerTurns": 0
+      },
+      "evolveAt": -1,
+      "nextEvolution": null
+    },
+    {
+      "name": "Ahri",
+      "imageName": "Ahri1",
+      "region": "Ionia",
+      "role": "Mid",
+      "role2": null,
+      "championClass": "MAGE",
+      "resourceType": "MANA",
+      "stats": {
+        "health": 526,
+        "attackDamage": 53,
+        "abilityPower": 0,
+        "armor": 21,
+        "magicResist": 30,
+        "moveSpeed": 330,
+        "mana": 418,
+        "critChance": 0,
+        "lifesteal": 0
+      },
+      "moves": [
+        {
+          "name": "Orb of Deception",
+          "type": "Magic",
+          "power": 70,
+          "accuracy": 95,
+          "manaCost": 65,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": []
+        },
+        {
+          "name": "Fox-Fire",
+          "type": "Magic",
+          "power": 45,
+          "accuracy": 100,
+          "manaCost": 55,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": []
+        },
+        {
+          "name": "Charm",
+          "type": "Magic",
+          "power": 55,
+          "accuracy": 85,
+          "manaCost": 50,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": [
+            {
+              "type": "CONFUSION",
+              "duration": 2,
+              "value": 0,
+              "appliesTo": false
+            },
+            {
+              "type": "SLOW",
+              "duration": 2,
+              "value": 2,
+              "appliesTo": false
+            }
+          ]
+        },
+        {
+          "name": "Spirit Rush",
+          "type": "Magic",
+          "power": 90,
+          "accuracy": 90,
+          "manaCost": 100,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": true,
+          "statusEffects": [
+            {
+              "type": "SPEED_BOOST",
+              "duration": 3,
+              "value": 3,
+              "appliesTo": true
+            }
+          ]
+        }
+      ],
+      "passive": {
+        "name": "Essence Theft",
+        "description": "Heals 10% HP and restores 15 mana when defeating an enemy",
+        "type": "ON_KILL",
+        "value1": 10,
+        "value2": 15,
+        "chance": 100,
+        "cooldown": 0,
+        "duration": 0,
+        "triggerTurns": 0
+      },
+      "evolveAt": -1,
+      "nextEvolution": null
+    },
+    {
+      "name": "Akali",
+      "imageName": "Akali1",
+      "region": "Ionia",
+      "role": "Top",
+      "role2": "Mid",
+      "championClass": "ASSASSIN",
+      "resourceType": "ENERGY",
+      "stats": {
+        "health": 500,
+        "attackDamage": 62,
+        "abilityPower": 0,
+        "armor": 23,
+        "magicResist": 37,
+        "moveSpeed": 345,
+        "mana": 200,
+        "critChance": 0,
+        "lifesteal": 0
+      },
+      "moves": [
+        {
+          "name": "Five Point Strike",
+          "type": "Magic",
+          "power": 65,
+          "accuracy": 95,
+          "manaCost": 120,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": [
+            {
+              "type": "REGENERATION",
+              "duration": 1,
+              "value": 15,
+              "appliesTo": true
+            }
+          ]
+        },
+        {
+          "name": "Twilight Shroud",
+          "type": "Magic",
+          "power": 0,
+          "accuracy": 100,
+          "manaCost": 80,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": [
+            {
+              "type": "STEALTH",
+              "duration": 3,
+              "value": 0,
+              "appliesTo": true
+            },
+            {
+              "type": "SPEED_BOOST",
+              "duration": 3,
+              "value": 2,
+              "appliesTo": true
+            }
+          ]
+        },
+        {
+          "name": "Shuriken Flip",
+          "type": "Magic",
+          "power": 55,
+          "accuracy": 90,
+          "manaCost": 30,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": false,
+          "statusEffects": [
+            {
+              "type": "SPEED_BOOST",
+              "duration": 2,
+              "value": 1,
+              "appliesTo": true
+            }
+          ]
+        },
+        {
+          "name": "Perfect Execution",
+          "type": "Magic",
+          "power": 120,
+          "accuracy": 85,
+          "manaCost": 0,
+          "effect": null,
+          "effectChance": 0,
+          "isUltimate": true,
+          "statusEffects": [
+            {
+              "type": "ATTACK_BOOST",
+              "duration": 3,
+              "value": 2,
+              "appliesTo": true
+            }
+          ]
+        }
+      ],
+      "passive": {
+        "name": "Assassin's Mark",
+        "description": "Deals +25% damage when attacking first in a turn",
+        "type": "FIRST_ATTACK",
+        "value1": 25,
+        "value2": 0,
+        "chance": 100,
+        "cooldown": 0,
+        "duration": 0,
+        "triggerTurns": 0
+      },
+      "evolveAt": -1,
+      "nextEvolution": null
+    }
+  ]
+}

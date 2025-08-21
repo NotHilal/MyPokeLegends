@@ -137,7 +137,7 @@ public class EventHandler {
 	public void heal(int col, int row, int gameState) {
 		if(gp.keyH.interctPressed==true) {
 			gp.gameState=gameState;
-			gp.ui.currentDialog = "Your champions have been fully healed!\nHP and PP have been restored!\nCome back soon!";
+			gp.ui.currentDialog = "Your champions have been fully healed!\nHP and mana have been restored!\nCome back soon!";
 			
 			// Heal all champions in the party
 			for(int i = 0; i < gp.player.getParty().length; i++) {
@@ -145,9 +145,11 @@ public class EventHandler {
 					// Restore HP
 					gp.player.getParty()[i].setCurrentHp(gp.player.getParty()[i].getMaxHp());
 					
-					// Restore PP for all moves
-					for(int j = 0; j < gp.player.getParty()[i].getMoves().size(); j++) {
-						gp.player.getParty()[i].getMoves().get(j).restorePP();
+					// Restore Resource (PP for consumable, reset to 0 for build-up resources)
+					if (gp.player.getParty()[i].getResourceType().isConsumable()) {
+						gp.player.getParty()[i].setCurrentResource(gp.player.getParty()[i].getMaxResource());
+					} else {
+						gp.player.getParty()[i].setCurrentResource(0); // Reset build-up resources
 					}
 				}
 			}

@@ -11,6 +11,13 @@ public class Champion {
     private String role2;// Optional, can be null
     private int level;
     private int exp;
+    private ChampionClass championClass;
+    
+    // Resource System
+    private ResourceType resourceType;
+    private int currentResource;
+    private int maxResource;
+    private int resourceRegen;
 
     // Stats
     private int maxHp;
@@ -22,7 +29,20 @@ public class Champion {
     private int currentHp;
     private int critChance; // Critical hit chance (0-100%)
     private int lifesteal; // Lifesteal percentage (0-100%)
-    //public int chanceSpawn;
+    
+    // New League-style stats
+    private int attackSpeed; // Attacks per turn (base 100)
+    private int spellVamp; // Spell vamp percentage (0-100%)
+    private int armorPenetration; // Flat armor penetration
+    private int magicPenetration; // Flat magic penetration
+    private int tenacity; // CC duration reduction (0-100%)
+    
+    // Auto Attack
+    private AutoAttack autoAttack;
+    
+    // Items (up to 2 items)
+    private java.util.List<Item> items;
+    private static final int MAX_ITEMS = 2;
     
     // Battle stat stages (-6 to +6, like Pokemon)
     private int speedStage;
@@ -62,8 +82,9 @@ public class Champion {
     
  
     // Constructor with passive
-    public Champion(String name, String imgName, String region, String role,String role2, int level, int maxHp, int AD, int AP, int armor,
-                    int magicResist, int speed, int critChance, int lifesteal, int evolveAt, String nextEvolution, List<Move> moves, Passive passive) {
+    public Champion(String name, String imgName, String region, String role, String role2, int level, int maxHp, int AD, int AP, int armor,
+                    int magicResist, int speed, int critChance, int lifesteal, int evolveAt, String nextEvolution, List<Move> moves, Passive passive,
+                    ChampionClass championClass, ResourceType resourceType) {
         this.name = name;
         this.imageName = imgName;
         this.region = region;
@@ -84,6 +105,33 @@ public class Champion {
         this.nextEvolution = nextEvolution;
         this.moves = moves;
         this.passive = passive;
+        this.championClass = championClass;
+        
+        // Resource system
+        this.resourceType = resourceType;
+        this.maxResource = resourceType.getMaxAmount();
+        // Consumable resources start at max (full PP), build-up resources start at 0
+        this.currentResource = resourceType.isConsumable() ? maxResource : 0;
+        this.resourceRegen = resourceType.getBaseRegen();
+        
+        // New League stats with defaults
+        this.attackSpeed = 100; // Base attack speed
+        this.spellVamp = 0;
+        this.armorPenetration = 0;
+        this.magicPenetration = 0;
+        this.tenacity = 0;
+        
+        // Create auto attack - most champions use physical, some exceptions use magic
+        if ("Azir".equals(name) || "Corki".equals(name) || "Diana".equals(name) || 
+            "Fizz".equals(name) || "Kassadin".equals(name) || "Katarina".equals(name) ||
+            "Kayle".equals(name) || "Teemo".equals(name)) {
+            this.autoAttack = AutoAttack.createMagic(name);
+        } else {
+            this.autoAttack = AutoAttack.createPhysical(name);
+        }
+        
+        // Initialize items list
+        this.items = new java.util.ArrayList<>();
         
         // Initialize passive state tracking
         this.isTransformed = false;
@@ -110,7 +158,85 @@ public class Champion {
     // Constructor without passive (for backward compatibility)
     public Champion(String name, String imgName, String region, String role, String role2, int level, int maxHp, int AD, int AP, int armor,
                     int magicResist, int speed, int critChance, int lifesteal, int evolveAt, String nextEvolution, List<Move> moves) {
-        this(name, imgName, region, role, role2, level, maxHp, AD, AP, armor, magicResist, speed, critChance, lifesteal, evolveAt, nextEvolution, moves, null);
+        this(name, imgName, region, role, role2, level, maxHp, AD, AP, armor, magicResist, speed, critChance, lifesteal, evolveAt, nextEvolution, moves, null,
+             ChampionClass.FIGHTER, ResourceType.MANA); // Default values
+    }
+    
+    // Constructor with custom mana pool (for League of Legends accurate stats)
+    public Champion(String name, String imgName, String region, String role, String role2, int level, int maxHp, int AD, int AP, int armor,
+                    int magicResist, int speed, int critChance, int lifesteal, int evolveAt, String nextEvolution, List<Move> moves, Passive passive,
+                    ChampionClass championClass, ResourceType resourceType, int customManaPool) {
+        this.name = name;
+        this.imageName = imgName;
+        this.region = region;
+        this.role = role;
+        this.role2 = role2;
+        this.level = level;
+        this.exp = 0;
+        this.maxHp = maxHp;
+        this.AD = AD;
+        this.AP = AP;
+        this.armor = armor;
+        this.magicResist = magicResist;
+        this.speed = speed;
+        this.critChance = critChance;
+        this.lifesteal = lifesteal;
+        this.currentHp = maxHp;
+        this.evolveAt = evolveAt;
+        this.nextEvolution = nextEvolution;
+        this.moves = moves;
+        this.passive = passive;
+        this.championClass = championClass;
+        
+        // Resource system with custom mana pool
+        this.resourceType = resourceType;
+        this.maxResource = customManaPool; // Use custom mana instead of resourceType default
+        // Consumable resources start at max (full mana), build-up resources start at 0
+        this.currentResource = resourceType.isConsumable() ? maxResource : 0;
+        this.resourceRegen = resourceType.getBaseRegen();
+        
+        // Initialize status effects list
+        this.statusEffects = new java.util.ArrayList<>();
+        
+        // New League stats with defaults
+        this.attackSpeed = 100; // Base attack speed
+        this.spellVamp = 0;
+        this.armorPenetration = 0;
+        this.magicPenetration = 0;
+        this.tenacity = 0;
+        
+        // Create auto attack - most champions use physical, some exceptions use magic
+        if ("Azir".equals(name) || "Corki".equals(name) || "Diana".equals(name) || 
+            "Fizz".equals(name) || "Kassadin".equals(name) || "Katarina".equals(name) ||
+            "Kayle".equals(name) || "Teemo".equals(name)) {
+            this.autoAttack = AutoAttack.createMagic(name);
+        } else {
+            this.autoAttack = AutoAttack.createPhysical(name);
+        }
+        
+        // Initialize items list
+        this.items = new java.util.ArrayList<>();
+        
+        // Initialize passive state tracking
+        this.isTransformed = false;
+        this.transformationTurns = 0;
+        this.currentForm = "Normal";
+        this.hasUsedPassiveThisTurn = false;
+        this.consecutiveAttacks = 0;
+        this.firstAttackOnEnemy = true;
+        this.turnsInBattle = 0;
+        this.enemiesAttacked = new java.util.HashSet<>();
+        
+        // Initialize status effects system
+        this.statusEffects = new java.util.ArrayList<>();
+        this.shieldAmount = 0;
+        
+        // Initialize stat stages to 0 (neutral)
+        this.speedStage = 0;
+        this.attackStage = 0;
+        this.armorStage = 0;
+        this.apStage = 0;
+        this.magicResistStage = 0;
     }
 
     // Getters and Setters
@@ -254,10 +380,88 @@ public class Champion {
     
     public Passive getPassive() { return passive; }
     
-    // Move usage methods
-    public void useMove(Move move) {
-        move.useMove();
+    // Resource system getters
+    public ResourceType getResourceType() { return resourceType; }
+    public int getCurrentResource() { return currentResource; }
+    public int getMaxResource() { return maxResource; }
+    public int getResourceRegen() { return resourceRegen; }
+    public String getResourceName() { return resourceType.getDisplayName(); }
+    
+    // New League stats getters
+    public ChampionClass getChampionClass() { return championClass; }
+    public int getAttackSpeed() { return attackSpeed; }
+    public int getSpellVamp() { return spellVamp; }
+    public int getArmorPenetration() { return armorPenetration; }
+    public int getMagicPenetration() { return magicPenetration; }
+    public int getTenacity() { return tenacity; }
+    public AutoAttack getAutoAttack() { return autoAttack; }
+    
+    // Items system
+    public java.util.List<Item> getItems() { return new java.util.ArrayList<>(items); }
+    public boolean hasItem(String itemName) {
+        return items.stream().anyMatch(item -> item.getName().equals(itemName));
     }
+    public boolean canAddItem() { return items.size() < MAX_ITEMS; }
+    
+    public boolean addItem(Item item) {
+        if (canAddItem()) {
+            items.add(item);
+            recalculateStats();
+            return true;
+        }
+        return false;
+    }
+    
+    public boolean removeItem(String itemName) {
+        boolean removed = items.removeIf(item -> item.getName().equals(itemName));
+        if (removed) {
+            recalculateStats();
+        }
+        return removed;
+    }
+    
+    // Move usage methods
+    public boolean canUseMove(Move move) {
+        // For consumable resources: check if we have enough mana
+        if (resourceType.isConsumable()) {
+            return move.isUsable(currentResource);
+        } else {
+            // For build-up resources: moves are always usable (they generate resource)
+            return !move.isUltimateOnCooldown();
+        }
+    }
+    
+    public boolean useMove(Move move) {
+        if (canUseMove(move)) {
+            // Handle mana consumption for consumable resources
+            if (resourceType.isConsumable()) {
+                int cost = move.getManaCost();
+                currentResource -= cost;
+            } else {
+                // Handle build-up resource generation for non-consumable resources  
+                currentResource = Math.min(maxResource, currentResource + move.getResourceGeneration());
+            }
+            return move.useMove(currentResource);
+        }
+        return false;
+    }
+    
+    // Resource management
+    public void setCurrentResource(int resource) {
+        this.currentResource = Math.max(0, Math.min(resource, maxResource));
+    }
+    
+    public void restoreResource(int amount) {
+        currentResource = Math.min(currentResource + amount, maxResource);
+    }
+    
+    // Regenerate resources at end of turn (only for consumable resources)
+    public void regenerateResource() {
+        if (resourceType.isConsumable() && resourceType.getBaseRegen() > 0) {
+            restoreResource(resourceType.getBaseRegen());
+        }
+    }
+    
 
     
     // Battle Methods - enhanced takeDamage() version with shields is below
@@ -390,6 +594,9 @@ public class Champion {
     public void updatePassiveStatesStartOfTurn() {
         hasUsedPassiveThisTurn = false;
         incrementTurnsInBattle();
+        
+        // Regenerate resource
+        regenerateResource();
         
         if (passive != null) {
             passive.incrementTurnCounter();
@@ -729,5 +936,105 @@ public class Champion {
         firstAttackOnEnemy = true;
         turnsInBattle = 0;
         enemiesAttacked.clear();
+    }
+    
+    // Recalculate stats including items
+    private void recalculateStats() {
+        // Reset bonus stats from items
+        int bonusHP = 0, bonusAD = 0, bonusAP = 0, bonusArmor = 0, bonusMR = 0;
+        int bonusAttackSpeed = 0, bonusCrit = 0, bonusLifesteal = 0, bonusSpellVamp = 0;
+        int bonusArmorPen = 0, bonusMagicPen = 0, bonusTenacity = 0;
+        int bonusResource = 0, bonusResourceRegen = 0;
+        
+        // Calculate totals from all items
+        for (Item item : items) {
+            bonusHP += item.getBonusHP();
+            bonusAD += item.getBonusAD();
+            bonusAP += item.getBonusAP();
+            bonusArmor += item.getBonusArmor();
+            bonusMR += item.getBonusMagicResist();
+            bonusAttackSpeed += item.getBonusAttackSpeed();
+            bonusCrit += item.getBonusCritChance();
+            bonusLifesteal += item.getBonusLifesteal();
+            bonusSpellVamp += item.getBonusSpellVamp();
+            bonusArmorPen += item.getBonusArmorPen();
+            bonusMagicPen += item.getBonusMagicPen();
+            bonusTenacity += item.getBonusTenacity();
+            bonusResource += item.getBonusMana();
+            bonusResourceRegen += item.getBonusManaRegen();
+        }
+        
+        // Apply item bonuses (items add to base stats)
+        // Note: Base stats remain unchanged, these are just for calculations
+        // You would need to track base vs total stats if you want to show both
+        
+        // Update resource pool if items give mana
+        if (bonusResource > 0) {
+            maxResource = resourceType.getMaxAmount() + bonusResource;
+            if (currentResource > maxResource) {
+                currentResource = maxResource;
+            }
+        }
+        
+        // Update resource regen
+        if (bonusResourceRegen > 0) {
+            resourceRegen = resourceType.getBaseRegen() + bonusResourceRegen;
+        }
+    }
+    
+    // Get effective stats including items
+    public int getTotalAD() {
+        int itemAD = items.stream().mapToInt(Item::getBonusAD).sum();
+        return getEffectiveAD() + itemAD;
+    }
+    
+    public int getTotalAP() {
+        int itemAP = items.stream().mapToInt(Item::getBonusAP).sum();
+        return getEffectiveAP() + itemAP;
+    }
+    
+    public int getTotalArmor() {
+        int itemArmor = items.stream().mapToInt(Item::getBonusArmor).sum();
+        return getEffectiveArmor() + itemArmor;
+    }
+    
+    public int getTotalMagicResist() {
+        int itemMR = items.stream().mapToInt(Item::getBonusMagicResist).sum();
+        return getEffectiveMagicResist() + itemMR;
+    }
+    
+    public int getTotalAttackSpeed() {
+        int itemAS = items.stream().mapToInt(Item::getBonusAttackSpeed).sum();
+        return attackSpeed + itemAS;
+    }
+    
+    public int getTotalCritChance() {
+        int itemCrit = items.stream().mapToInt(Item::getBonusCritChance).sum();
+        return Math.min(100, getCritChance() + itemCrit);
+    }
+    
+    public int getTotalLifesteal() {
+        int itemLS = items.stream().mapToInt(Item::getBonusLifesteal).sum();
+        return Math.min(100, getLifesteal() + itemLS);
+    }
+    
+    public int getTotalSpellVamp() {
+        int itemSV = items.stream().mapToInt(Item::getBonusSpellVamp).sum();
+        return Math.min(100, spellVamp + itemSV);
+    }
+    
+    public int getTotalArmorPen() {
+        int itemArmorPen = items.stream().mapToInt(Item::getBonusArmorPen).sum();
+        return armorPenetration + itemArmorPen;
+    }
+    
+    public int getTotalMagicPen() {
+        int itemMagicPen = items.stream().mapToInt(Item::getBonusMagicPen).sum();
+        return magicPenetration + itemMagicPen;
+    }
+    
+    public int getTotalTenacity() {
+        int itemTenacity = items.stream().mapToInt(Item::getBonusTenacity).sum();
+        return Math.min(100, tenacity + itemTenacity);
     }
 }

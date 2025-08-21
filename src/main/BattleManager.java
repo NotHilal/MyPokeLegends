@@ -410,7 +410,7 @@ public class BattleManager {
         g2.drawString(moveName, x + 8 + 1, y + 20 + 1);
         
         // Main text
-        if (move.getPp() <= 0) {
+        if (!playerChampion.canUseMove(move)) {
             g2.setColor(new Color(150, 150, 150));
         } else {
             g2.setColor(Color.WHITE);
@@ -421,8 +421,8 @@ public class BattleManager {
         g2.setFont(g2.getFont().deriveFont(11f));
         g2.setColor(new Color(220, 220, 220));
         
-        // PP info
-        String info = "PP: " + move.getPp();
+        // Mana cost info
+        String info = playerChampion.getResourceName() + ": " + move.getManaCost();
         g2.setColor(new Color(220, 220, 220));
         g2.drawString(info, x + 8, y + 37);
         
@@ -453,7 +453,132 @@ public class BattleManager {
         g2.setColor(typeIndicator);
         g2.fillRoundRect(x + width - 15, y + 5, 8, 8, 4, 4);
     }
-
+    
+    /**
+     * Draws an enhanced auto-attack button with auto-attack details and selection highlighting.
+     */
+    private void drawEnhancedAutoAttackButton(Graphics2D g2, Champions.AutoAttack autoAttack, int x, int y, int width, int height, 
+                                            Color topColor, Color bottomColor, boolean selected) {
+        // Create gradient paint
+        java.awt.GradientPaint gradient = new java.awt.GradientPaint(
+            x, y, topColor,
+            x, y + height, bottomColor
+        );
+        
+        // Draw shadow
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.fillRoundRect(x + 2, y + 2, width, height, 12, 12);
+        
+        // Draw button background with gradient
+        g2.setPaint(gradient);
+        g2.fillRoundRect(x, y, width, height, 12, 12);
+        
+        // Draw selection highlight if selected
+        if (selected) {
+            g2.setColor(new Color(255, 255, 255, 220));
+            g2.setStroke(new BasicStroke(3));
+            g2.drawRoundRect(x - 2, y - 2, width + 4, height + 4, 14, 14);
+        }
+        
+        // Draw button border
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x, y, width, height, 12, 12);
+        
+        // Draw auto-attack name
+        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+        String attackName = "Auto Attack";
+        
+        // Text shadow
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.drawString(attackName, x + 8 + 1, y + 20 + 1);
+        
+        // Main text (always white since auto attack is always available)
+        g2.setColor(Color.WHITE);
+        g2.drawString(attackName, x + 8, y + 20);
+        
+        // Draw auto-attack details
+        g2.setFont(g2.getFont().deriveFont(11f));
+        g2.setColor(new Color(220, 220, 220));
+        
+        // No cost info
+        String info = "Cost: 0";
+        g2.drawString(info, x + 8, y + 37);
+        
+        // Type and damage source
+        String typeInfo = autoAttack.getDamageType();
+        g2.drawString(typeInfo, x + 8, y + 50);
+        
+        // Show uses AD or AP
+        String damageInfo = "Uses: " + (autoAttack.getDamageType().equals("Physical") ? "AD" : "AP");
+        g2.drawString(damageInfo, x + width - 60, y + 50);
+        
+        // Add a type indicator
+        Color typeIndicator;
+        if (autoAttack.getDamageType().equals("Physical")) {
+            typeIndicator = new Color(255, 100, 100);
+        } else if (autoAttack.getDamageType().equals("Magic")) {
+            typeIndicator = new Color(100, 100, 255);
+        } else {
+            typeIndicator = new Color(200, 200, 200);
+        }
+        
+        g2.setColor(typeIndicator);
+        g2.fillRoundRect(x + width - 15, y + 5, 8, 8, 4, 4);
+    }
+    
+    /**
+     * Draws a circular auto-attack button with sword icon
+     */
+    private void drawCircularAutoAttackButton(Graphics2D g2, int centerX, int centerY, int radius, boolean selected) {
+        // Button colors
+        Color buttonColor = selected ? new Color(200, 220, 150) : new Color(150, 180, 100);
+        Color borderColor = selected ? new Color(255, 255, 255) : new Color(100, 140, 60);
+        Color shadowColor = new Color(0, 0, 0, 100);
+        
+        // Draw shadow
+        g2.setColor(shadowColor);
+        g2.fillOval(centerX - radius + 2, centerY - radius + 2, radius * 2, radius * 2);
+        
+        // Draw button background
+        g2.setColor(buttonColor);
+        g2.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+        
+        // Draw border
+        g2.setColor(borderColor);
+        g2.setStroke(new java.awt.BasicStroke(selected ? 3 : 2));
+        g2.drawOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+        
+        // Draw sword icon in the center
+        drawSwordIcon(g2, centerX, centerY, radius * 0.6f, selected ? Color.WHITE : new Color(80, 80, 80));
+        
+        // Reset stroke
+        g2.setStroke(new java.awt.BasicStroke(1));
+    }
+    
+    /**
+     * Draws a simple sword icon
+     */
+    private void drawSwordIcon(Graphics2D g2, int centerX, int centerY, float size, Color color) {
+        g2.setColor(color);
+        g2.setStroke(new java.awt.BasicStroke(3, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+        
+        // Sword blade (vertical line)
+        int bladeLength = (int)(size * 0.8f);
+        g2.drawLine(centerX, centerY - bladeLength/2, centerX, centerY + bladeLength/2 - 8);
+        
+        // Sword guard (horizontal line)
+        int guardWidth = (int)(size * 0.5f);
+        g2.drawLine(centerX - guardWidth/2, centerY + bladeLength/2 - 8, 
+                   centerX + guardWidth/2, centerY + bladeLength/2 - 8);
+        
+        // Sword handle (thicker line)
+        g2.setStroke(new java.awt.BasicStroke(4, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+        g2.drawLine(centerX, centerY + bladeLength/2 - 8, centerX, centerY + bladeLength/2 + 6);
+        
+        // Reset stroke
+        g2.setStroke(new java.awt.BasicStroke(1));
+    }
 
     /**
      * Draw champion info including name, level, HP bar, XP bar, stat stages, and values.
@@ -493,12 +618,49 @@ public class BattleManager {
         int textY = y + barHeight - 6;
         g2.drawString(hpText, textX, textY);
         
-        // Draw stat stage indicators
-        drawStatStageIndicators(g2, champion, x, y + barHeight + 3, barWidth);
+        // Draw Resource Bar (Mana/Energy/etc) right below HP bar
+        int resourceBarY = y + barHeight + 2;
+        int resourceBarHeight = 12; // Much smaller, thinner bar
+        
+        // Draw the resource bar background
+        // Different background colors for consumable vs build-up resources
+        if (champion.getResourceType().isConsumable()) {
+            g2.setColor(Color.DARK_GRAY); // Dark background for mana/energy (empty = bad)
+        } else {
+            g2.setColor(new Color(60, 60, 60)); // Lighter background for build-up (empty = normal)
+        }
+        g2.fillRect(x, resourceBarY, barWidth, resourceBarHeight);
+        
+        // Calculate the current resource percentage
+        int resourceWidth = 0;
+        if (champion.getMaxResource() > 0) {
+            resourceWidth = (int) ((champion.getCurrentResource() / (float) champion.getMaxResource()) * barWidth);
+        }
+        
+        // Draw the resource bar with color based on resource type
+        Color resourceColor = new Color(champion.getResourceType().getColor());
+        g2.setColor(resourceColor);
+        g2.fillRect(x, resourceBarY, resourceWidth, resourceBarHeight);
+        
+        // Draw the border of the resource bar
+        g2.setColor(Color.BLACK);
+        g2.drawRect(x, resourceBarY, barWidth, resourceBarHeight);
+        
+        // Draw the resource value inside the bar
+        g2.setColor(Color.WHITE);
+        g2.setFont(g2.getFont().deriveFont(8f)); // Smaller font
+        String resourceText = champion.getResourceType().getResourceDisplayText(champion.getCurrentResource(), champion.getMaxResource()) + " " + champion.getResourceType().getDisplayName();
+        int resourceTextWidth = g2.getFontMetrics().stringWidth(resourceText);
+        int resourceTextX = x + (barWidth - resourceTextWidth) / 2;
+        int resourceTextY = resourceBarY + resourceBarHeight - 2; // Better vertical centering
+        g2.drawString(resourceText, resourceTextX, resourceTextY);
+        
+        // Draw stat stage indicators (moved down to accommodate resource bar)
+        drawStatStageIndicators(g2, champion, x, y + barHeight + resourceBarHeight + 5, barWidth);
         
         // Draw XP bar for player champion only
         if (showXP) {
-            int xpBarY = y + barHeight + 25; // Moved down to make room for stat indicators
+            int xpBarY = y + barHeight + resourceBarHeight + 25; // Adjusted for smaller resource bar
             int xpBarHeight = 8;
             
             // XP bar background
@@ -771,11 +933,22 @@ public class BattleManager {
     }
     
     private void handleMoveSelection(int moveIndex) {
-        if (moveIndex < playerChampion.getMoves().size()) {
-            Move selectedMove = playerChampion.getMoves().get(moveIndex);
-            if (!selectedMove.isUsable()) {
-                if (selectedMove.isOutOfPP()) {
-                    battleMessage = selectedMove.getName() + " is out of PP!";
+        // Check if Auto Attack was selected (index 0)
+        if (moveIndex == 0) {
+            battleState = BattleState.EXECUTING;
+            executePlayerAutoAttack();
+            return;
+        }
+        
+        // Handle regular move selection (indices 1-4 map to moves 0-3)
+        int actualMoveIndex = moveIndex - 1;
+        if (actualMoveIndex >= 0 && actualMoveIndex < playerChampion.getMoves().size()) {
+            Move selectedMove = playerChampion.getMoves().get(actualMoveIndex);
+            if (!playerChampion.canUseMove(selectedMove)) {
+                if (selectedMove.getManaCost() > playerChampion.getCurrentResource()) {
+                    battleMessage = "Not enough " + playerChampion.getResourceName() + "! (" + 
+                                   selectedMove.getManaCost() + " needed, " + 
+                                   playerChampion.getCurrentResource() + " available)";
                 } else if (selectedMove.isUltimateOnCooldown()) {
                     battleMessage = selectedMove.getName() + " is on cooldown! (" + selectedMove.getUltimateCooldown() + " turns left)";
                 }
@@ -784,6 +957,129 @@ public class BattleManager {
                 battleState = BattleState.EXECUTING;
                 executePlayerMove(selectedMove);
             }
+        }
+    }
+    
+    // Auto Attack execution
+    private void executePlayerAutoAttack() {
+        // Update passive states at start of turn
+        playerChampion.updatePassiveStatesStartOfTurn();
+        
+        // Process status effects at start of turn
+        StringBuilder statusMessage = playerChampion.processStatusEffectsStartOfTurn();
+        
+        // Check if player is stunned
+        if (isChampionStunned(playerChampion)) {
+            battleMessage = playerChampion.getName() + " is stunned and cannot act!" + statusMessage.toString();
+            playerTurn = false; // Switch to AI turn
+            return;
+        }
+        
+        // Trigger start of turn passives
+        StringBuilder startTurnMessage = new StringBuilder();
+        handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
+        
+        StringBuilder message = new StringBuilder();
+        message.append(playerChampion.getName()).append(" attacks with ").append(playerChampion.getAutoAttack().getName()).append("!");
+        
+        // Add status effect and start of turn passive messages
+        if (statusMessage.length() > 0) {
+            message.append(statusMessage);
+        }
+        if (startTurnMessage.length() > 0) {
+            message.append(startTurnMessage);
+        }
+        
+        // Mark enemy as attacked for first attack tracking
+        if (playerChampion.isFirstAttackOnEnemy()) {
+            playerChampion.addAttackedEnemy(wildChampion.getName());
+        }
+        
+        // Calculate auto attack damage
+        Champions.AutoAttack autoAttack = playerChampion.getAutoAttack();
+        
+        if (autoAttack.doesHit(playerChampion, wildChampion)) {
+            int damage = autoAttack.calculateDamage(playerChampion);
+            
+            // Apply damage
+            wildChampion.takeDamage(damage);
+            message.append("\nDealt ").append(damage).append(" damage!");
+            
+            // Apply lifesteal healing
+            int lifestealHeal = autoAttack.calculateLifesteal(damage, playerChampion);
+            if (lifestealHeal > 0) {
+                int oldHp = playerChampion.getCurrentHp();
+                playerChampion.setCurrentHp(oldHp + lifestealHeal);
+                message.append("\n").append(playerChampion.getName()).append(" healed ").append(lifestealHeal).append(" HP from lifesteal!");
+            }
+            
+            // Trigger passives that activate on attack
+            StringBuilder attackPassiveMessage = new StringBuilder();
+            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_ATTACK, damage, attackPassiveMessage);
+            if (attackPassiveMessage.length() > 0) {
+                message.append(attackPassiveMessage);
+            }
+            
+            // Trigger enemy passives that activate on being damaged
+            StringBuilder damagedPassiveMessage = new StringBuilder();
+            handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.ON_DAMAGED, damage, damagedPassiveMessage);
+            if (damagedPassiveMessage.length() > 0) {
+                message.append(damagedPassiveMessage);
+            }
+            
+            // Check for critical hit message
+            boolean wasCrit = playerChampion.getTotalCritChance() > 0 && damage > playerChampion.getTotalAD();
+            if (wasCrit) {
+                message.append("\nCritical hit!");
+                // Trigger critical hit passives
+                StringBuilder critPassiveMessage = new StringBuilder();
+                handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_CRITICAL, damage, critPassiveMessage);
+                if (critPassiveMessage.length() > 0) {
+                    message.append(critPassiveMessage);
+                }
+            }
+            
+        } else {
+            message.append("\n").append(playerChampion.getName()).append("'s attack missed!");
+        }
+        
+        // Remove blind and stealth status effects after attack
+        playerChampion.removeStatusEffect(StatusEffect.StatusType.BLIND);
+        wildChampion.removeStatusEffect(StatusEffect.StatusType.STEALTH);
+        
+        // Mark first attack as used
+        if (playerChampion.isFirstAttackOnEnemy()) {
+            playerChampion.setFirstAttackOnEnemy(false);
+        }
+        
+        playerTurn = false; // Switch to AI turn
+        battleMessage = message.toString();
+        messageTimer = 120; // 2 seconds
+        
+        // Trigger end of turn passives
+        StringBuilder endTurnMessage = new StringBuilder();
+        handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.END_OF_TURN, 0, endTurnMessage);
+        if (endTurnMessage.length() > 0) {
+            battleMessage += endTurnMessage.toString();
+        }
+        
+        // Regenerate resources for both champions
+        int playerResourceBefore = playerChampion.getCurrentResource();
+        int enemyResourceBefore = wildChampion.getCurrentResource();
+        
+        playerChampion.regenerateResource();
+        wildChampion.regenerateResource();
+        
+        // Show resource regeneration messages if any occurred
+        if (playerChampion.getCurrentResource() > playerResourceBefore) {
+            int regenAmount = playerChampion.getCurrentResource() - playerResourceBefore;
+            battleMessage += playerChampion.getName() + " regenerated " + regenAmount + " " + 
+                           playerChampion.getResourceType().getDisplayName() + "! ";
+        }
+        if (wildChampion.getCurrentResource() > enemyResourceBefore) {
+            int regenAmount = wildChampion.getCurrentResource() - enemyResourceBefore;
+            battleMessage += wildChampion.getName() + " regenerated " + regenAmount + " " + 
+                           wildChampion.getResourceType().getDisplayName() + "! ";
         }
     }
     
@@ -911,7 +1207,7 @@ public class BattleManager {
         
         // Simple AI: choose random available move
         Move[] availableMoves = wildChampion.getMoves().stream()
-            .filter(move -> move.isUsable()) // Check PP only
+            .filter(move -> move.isUsable(wildChampion.getCurrentResource())) // Check resource (mana/energy)
             .toArray(Move[]::new);
             
         if (availableMoves.length > 0) {
@@ -1401,8 +1697,8 @@ public class BattleManager {
         // Apply damage reduction: Final damage = Base damage × (1 - damage reduction)
         double finalDamage = baseDamageCalc * (1.0 - damageReduction);
         
-        // Always deal at least 1 damage (like League of Legends true damage minimum)
-        return Math.max(1, (int) finalDamage);
+        // Allow 0 damage - no artificial minimum
+        return Math.max(0, (int) finalDamage);
     }
     
     private int[] calculateDamageWithCrit(Move move, Champion attacker, Champion defender) {
@@ -1494,22 +1790,39 @@ public class BattleManager {
         g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
         g2.drawString("SELECT MOVE:", rightSideStart + 25, blackStartY + 40);
         
-        // Draw moves in a 2x2 grid - centered with more spacing (first size modification)
-        int moveButtonWidth = 180;
-        int moveButtonHeight = 70;
-        int horizontalSpacing = 40;
-        int verticalSpacing = 25;
+        // New layout: Circular auto-attack button on left, 2x2 grid of moves on right
+        int moveButtonWidth = 160;
+        int moveButtonHeight = 60;
+        int horizontalSpacing = 30;
+        int verticalSpacing = 20;
         
-        // Calculate centered starting position for the 2x2 grid
+        // Auto-attack circular button dimensions
+        int autoAttackRadius = 35; // Small circular button
+        int autoAttackDiameter = autoAttackRadius * 2;
+        
+        // Calculate positions - auto-attack on left, moves grid on right
         int gridWidth = (2 * moveButtonWidth) + horizontalSpacing;
-        int gridStartX = rightSideStart + (rightSideWidth - gridWidth) / 2;
+        int totalWidth = autoAttackDiameter + 40 + gridWidth; // 40 = spacing between auto-attack and grid
+        int layoutStartX = rightSideStart + (rightSideWidth - totalWidth) / 2;
         
-        for (int i = 0; i < playerChampion.getMoves().size() && i < 4; i++) {
-            Move move = playerChampion.getMoves().get(i);
+        int autoAttackX = layoutStartX + autoAttackRadius; // Center of circle
+        int autoAttackY = blackStartY + 80 + autoAttackRadius; // Center of circle, vertically aligned with move grid
+        int gridStartX = layoutStartX + autoAttackDiameter + 40; // 40px spacing from edge of circle
+        int movesStartY = blackStartY + 60; // Start moves higher since no title bar above them
+        
+        // Draw circular auto-attack button (index 0 in selection)
+        drawCircularAutoAttackButton(g2, autoAttackX, autoAttackY, autoAttackRadius, gp.ui.battleNum == 0);
+        
+        // Draw the 4 move buttons in 2x2 grid (indices 1-4 in selection)
+        for (int i = 0; i < Math.min(4, playerChampion.getMoves().size()); i++) {
+            // Calculate position in 2x2 grid
             int col = i % 2;
             int row = i / 2;
             int x = gridStartX + col * (moveButtonWidth + horizontalSpacing);
-            int y = blackStartY + 52 + row * (moveButtonHeight + verticalSpacing);
+            int y = movesStartY + row * (moveButtonHeight + verticalSpacing);
+            
+            // Regular move
+            Move move = playerChampion.getMoves().get(i);
             
             // Determine move colors based on type and ultimate status
             Color moveColor1, moveColor2;
@@ -1528,15 +1841,18 @@ public class BattleManager {
                 moveColor2 = new Color(100, 100, 100);
             }
             
-            // Dim colors if unusable (out of PP or ultimate on cooldown)
-            if (!move.isUsable()) {
+            // Dim colors if unusable
+            if (!playerChampion.canUseMove(move)) {
                 moveColor1 = new Color(80, 80, 80);
                 moveColor2 = new Color(60, 60, 60);
             }
             
+            // Selection index is i+1 because auto-attack is index 0
+            boolean isSelected = (gp.ui.battleNum == i + 1);
+            
             // Draw enhanced move button
             drawEnhancedMoveButton(g2, move, x, y, moveButtonWidth, moveButtonHeight, 
-                                 moveColor1, moveColor2, i == gp.ui.battleNum);
+                                 moveColor1, moveColor2, isSelected);
         }
     }
     
@@ -2068,7 +2384,10 @@ public class BattleManager {
                 g2.setFont(g2.getFont().deriveFont(11f));
                 
                 String typeIcon = move.getType().equals("Physical") ? "⚔" : "✦";
-                String details = typeIcon + " " + move.getType() + " | PWR: " + move.getPower() + " | PP: " + move.getPp();
+                // Show mana cost
+                int cost = move.getManaCost();
+                String costText = cost > 0 ? String.valueOf(cost) : "0";
+                String details = typeIcon + " " + move.getType() + " | PWR: " + move.getPower() + " | COST: " + costText;
                 
                 if (move.isUltimate() && move.isUltimateOnCooldown()) {
                     details += " | CD: " + move.getUltimateCooldown();
@@ -2190,13 +2509,14 @@ public class BattleManager {
                     break;
                     
                 case PP_RESTORE:
-                    // Restore PP to all moves
-                    if (target.getMoves() != null) {
-                        for (Move targetMove : target.getMoves()) {
-                            targetMove.restorePP();
-                        }
+                    // Restore resources (mana for consumable, reset to 0 for build-up)
+                    if (target.getResourceType().isConsumable()) {
+                        target.setCurrentResource(target.getMaxResource());
+                        message.append(" All mana restored!");
+                    } else {
+                        target.setCurrentResource(0);
+                        message.append(" Build-up resource reset!");
                     }
-                    message.append(" All PP restored!");
                     break;
                     
                 default:
