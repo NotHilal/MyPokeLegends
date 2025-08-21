@@ -20,6 +20,12 @@ public class MoveBuilder {
     private int effectChance;
     private boolean isUltimate = false;
     
+    // League of Legends style damage system
+    private int[] baseDamages;
+    private double adRatio = 0.0;
+    private double apRatio = 0.0;
+    private boolean useLeagueSystem = false;
+    
     // Stat stage changes
     private int speedStageChange = 0;
     private int attackStageChange = 0;
@@ -99,6 +105,50 @@ public class MoveBuilder {
     public MoveBuilder ultimate() {
         this.isUltimate = true;
         return this;
+    }
+    
+    // ==================== LEAGUE SYSTEM ====================
+    
+    /**
+     * Use League of Legends damage system with base damage per level
+     * @param baseDamages Array of base damage values [level 1, 2, 3, 4, 5]
+     * @return MoveBuilder for chaining
+     */
+    public MoveBuilder leagueDamage(int[] baseDamages) {
+        this.baseDamages = baseDamages.clone();
+        this.useLeagueSystem = true;
+        this.power = baseDamages[0]; // Set legacy power to level 1 damage
+        return this;
+    }
+    
+    /**
+     * Set AD scaling ratio (e.g., 1.1 = 110% total AD)
+     */
+    public MoveBuilder adRatio(double ratio) {
+        this.adRatio = ratio;
+        return this;
+    }
+    
+    /**
+     * Set AP scaling ratio (e.g., 0.35 = 35% AP)
+     */
+    public MoveBuilder apRatio(double ratio) {
+        this.apRatio = ratio;
+        return this;
+    }
+    
+    /**
+     * Convenience method for typical physical ability scaling
+     */
+    public MoveBuilder physicalScaling(int[] baseDamages, double adRatio) {
+        return leagueDamage(baseDamages).adRatio(adRatio);
+    }
+    
+    /**
+     * Convenience method for typical magic ability scaling
+     */
+    public MoveBuilder magicScaling(int[] baseDamages, double apRatio) {
+        return leagueDamage(baseDamages).apRatio(apRatio);
     }
     
     // ==================== STAT STAGE CHANGES ====================
@@ -253,8 +303,16 @@ public class MoveBuilder {
      * @return The completed Move
      */
     public Move build() {
-        // Create base move
-        Move move = new Move(name, type, power, accuracy, manaCost, effect, effectChance, isUltimate);
+        Move move;
+        
+        // Choose constructor based on system type
+        if (useLeagueSystem && baseDamages != null) {
+            // Use League of Legends style constructor
+            move = new Move(name, type, baseDamages, adRatio, apRatio, accuracy, manaCost, effect, effectChance, isUltimate);
+        } else {
+            // Use legacy constructor with backward compatibility
+            move = new Move(name, type, power, accuracy, manaCost, effect, effectChance, isUltimate);
+        }
         
         // Apply status effects
         for (StatusEffect statusEffect : statusEffects) {

@@ -7,6 +7,7 @@ import main.BattleManager.BattleState;
 public class KeyHandler implements KeyListener{
 
 	public boolean upPressed, downPressed, leftPressed, rightPressed,f2Pressed, f3Pressed, interctPressed, enterPressed;
+	public boolean num1Pressed = false, num2Pressed = false, num3Pressed = false, num4Pressed = false;
 	GamePanel gp;
 	// DEBUG 
 	public boolean checkDrawTime=false;
@@ -193,6 +194,7 @@ public class KeyHandler implements KeyListener{
 			if (code == KeyEvent.VK_F5) { // Toggle high grass visualization
 		        gp.showHighGrass = !gp.showHighGrass;
 		    }
+		    
 			
 			// DEBUG
 			
@@ -358,6 +360,20 @@ public class KeyHandler implements KeyListener{
 		        gp.ui.battleNum = 0; // Reset to Fight option
 		        gp.playSE(9);
 		    }
+		}
+		
+		// Number keys for ability leveling (works in any state that needs it)
+		if (code == KeyEvent.VK_1) {
+		    num1Pressed = true;
+		}
+		if (code == KeyEvent.VK_2) {
+		    num2Pressed = true;
+		}
+		if (code == KeyEvent.VK_3) {
+		    num3Pressed = true;
+		}
+		if (code == KeyEvent.VK_4) {
+		    num4Pressed = true;
 		}
 
 		// Champions STATE

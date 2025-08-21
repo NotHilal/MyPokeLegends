@@ -10,11 +10,32 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
 
 public class BattleManager {
+
+    // Performance optimization: Reusable damage result to avoid array allocations
+    private static class DamageResult {
+        int damage = 0;
+        boolean isCrit = false;
+        boolean isMiss = false;
+        
+        void setMiss() { 
+            damage = 0; 
+            isCrit = false; 
+            isMiss = true; 
+        }
+        
+        void setHit(int dmg, boolean crit) { 
+            damage = dmg; 
+            isCrit = crit; 
+            isMiss = false; 
+        }
+    }
 
     private GamePanel gp;
     private Champion playerChampion;
@@ -28,6 +49,22 @@ public class BattleManager {
     private String battleMessage = "";
     private int messageTimer = 0;
     private boolean xpAwarded = false; // Prevent multiple XP awards
+    
+    // Performance optimizations: Reusable objects to reduce allocations
+    private final DamageResult damageResult = new DamageResult();
+    private final StringBuilder mainMessage = new StringBuilder(256);
+    private final StringBuilder statusMessage = new StringBuilder(128);
+    
+    // AI move caching to avoid stream operations every turn
+    private List<Move> cachedAIMoves = new ArrayList<>(4);
+    private boolean aiMovesCacheValid = false;
+    private int lastAIResource = -1;
+    
+    // Turn priority caching system
+    private enum TurnOrder { PLAYER_FIRST, WILD_FIRST, SPEED_CHECK_NEEDED }
+    private TurnOrder baseTurnOrder = TurnOrder.SPEED_CHECK_NEEDED;
+    private int lastPlayerSpeed = -1;
+    private int lastWildSpeed = -1;
     
     // Level up display
     private boolean showLevelUpStats = false;
@@ -976,10 +1013,10 @@ public class BattleManager {
         }
         
         // Trigger start of turn passives
-        StringBuilder startTurnMessage = new StringBuilder();
+        StringBuilder startTurnMessage = getCleanTempBuilder();
         handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
         
-        StringBuilder message = new StringBuilder();
+        StringBuilder message = getCleanMessageBuilder();
         message.append(playerChampion.getName()).append(" attacks with ").append(playerChampion.getAutoAttack().getName()).append("!");
         
         // Add status effect and start of turn passive messages
@@ -1083,9 +1120,77 @@ public class BattleManager {
         }
     }
     
-    // New battle system methods
+    // Performance helper methods
+    private StringBuilder getCleanMessageBuilder() {
+        mainMessage.setLength(0);
+        return mainMessage;
+    }
+
+    private StringBuilder getCleanStatusBuilder() {
+        statusMessage.setLength(0); 
+        return statusMessage;
+    }
+    
+    // For cases where we need a separate temporary builder
+    private final StringBuilder tempMessage = new StringBuilder(128);
+    
+    private StringBuilder getCleanTempBuilder() {
+        tempMessage.setLength(0);
+        return tempMessage;
+    }
+    
+    private List<Move> getAIAvailableMoves() {
+        int currentResource = wildChampion.getCurrentResource();
+        
+        if (!aiMovesCacheValid || currentResource != lastAIResource) {
+            cachedAIMoves.clear();
+            for (Move move : wildChampion.getMoves()) {
+                if (move.isUsable(currentResource)) {
+                    cachedAIMoves.add(move);
+                }
+            }
+            aiMovesCacheValid = true;
+            lastAIResource = currentResource;
+        }
+        
+        return cachedAIMoves;
+    }
+    
+    private void invalidateAIMoveCache() {
+        aiMovesCacheValid = false;
+    }
+
+    // New battle system methods with speed caching
     private boolean determineFirstTurn() {
-        return playerChampion.getEffectiveSpeed() >= wildChampion.getEffectiveSpeed();
+        int playerSpeed = playerChampion.getEffectiveSpeed();
+        int wildSpeed = wildChampion.getEffectiveSpeed();
+        
+        // Only recalculate if speeds changed
+        if (playerSpeed != lastPlayerSpeed || wildSpeed != lastWildSpeed || baseTurnOrder == TurnOrder.SPEED_CHECK_NEEDED) {
+            if (playerSpeed > wildSpeed) {
+                baseTurnOrder = TurnOrder.PLAYER_FIRST;
+            } else if (wildSpeed > playerSpeed) {
+                baseTurnOrder = TurnOrder.WILD_FIRST;  
+            } else {
+                // Tie-break with original speeds (before status effects)
+                baseTurnOrder = playerChampion.getSpeed() >= wildChampion.getSpeed() ? 
+                               TurnOrder.PLAYER_FIRST : TurnOrder.WILD_FIRST;
+            }
+            lastPlayerSpeed = playerSpeed;
+            lastWildSpeed = wildSpeed;
+        }
+        
+        return baseTurnOrder == TurnOrder.PLAYER_FIRST;
+    }
+    
+    private void invalidateSpeedCache() {
+        baseTurnOrder = TurnOrder.SPEED_CHECK_NEEDED;
+    }
+    
+    private boolean isSpeedAffectingStatus(StatusEffect.StatusType type) {
+        return type == StatusEffect.StatusType.SPEED_BOOST ||
+               type == StatusEffect.StatusType.SPEED_REDUCTION ||
+               type == StatusEffect.StatusType.SLOW;
     }
     
     private void executePlayerMove(Move move) {
@@ -1103,10 +1208,10 @@ public class BattleManager {
         }
         
         // Trigger start of turn passives
-        StringBuilder startTurnMessage = new StringBuilder();
+        StringBuilder startTurnMessage = getCleanTempBuilder();
         handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
         
-        StringBuilder message = new StringBuilder();
+        StringBuilder message = getCleanMessageBuilder();
         message.append(playerChampion.getName()).append(" used ").append(move.getName()).append("!");
         
         // Add status effect and start of turn passive messages
@@ -1123,10 +1228,10 @@ public class BattleManager {
         }
         
         // Handle damage
-        int[] damageResult = calculateDamageWithCrit(move, playerChampion, wildChampion);
-        int damage = damageResult[0];
-        boolean isCrit = damageResult[1] == 1;
-        boolean isMiss = damageResult[1] == -1;
+        DamageResult result = calculateDamageWithCrit(move, playerChampion, wildChampion);
+        int damage = result.damage;
+        boolean isCrit = result.isCrit;
+        boolean isMiss = result.isMiss;
         
         if (isMiss) {
             message.append("\n").append(playerChampion.getName()).append("'s ").append(move.getName()).append(" missed!");
@@ -1202,17 +1307,15 @@ public class BattleManager {
         }
         
         // Trigger start of turn passives
-        StringBuilder startTurnMessage = new StringBuilder();
+        StringBuilder startTurnMessage = getCleanTempBuilder();
         handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
         
-        // Simple AI: choose random available move
-        Move[] availableMoves = wildChampion.getMoves().stream()
-            .filter(move -> move.isUsable(wildChampion.getCurrentResource())) // Check resource (mana/energy)
-            .toArray(Move[]::new);
+        // Simple AI: choose random available move using cached moves
+        List<Move> availableMoves = getAIAvailableMoves();
             
-        if (availableMoves.length > 0) {
-            Move aiMove = availableMoves[random.nextInt(availableMoves.length)];
-            StringBuilder message = new StringBuilder();
+        if (!availableMoves.isEmpty()) {
+            Move aiMove = availableMoves.get(random.nextInt(availableMoves.size()));
+            StringBuilder message = getCleanMessageBuilder();
             message.append("Wild ").append(wildChampion.getName()).append(" used ").append(aiMove.getName()).append("!");
             
             // Add status effect and start of turn passive messages
@@ -1229,10 +1332,10 @@ public class BattleManager {
             }
             
             // Handle damage
-            int[] damageResult = calculateDamageWithCrit(aiMove, wildChampion, playerChampion);
-            int damage = damageResult[0];
-            boolean isCrit = damageResult[1] == 1;
-            boolean isMiss = damageResult[1] == -1;
+            DamageResult result = calculateDamageWithCrit(aiMove, wildChampion, playerChampion);
+            int damage = result.damage;
+            boolean isCrit = result.isCrit;
+            boolean isMiss = result.isMiss;
             
             if (isMiss) {
                 message.append("\n").append(wildChampion.getName()).append("'s ").append(aiMove.getName()).append(" missed!");
@@ -1268,6 +1371,7 @@ public class BattleManager {
             }
             
             wildChampion.useMove(aiMove);
+            invalidateAIMoveCache(); // Invalidate cache after resource change
             
             // Check for passive triggers after attack
             if (damage > 0) {
@@ -1675,20 +1779,33 @@ public class BattleManager {
     private int calculateDamage(Move move, Champion attacker, Champion defender) {
         if (move.getPower() == 0) return 0; // Non-damaging moves
         
-        double baseDamage;
+        double attackStat;
         double defense;
         
         // Calculate base damage and defense based on move type
         if (move.getType().equals("Physical")) {
-            baseDamage = attacker.getEffectiveAD();
+            attackStat = attacker.getEffectiveAD();
             defense = defender.getEffectiveArmor();
         } else { // Magic
-            baseDamage = attacker.getEffectiveAP();
+            attackStat = attacker.getEffectiveAP();
             defense = defender.getEffectiveMagicResist();
         }
         
-        // League of Legends style damage formula: Base damage reduced by percentage
-        double baseDamageCalc = (baseDamage * move.getPower()) / 50.0;
+        // League of Legends damage formula: Base damage + ratio scaling
+        double baseDamage = move.getBaseDamage(); // Level-scaling base damage
+        double adScaling = 0.0;
+        double apScaling = 0.0;
+        
+        // Calculate scaling based on move type and ratios
+        if (move.getType().equals("Physical")) {
+            adScaling = attacker.getEffectiveAD() * move.getAdRatio();
+            apScaling = attacker.getEffectiveAP() * move.getApRatio(); // Some physical abilities scale with AP too
+        } else { // Magic
+            adScaling = attacker.getEffectiveAD() * move.getAdRatio(); // Some magic abilities scale with AD
+            apScaling = attacker.getEffectiveAP() * move.getApRatio();
+        }
+        
+        double baseDamageCalc = baseDamage + adScaling + apScaling;
         
         // Convert defense to damage reduction percentage (like League of Legends)
         // Formula: Damage Reduction = Defense / (Defense + 100)
@@ -1697,14 +1814,15 @@ public class BattleManager {
         // Apply damage reduction: Final damage = Base damage × (1 - damage reduction)
         double finalDamage = baseDamageCalc * (1.0 - damageReduction);
         
-        // Allow 0 damage - no artificial minimum
-        return Math.max(0, (int) finalDamage);
+        // Ensure minimum damage of 1 for successful hits
+        return Math.max(1, (int) finalDamage);
     }
     
-    private int[] calculateDamageWithCrit(Move move, Champion attacker, Champion defender) {
+    private DamageResult calculateDamageWithCrit(Move move, Champion attacker, Champion defender) {
         // Check hit chance first
         if (!doesMoveHit(move, attacker, defender)) {
-            return new int[]{0, -1}; // Miss: 0 damage, -1 indicates miss
+            damageResult.setMiss();
+            return damageResult;
         }
         
         // Calculate base damage
@@ -1717,7 +1835,8 @@ public class BattleManager {
             isCrit = true;
         }
         
-        return new int[]{baseDamage, isCrit ? 1 : 0};
+        damageResult.setHit(baseDamage, isCrit);
+        return damageResult;
     }
     
     // Enhanced hit chance calculation that considers status effects
@@ -2483,6 +2602,11 @@ public class BattleManager {
             
             // Apply the status effect
             target.addStatusEffect(effect);
+            
+            // Invalidate speed cache if speed-affecting status was applied
+            if (isSpeedAffectingStatus(effect.getType())) {
+                invalidateSpeedCache();
+            }
             
             // Add message
             String targetName = (target == attacker) ? attacker.getName() : 

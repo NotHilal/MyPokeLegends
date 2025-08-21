@@ -634,6 +634,42 @@ public class Champion {
     
     // ========== STATUS EFFECTS MANAGEMENT ==========
     
+    // Performance optimization: batch status effect lookups
+    public static class StatusSummary {
+        boolean isStunned = false;
+        boolean isBlind = false;
+        boolean hasStealth = false;
+        boolean isConfused = false;
+        int speedModifier = 0;
+        int attackModifier = 0;
+        int defenseModifier = 0;
+        int apModifier = 0;
+        int mrModifier = 0;
+        int critModifier = 0;
+        int lifestealModifier = 0;
+        int accuracyReduction = 0;
+        int slowAmount = 0;
+        
+        void clear() {
+            isStunned = false;
+            isBlind = false;
+            hasStealth = false;
+            isConfused = false;
+            speedModifier = 0;
+            attackModifier = 0;
+            defenseModifier = 0;
+            apModifier = 0;
+            mrModifier = 0;
+            critModifier = 0;
+            lifestealModifier = 0;
+            accuracyReduction = 0;
+            slowAmount = 0;
+        }
+    }
+
+    private final StatusSummary statusSummary = new StatusSummary();
+    private boolean statusSummaryValid = false;
+    
     // Add a status effect
     public void addStatusEffect(StatusEffect effect) {
         // Check if effect already exists (for stacking or replacing)
@@ -654,11 +690,13 @@ public class Champion {
         } else {
             statusEffects.add(effect);
         }
+        statusSummaryValid = false; // Invalidate cached summary
     }
     
     // Remove a status effect by type
     public void removeStatusEffect(StatusEffect.StatusType type) {
         statusEffects.removeIf(effect -> effect.getType() == type);
+        statusSummaryValid = false; // Invalidate cached summary
     }
     
     // Get a specific status effect
@@ -677,6 +715,37 @@ public class Champion {
     // Get all active status effects
     public java.util.List<StatusEffect> getStatusEffects() {
         return new java.util.ArrayList<>(statusEffects);
+    }
+    
+    // Get cached status summary for efficient batch lookups
+    public StatusSummary getStatusSummary() {
+        if (!statusSummaryValid) {
+            statusSummary.clear();
+            for (StatusEffect effect : statusEffects) {
+                switch (effect.getType()) {
+                    case STUN -> statusSummary.isStunned = true;
+                    case BLIND -> statusSummary.isBlind = true;
+                    case STEALTH -> statusSummary.hasStealth = true;
+                    case CONFUSION -> statusSummary.isConfused = true;
+                    case SPEED_BOOST -> statusSummary.speedModifier += effect.getValue();
+                    case SPEED_REDUCTION -> statusSummary.speedModifier -= effect.getValue();
+                    case SLOW -> statusSummary.slowAmount += effect.getValue();
+                    case ATTACK_BOOST -> statusSummary.attackModifier += effect.getValue();
+                    case ATTACK_REDUCTION -> statusSummary.attackModifier -= effect.getValue();
+                    case ARMOR_BOOST -> statusSummary.defenseModifier += effect.getValue();
+                    case ARMOR_REDUCTION -> statusSummary.defenseModifier -= effect.getValue();
+                    case AP_BOOST -> statusSummary.apModifier += effect.getValue();
+                    case AP_REDUCTION -> statusSummary.apModifier -= effect.getValue();
+                    case MAGIC_RESIST_BOOST -> statusSummary.mrModifier += effect.getValue();
+                    case MAGIC_RESIST_REDUCTION -> statusSummary.mrModifier -= effect.getValue();
+                    case CRIT_BOOST -> statusSummary.critModifier += effect.getValue();
+                    case LIFESTEAL_BOOST -> statusSummary.lifestealModifier += effect.getValue();
+                    case ACCURACY_REDUCTION -> statusSummary.accuracyReduction += effect.getValue();
+                }
+            }
+            statusSummaryValid = true;
+        }
+        return statusSummary;
     }
     
     // Process status effects at start of turn
@@ -732,6 +801,7 @@ public class Champion {
             if (effect.isExpired()) {
                 message.append("\n").append(effect.getName()).append(" wore off from ").append(name).append("!");
                 iterator.remove();
+                statusSummaryValid = false; // Invalidate cache when effects are removed
             }
         }
         
@@ -910,6 +980,7 @@ public class Champion {
     public void clearAllStatusEffects() {
         statusEffects.clear();
         shieldAmount = 0;
+        statusSummaryValid = false; // Invalidate cache
     }
     
     // Reset for new battle including status effects

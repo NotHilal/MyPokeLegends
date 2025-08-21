@@ -7,10 +7,16 @@ public class Move {
     // Basic Info
     private String name;
     private String type;
-    private int power;
+    private int power; // Legacy - will be replaced by baseDamages array
     private int accuracy; // Percentage (0-100)
     private int manaCost; // Mana cost to use this move
     private int resourceGeneration; // Amount of build-up resource generated when used
+    
+    // League of Legends style damage system
+    private int[] baseDamages; // Base damage per level [lvl1, lvl2, lvl3, lvl4, lvl5]
+    private double adRatio; // AD scaling ratio (e.g., 1.1 = 110% AD)
+    private double apRatio; // AP scaling ratio (e.g., 0.35 = 35% AP)
+    private int currentLevel; // Current ability level (1-5)
 
     // Effects
     private String effect; // e.g., Burn, Paralyze, Heal (legacy)
@@ -33,17 +39,22 @@ public class Move {
     private int ultimateCooldown; // Current cooldown turns remaining
     private static final int ULTIMATE_COOLDOWN_TURNS = 4; // 4 turns cooldown for ultimates
 
-    // Constructor
+    // Legacy Constructor (for backward compatibility)
     public Move(String name, String type, int power, int accuracy, int manaCost, String effect, int effectChance) {
         this.name = name;
         this.type = type;
         this.power = power;
         this.accuracy = accuracy;
         this.manaCost = manaCost;
-        // Removed percentage cost system
         this.resourceGeneration = 10; // Default: generate 10 build-up resource when used
         this.effect = effect;
         this.effectChance = effectChance;
+        
+        // Initialize League system with defaults
+        this.baseDamages = new int[]{power, power, power, power, power}; // Same damage all levels
+        this.adRatio = type.equals("Physical") ? 1.0 : 0.0; // 100% AD for physical, 0% for magic
+        this.apRatio = type.equals("Magic") ? 0.6 : 0.0; // 60% AP for magic, 0% for physical
+        this.currentLevel = 1;
         
         // Initialize status effects system
         this.statusEffects = new java.util.ArrayList<>();
@@ -58,6 +69,39 @@ public class Move {
         this.targetsSelf = true; // Default to self-targeting
         this.isUltimate = false; // Default to not ultimate
         this.ultimateCooldown = 0;
+    }
+    
+    // League of Legends style constructor
+    public Move(String name, String type, int[] baseDamages, double adRatio, double apRatio, 
+                int accuracy, int manaCost, String effect, int effectChance, boolean isUltimate) {
+        this.name = name;
+        this.type = type;
+        this.baseDamages = baseDamages.clone(); // Copy array to avoid reference issues
+        this.adRatio = adRatio;
+        this.apRatio = apRatio;
+        this.accuracy = accuracy;
+        this.manaCost = manaCost;
+        this.resourceGeneration = 10;
+        this.effect = effect;
+        this.effectChance = effectChance;
+        this.currentLevel = 1;
+        this.isUltimate = isUltimate;
+        this.ultimateCooldown = 0;
+        
+        // Legacy power (use first base damage value)
+        this.power = baseDamages[0];
+        
+        // Initialize status effects system
+        this.statusEffects = new java.util.ArrayList<>();
+        this.appliesStatusToSelf = false;
+        
+        // Initialize stat stage changes to 0
+        this.speedStageChange = 0;
+        this.attackStageChange = 0;
+        this.armorStageChange = 0;
+        this.apStageChange = 0;
+        this.magicResistStageChange = 0;
+        this.targetsSelf = false;
     }
     
     // Constructor with stat stage changes
@@ -129,6 +173,41 @@ public class Move {
 
     public int getPower() {
         return power;
+    }
+    
+    // League-style damage getters
+    public int getBaseDamage() {
+        return baseDamages[currentLevel - 1]; // Convert 1-based level to 0-based index
+    }
+    
+    public double getAdRatio() {
+        return adRatio;
+    }
+    
+    public double getApRatio() {
+        return apRatio;
+    }
+    
+    public int getCurrentLevel() {
+        return currentLevel;
+    }
+    
+    public int getMaxLevel() {
+        return baseDamages.length;
+    }
+    
+    // Level up the ability
+    public boolean levelUp() {
+        if (currentLevel < baseDamages.length) {
+            currentLevel++;
+            power = baseDamages[currentLevel - 1]; // Update legacy power
+            return true;
+        }
+        return false;
+    }
+    
+    public boolean canLevelUp() {
+        return currentLevel < baseDamages.length;
     }
 
     public int getAccuracy() {
