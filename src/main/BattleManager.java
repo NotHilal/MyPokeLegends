@@ -7,6 +7,8 @@ import Champions.StatusEffect;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -74,6 +76,8 @@ public class BattleManager {
     // Champion info popups
     private boolean showPlayerInfoPopup = false;
     private boolean showEnemyInfoPopup = false;
+    private boolean playerPopupShowingAbilities = false; // false = stats, true = abilities
+    private boolean enemyPopupShowingAbilities = false;
     
     // Battle states
     public enum BattleState {
@@ -2145,380 +2149,865 @@ public class BattleManager {
     }
     
     private void drawChampionInfoPopup(Graphics2D g2, Champion champion, String title) {
-        // Create a large popup that covers most of the screen
-        int popupWidth = (int) (gp.screenWidth * 0.9);
-        int popupHeight = (int) (gp.screenHeight * 0.85) + 40;
+        // Professional Pokémon-style popup design
+        int popupWidth = (int) (gp.screenWidth * 0.92);
+        int popupHeight = (int) (gp.screenHeight * 0.88);
         int popupX = (gp.screenWidth - popupWidth) / 2;
         int popupY = (gp.screenHeight - popupHeight) / 2;
         
-        // Draw semi-transparent overlay with animated opacity
-        g2.setColor(new Color(0, 0, 0, 180));
+        // Enhanced background overlay with subtle pattern
+        g2.setColor(new Color(15, 25, 45, 220));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
         
-        // Draw outer glow effect
-        for (int i = 0; i < 8; i++) {
-            g2.setColor(new Color(100, 150, 255, 15 - i * 2));
-            g2.fillRoundRect(popupX - i, popupY - i, popupWidth + i * 2, popupHeight + i * 2, 25 + i, 25 + i);
+        // Pokémon-style outer frame with multiple layers
+        drawPokemonStyleFrame(g2, popupX, popupY, popupWidth, popupHeight);
+        
+        // Main background with professional gradient
+        java.awt.GradientPaint mainBg = new java.awt.GradientPaint(
+            popupX, popupY, new Color(245, 248, 252),
+            popupX, popupY + popupHeight, new Color(220, 230, 245)
+        );
+        g2.setPaint(mainBg);
+        g2.fillRoundRect(popupX + 8, popupY + 8, popupWidth - 16, popupHeight - 16, 16, 16);
+        
+        // Professional title bar
+        drawProfessionalTitleBar(g2, popupX, popupY, popupWidth, title);
+        
+        // Tab headers
+        int tabStartY = popupY + 80;
+        drawTabHeaders(g2, popupX, tabStartY, popupWidth, title.contains("YOUR"));
+        
+        // Content area with proper spacing
+        int contentStartY = tabStartY + 50;
+        int contentHeight = popupHeight - 190;
+        
+        // Determine which tab content to show
+        boolean showingAbilities = title.contains("YOUR") ? playerPopupShowingAbilities : enemyPopupShowingAbilities;
+        
+        // Always use two-panel layout
+        int leftPanelWidth = (int)(popupWidth * 0.38);
+        drawChampionPortraitPanel(g2, champion, popupX + 15, contentStartY, leftPanelWidth, contentHeight);
+        
+        int rightPanelX = popupX + leftPanelWidth + 35;
+        int rightPanelWidth = popupWidth - leftPanelWidth - 50;
+        
+        if (showingAbilities) {
+            // Abilities tab - show abilities in right panel
+            drawChampionAbilitiesPanel(g2, champion, rightPanelX, contentStartY, rightPanelWidth, contentHeight);
+        } else {
+            // Stats tab - show stats in right panel
+            drawChampionStatsPanel(g2, champion, rightPanelX, contentStartY, rightPanelWidth, contentHeight);
         }
         
-        // Draw main popup background with gradient
-        java.awt.GradientPaint backgroundGradient = new java.awt.GradientPaint(
-            popupX, popupY, new Color(25, 30, 35),
-            popupX, popupY + popupHeight, new Color(40, 45, 50)
-        );
-        g2.setPaint(backgroundGradient);
-        g2.fillRoundRect(popupX, popupY, popupWidth, popupHeight, 25, 25);
+        // Professional footer with tab instruction
+        drawProfessionalFooterWithTabs(g2, popupX, popupY, popupWidth, popupHeight);
+    }
+    
+    private void drawPokemonStyleFrame(Graphics2D g2, int x, int y, int width, int height) {
+        // Outer shadow
+        for (int i = 0; i < 12; i++) {
+            g2.setColor(new Color(0, 0, 0, 25 - i * 2));
+            g2.fillRoundRect(x - i, y - i, width + i * 2, height + i * 2, 20 + i, 20 + i);
+        }
         
-        // Draw inner border with gradient
-        java.awt.GradientPaint borderGradient = new java.awt.GradientPaint(
-            popupX, popupY, new Color(120, 160, 255),
-            popupX + popupWidth, popupY, new Color(255, 180, 120)
+        // Main frame - Pokémon blue theme
+        java.awt.GradientPaint frameBg = new java.awt.GradientPaint(
+            x, y, new Color(65, 105, 170),
+            x + width, y + height, new Color(85, 125, 190)
         );
-        g2.setPaint(borderGradient);
-        g2.setStroke(new BasicStroke(4));
-        g2.drawRoundRect(popupX + 2, popupY + 2, popupWidth - 4, popupHeight - 4, 23, 23);
+        g2.setPaint(frameBg);
+        g2.fillRoundRect(x, y, width, height, 20, 20);
         
-        // Draw outer border
-        g2.setColor(new Color(200, 220, 255));
+        // Inner highlight
+        g2.setColor(new Color(120, 160, 220, 180));
+        g2.setStroke(new BasicStroke(3));
+        g2.drawRoundRect(x + 3, y + 3, width - 6, height - 6, 17, 17);
+        
+        // Outer border
+        g2.setColor(new Color(45, 75, 130));
         g2.setStroke(new BasicStroke(2));
-        g2.drawRoundRect(popupX, popupY, popupWidth, popupHeight, 25, 25);
+        g2.drawRoundRect(x, y, width, height, 20, 20);
         
-        // Draw title background
-        int titleBgHeight = 50;
-        java.awt.GradientPaint titleGradient = new java.awt.GradientPaint(
-            popupX, popupY, new Color(60, 80, 120, 200),
-            popupX, popupY + titleBgHeight, new Color(40, 60, 100, 200)
+        // Corner decorations - Pokémon style
+        drawCornerDecorations(g2, x, y, width, height);
+    }
+    
+    private void drawCornerDecorations(Graphics2D g2, int x, int y, int width, int height) {
+        g2.setColor(new Color(255, 215, 0, 200)); // Gold accents
+        int cornerSize = 8;
+        
+        // Top-left corner
+        g2.fillRoundRect(x + 15, y + 15, cornerSize, cornerSize, 4, 4);
+        
+        // Top-right corner  
+        g2.fillRoundRect(x + width - 15 - cornerSize, y + 15, cornerSize, cornerSize, 4, 4);
+        
+        // Bottom-left corner
+        g2.fillRoundRect(x + 15, y + height - 15 - cornerSize, cornerSize, cornerSize, 4, 4);
+        
+        // Bottom-right corner
+        g2.fillRoundRect(x + width - 15 - cornerSize, y + height - 15 - cornerSize, cornerSize, cornerSize, 4, 4);
+    }
+    
+    private void drawProfessionalTitleBar(Graphics2D g2, int x, int y, int width, String title) {
+        int titleHeight = 60;
+        
+        // Title bar background
+        java.awt.GradientPaint titleBg = new java.awt.GradientPaint(
+            x, y, new Color(75, 115, 180),
+            x, y + titleHeight, new Color(95, 135, 200)
         );
-        g2.setPaint(titleGradient);
-        g2.fillRoundRect(popupX + 5, popupY + 5, popupWidth - 10, titleBgHeight, 20, 20);
+        g2.setPaint(titleBg);
+        g2.fillRoundRect(x + 8, y + 8, width - 16, titleHeight, 16, 16);
         
-        // Draw title with shadow effect
-        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 26f));
-        int titleWidth = g2.getFontMetrics().stringWidth(title);
+        // Title bar highlight
+        g2.setColor(new Color(255, 255, 255, 50));
+        g2.fillRoundRect(x + 8, y + 8, width - 16, titleHeight / 2, 16, 16);
+        
+        // Title text with enhanced styling
+        g2.setFont(new Font("Arial", Font.BOLD, 24));
+        FontMetrics fm = g2.getFontMetrics();
+        int titleWidth = fm.stringWidth(title);
+        int titleX = x + (width - titleWidth) / 2;
+        int titleY = y + 40;
         
         // Title shadow
-        g2.setColor(new Color(0, 0, 0, 100));
-        g2.drawString(title, popupX + (popupWidth - titleWidth) / 2 + 2, popupY + 37);
+        g2.setColor(new Color(0, 0, 0, 120));
+        g2.drawString(title, titleX + 2, titleY + 2);
         
         // Main title
         g2.setColor(new Color(255, 255, 255));
-        g2.drawString(title, popupX + (popupWidth - titleWidth) / 2, popupY + 35);
+        g2.drawString(title, titleX, titleY);
         
-        // Divide popup into two halves with decorative separator
-        int leftPanelWidth = popupWidth / 2 - 25;
-        int rightPanelWidth = popupWidth / 2 - 25;
-        int panelStartY = popupY + 70;
-        int panelHeight = popupHeight - 140; // Reduced by 20 to add space between abilities and close text
-        
-        // Draw vertical separator line with gradient
-        int separatorX = popupX + popupWidth / 2;
-        java.awt.GradientPaint separatorGradient = new java.awt.GradientPaint(
-            separatorX, panelStartY, new Color(100, 150, 255, 150),
-            separatorX, panelStartY + panelHeight, new Color(255, 150, 100, 150)
-        );
-        g2.setPaint(separatorGradient);
+        // Title underline
+        g2.setColor(new Color(255, 215, 0, 180));
         g2.setStroke(new BasicStroke(2));
-        g2.drawLine(separatorX, panelStartY + 20, separatorX, panelStartY + panelHeight - 20);
-        
-        // Left panel - Champion image and basic stats
-        drawChampionBasicInfo(g2, champion, popupX + 20, panelStartY, leftPanelWidth, panelHeight);
-        
-        // Right panel - Abilities and passive  
-        drawChampionAbilities(g2, champion, popupX + leftPanelWidth + 35, panelStartY, rightPanelWidth, panelHeight);
-        
-        // Draw close instruction with background
-        int instructionBgHeight = 30;
-        g2.setColor(new Color(50, 50, 50, 180));
-        g2.fillRoundRect(popupX + 5, popupY + popupHeight - instructionBgHeight - 5, popupWidth - 10, instructionBgHeight, 15, 15);
-        
-        g2.setColor(new Color(255, 255, 100));
-        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
-        String closeText = "Press ESC to close";
-        int closeWidth = g2.getFontMetrics().stringWidth(closeText);
-        g2.drawString(closeText, popupX + (popupWidth - closeWidth) / 2, popupY + popupHeight - 15);
+        g2.drawLine(titleX, titleY + 8, titleX + titleWidth, titleY + 8);
     }
     
-    private void drawChampionBasicInfo(Graphics2D g2, Champion champion, int x, int y, int width, int height) {
-        int currentY = y;
+    private void drawProfessionalFooter(Graphics2D g2, int x, int y, int width, int height) {
+        int footerHeight = 40;
+        int footerY = y + height - footerHeight - 8;
         
-        // Draw champion image with frame
+        // Footer background
+        java.awt.GradientPaint footerBg = new java.awt.GradientPaint(
+            x, footerY, new Color(200, 210, 225, 180),
+            x, footerY + footerHeight, new Color(180, 190, 205, 180)
+        );
+        g2.setPaint(footerBg);
+        g2.fillRoundRect(x + 8, footerY, width - 16, footerHeight, 12, 12);
+        
+        // Footer border
+        g2.setColor(new Color(120, 130, 145, 100));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawRoundRect(x + 8, footerY, width - 16, footerHeight, 12, 12);
+        
+        // Instructions
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(new Color(60, 80, 120));
+        String instructions = "ESC: Close  •  Navigate with Arrow Keys";
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = x + (width - fm.stringWidth(instructions)) / 2;
+        g2.drawString(instructions, textX, footerY + 26);
+    }
+    
+    private void drawChampionPortraitPanel(Graphics2D g2, Champion champion, int x, int y, int width, int height) {
+        // Professional portrait panel with Pokémon-style design
+        java.awt.GradientPaint panelBg = new java.awt.GradientPaint(
+            x, y, new Color(255, 255, 255, 240),
+            x, y + height, new Color(240, 245, 250, 240)
+        );
+        g2.setPaint(panelBg);
+        g2.fillRoundRect(x, y, width, height, 12, 12);
+        
+        // Panel border
+        g2.setColor(new Color(180, 190, 205, 150));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x, y, width, height, 12, 12);
+        
+        int currentY = y + 20;
+        
+        // Champion portrait with professional frame
         BufferedImage championImage = null;
         try {
             championImage = ImageIO.read(getClass().getResourceAsStream("/championsImg/" + champion.getImageName() + ".png"));
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            // Image loading failed, continue without image
         }
         
         if (championImage != null) {
-            int imageSize = Math.min(width - 40, 180);
+            int imageSize = Math.min(width - 40, 160);
             int imageX = x + (width - imageSize) / 2;
-            int imageY = currentY + 15; // Back to original position with +15
+            int imageY = currentY;
             
-            // Draw image frame with gradient
-            java.awt.GradientPaint frameGradient = new java.awt.GradientPaint(
-                imageX - 8, imageY - 8, new Color(120, 160, 255),
-                imageX + imageSize + 8, imageY + imageSize + 8, new Color(255, 180, 120)
-            );
-            g2.setPaint(frameGradient);
-            g2.fillRoundRect(imageX - 8, imageY - 8, imageSize + 16, imageSize + 16, 15, 15);
+            // Professional image frame with multiple borders
+            // Outer frame
+            g2.setColor(new Color(75, 115, 180));
+            g2.fillRoundRect(imageX - 8, imageY - 8, imageSize + 16, imageSize + 16, 12, 12);
             
-            // Inner frame
-            g2.setColor(new Color(40, 40, 40));
-            g2.fillRoundRect(imageX - 5, imageY - 5, imageSize + 10, imageSize + 10, 12, 12);
+            // Inner highlight
+            g2.setColor(new Color(255, 255, 255, 100));
+            g2.fillRoundRect(imageX - 6, imageY - 6, imageSize + 12, 6, 10, 10);
             
-            // Draw image
+            // Image border
+            g2.setColor(new Color(255, 255, 255));
+            g2.fillRoundRect(imageX - 4, imageY - 4, imageSize + 8, imageSize + 8, 8, 8);
+            
+            // Draw champion image
             g2.drawImage(championImage, imageX, imageY, imageSize, imageSize, null);
-            currentY = imageY + imageSize + 40; // Add 15 pixels (25 + 15)
+            
+            currentY += imageSize + 25;
         } else {
-            currentY += 45; // Add 15 pixels (30 + 15)
+            currentY += 30;
         }
         
-        // Draw champion name with shadow and background
-        g2.setColor(new Color(30, 30, 30, 150));
-        g2.fillRoundRect(x + 5, currentY - 25, width - 10, 35, 10, 10);
-        
-        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 22f));
+        // Champion name with professional styling
+        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        FontMetrics fm = g2.getFontMetrics();
         String nameText = champion.getName();
-        int nameWidth = g2.getFontMetrics().stringWidth(nameText);
+        int nameWidth = fm.stringWidth(nameText);
+        int nameX = x + (width - nameWidth) / 2;
+        
+        // Name background
+        g2.setColor(new Color(75, 115, 180, 50));
+        g2.fillRoundRect(nameX - 10, currentY - 20, nameWidth + 20, 28, 14, 14);
         
         // Name shadow
-        g2.setColor(new Color(0, 0, 0, 150));
-        g2.drawString(nameText, x + (width - nameWidth) / 2 + 1, currentY + 1);
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.drawString(nameText, nameX + 1, currentY + 1);
         
         // Main name
+        g2.setColor(new Color(45, 75, 130));
+        g2.drawString(nameText, nameX, currentY);
+        currentY += 40;
+        
+        // Level badge
+        drawLevelBadge(g2, champion.getLevel(), x + (width / 2), currentY);
+        currentY += 50;
+        
+        // Info cards for region, role, class
+        drawInfoCard(g2, "Region", champion.getRegion(), x + 10, currentY, width - 20);
+        currentY += 35;
+        
+        String roleText = champion.getRole();
+        if (champion.getRole2() != null && !champion.getRole2().equals("None")) {
+            roleText += " / " + champion.getRole2();
+        }
+        drawInfoCard(g2, "Role", roleText, x + 10, currentY, width - 20);
+        currentY += 35;
+        
+        drawInfoCard(g2, "Class", champion.getChampionClass().toString(), x + 10, currentY, width - 20);
+        currentY += 45;
+        
+        // Health and resource bars
+        drawProfessionalHealthBar(g2, champion, x + 10, currentY, width - 20);
+        currentY += 40;
+        drawProfessionalResourceBar(g2, champion, x + 10, currentY, width - 20);
+    }
+    
+    private void drawLevelBadge(Graphics2D g2, int level, int centerX, int centerY) {
+        int badgeSize = 50;
+        int badgeX = centerX - badgeSize / 2;
+        int badgeY = centerY - badgeSize / 2;
+        
+        // Badge background
+        java.awt.GradientPaint badgeBg = new java.awt.GradientPaint(
+            badgeX, badgeY, new Color(255, 215, 0),
+            badgeX, badgeY + badgeSize, new Color(255, 180, 0)
+        );
+        g2.setPaint(badgeBg);
+        g2.fillOval(badgeX, badgeY, badgeSize, badgeSize);
+        
+        // Badge border
+        g2.setColor(new Color(200, 150, 0));
+        g2.setStroke(new BasicStroke(3));
+        g2.drawOval(badgeX, badgeY, badgeSize, badgeSize);
+        
+        // Inner circle
+        g2.setColor(new Color(255, 255, 255, 100));
+        g2.fillOval(badgeX + 8, badgeY + 8, badgeSize - 16, badgeSize - 16);
+        
+        // Level text
+        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        String levelText = String.valueOf(level);
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = centerX - fm.stringWidth(levelText) / 2;
+        int textY = centerY + fm.getAscent() / 2;
+        
+        // Text shadow
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.drawString(levelText, textX + 1, textY + 1);
+        
+        // Main text
         g2.setColor(new Color(255, 255, 255));
-        g2.drawString(nameText, x + (width - nameWidth) / 2, currentY);
-        currentY += 35;
+        g2.drawString(levelText, textX, textY);
+    }
+    
+    private void drawInfoCard(Graphics2D g2, String label, String value, int x, int y, int width) {
+        int cardHeight = 25;
         
-        // Level with background
-        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
-        String levelText = "Level " + champion.getLevel();
-        int levelWidth = g2.getFontMetrics().stringWidth(levelText);
+        // Card background
+        java.awt.GradientPaint cardBg = new java.awt.GradientPaint(
+            x, y, new Color(240, 245, 255, 180),
+            x, y + cardHeight, new Color(220, 230, 245, 180)
+        );
+        g2.setPaint(cardBg);
+        g2.fillRoundRect(x, y, width, cardHeight, 8, 8);
         
-        g2.setColor(new Color(100, 150, 255, 100));
-        g2.fillRoundRect(x + (width - levelWidth) / 2 - 8, currentY - 18, levelWidth + 16, 25, 12, 12);
+        // Card border
+        g2.setColor(new Color(180, 190, 205, 150));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawRoundRect(x, y, width, cardHeight, 8, 8);
         
+        // Label
+        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.setColor(new Color(75, 115, 180));
+        g2.drawString(label + ":", x + 10, y + 17);
+        
+        // Value
+        g2.setFont(new Font("Arial", Font.PLAIN, 12));
+        g2.setColor(new Color(60, 80, 120));
+        FontMetrics fm = g2.getFontMetrics();
+        int labelWidth = g2.getFontMetrics(new Font("Arial", Font.BOLD, 12)).stringWidth(label + ": ");
+        g2.drawString(value, x + 10 + labelWidth, y + 17);
+    }
+    
+    private void drawProfessionalHealthBar(Graphics2D g2, Champion champion, int x, int y, int width) {
+        int barHeight = 20;
+        
+        // Label
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(new Color(220, 50, 50));
+        g2.drawString("♥ Health", x, y - 5);
+        
+        // Bar background
+        g2.setColor(new Color(200, 200, 200));
+        g2.fillRoundRect(x, y + 5, width, barHeight, 10, 10);
+        
+        // Health fill
+        double healthPercent = (double) champion.getCurrentHp() / champion.getMaxHp();
+        int fillWidth = (int) (width * healthPercent);
+        
+        java.awt.GradientPaint healthGradient = new java.awt.GradientPaint(
+            x, y + 5, new Color(120, 220, 120),
+            x + fillWidth, y + 5, new Color(80, 180, 80)
+        );
+        g2.setPaint(healthGradient);
+        g2.fillRoundRect(x, y + 5, fillWidth, barHeight, 10, 10);
+        
+        // Bar border
+        g2.setColor(new Color(100, 100, 100));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawRoundRect(x, y + 5, width, barHeight, 10, 10);
+        
+        // Health text
+        g2.setFont(new Font("Arial", Font.BOLD, 11));
         g2.setColor(new Color(255, 255, 255));
-        g2.drawString(levelText, x + (width - levelWidth) / 2, currentY);
-        currentY += 35;
+        String healthText = champion.getCurrentHp() + " / " + champion.getMaxHp();
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = x + (width - fm.stringWidth(healthText)) / 2;
+        g2.drawString(healthText, textX, y + 18);
+    }
+    
+    private void drawProfessionalResourceBar(Graphics2D g2, Champion champion, int x, int y, int width) {
+        int barHeight = 20;
+        String resourceName = champion.getResourceType().getDisplayName();
         
-        // Draw region and role with icons on same line
-        g2.setColor(new Color(220, 220, 220));
-        g2.setFont(g2.getFont().deriveFont(14f));
+        // Label
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(new Color(50, 120, 220));
+        g2.drawString("◆ " + resourceName, x, y - 5);
         
-        // Region
-        g2.setColor(new Color(150, 200, 255));
-        g2.drawString("⚔ " + champion.getRegion(), x + 15, currentY);
+        // Bar background
+        g2.setColor(new Color(200, 200, 200));
+        g2.fillRoundRect(x, y + 5, width, barHeight, 10, 10);
         
-        // Role (200 pixels to the right of region)
-        g2.setColor(new Color(255, 200, 150));
-        String roleText = "◆ " + champion.getRole() + (champion.getRole2() != null && !champion.getRole2().equals("None") ? "/" + champion.getRole2() : "");
-        g2.drawString(roleText, x + 310, currentY); // 365 - 55 pixels to the left
-        currentY += 35;
+        // Resource fill
+        double resourcePercent = champion.getMaxResource() > 0 ? 
+            (double) champion.getCurrentResource() / champion.getMaxResource() : 0;
+        int fillWidth = (int) (width * resourcePercent);
         
-        // Draw stats section with background - raised by 10px
-        int statsStartY = currentY - 10; // Raised by 10 pixels
-        int statsHeight = 220; // Increased height to fit all stats
-        g2.setColor(new Color(20, 25, 30, 180));
-        g2.fillRoundRect(x + 5, statsStartY - 5, width - 10, statsHeight, 15, 15);
+        java.awt.GradientPaint resourceGradient = new java.awt.GradientPaint(
+            x, y + 5, new Color(120, 180, 255),
+            x + fillWidth, y + 5, new Color(80, 140, 220)
+        );
+        g2.setPaint(resourceGradient);
+        g2.fillRoundRect(x, y + 5, fillWidth, barHeight, 10, 10);
         
-        g2.setColor(new Color(120, 160, 255));
+        // Bar border
+        g2.setColor(new Color(100, 100, 100));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawRoundRect(x, y + 5, width, barHeight, 10, 10);
+        
+        // Resource text
+        g2.setFont(new Font("Arial", Font.BOLD, 11));
+        g2.setColor(new Color(255, 255, 255));
+        String resourceText = champion.getCurrentResource() + " / " + champion.getMaxResource();
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = x + (width - fm.stringWidth(resourceText)) / 2;
+        g2.drawString(resourceText, textX, y + 18);
+    }
+    
+    private void drawChampionStatsPanel(Graphics2D g2, Champion champion, int x, int y, int width, int height) {
+        // Professional stats and abilities panel
+        java.awt.GradientPaint panelBg = new java.awt.GradientPaint(
+            x, y, new Color(255, 255, 255, 240),
+            x, y + height, new Color(240, 245, 250, 240)
+        );
+        g2.setPaint(panelBg);
+        g2.fillRoundRect(x, y, width, height, 12, 12);
+        
+        // Panel border
+        g2.setColor(new Color(180, 190, 205, 150));
         g2.setStroke(new BasicStroke(2));
-        g2.drawRoundRect(x + 5, statsStartY - 5, width - 10, statsHeight, 15, 15);
+        g2.drawRoundRect(x, y, width, height, 12, 12);
         
-        // Stats title
-        g2.setColor(new Color(255, 255, 255));
-        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
-        g2.drawString("⚡ STATS", x + 15, currentY + 15);
-        currentY += 35;
+        int currentY = y + 25;
         
-        g2.setFont(g2.getFont().deriveFont(14f));
-        String[] statLabels = {"HP:", "AD:", "AP:", "Armor:", "Magic Resist:", "Speed:", "Crit Chance:", "Lifesteal:"};
-        String[] statIcons = {"❤", "⚔", "✦", "🛡", "🔮", "💨", "⚡", "🩸"};
-        Color[] statColors = {
-            new Color(255, 100, 100), new Color(255, 150, 100), new Color(150, 150, 255),
-            new Color(200, 200, 100), new Color(150, 255, 200), new Color(255, 255, 150),
-            new Color(255, 200, 100), new Color(255, 100, 150)
-        };
-        int[] statValues = {
-            champion.getMaxHp(), champion.getAD(), champion.getAP(),
-            champion.getArmor(), champion.getMagicResist(), champion.getSpeed(),
-            champion.getCritChance(), champion.getLifesteal()
-        };
+        // Combat Stats Section
+        drawSectionHeader(g2, "⚔ Combat Statistics", x + 15, currentY);
+        currentY += 40;
         
-        for (int i = 0; i < statLabels.length; i++) {
-            // Draw stat icon and label
-            g2.setColor(statColors[i]);
-            g2.drawString(statIcons[i], x + 15, currentY);
-            
-            g2.setColor(new Color(200, 200, 200));
-            g2.drawString(statLabels[i], x + 35, currentY);
-            
-            // Draw stat value
-            g2.setColor(new Color(255, 255, 255));
-            String valueText = String.valueOf(statValues[i]);
-            if (i == 6 || i == 7) valueText += "%"; // Add % for crit chance and lifesteal
-            g2.drawString(valueText, x + width - 60, currentY);
-            
-            currentY += 22;
-        }
+        // Stats grid - 2 columns
+        int col1X = x + 20;
+        int col2X = x + width / 2 + 10;
+        int statRowHeight = 35;
         
-        // Draw current HP if different from max
-        if (champion.getCurrentHp() != champion.getMaxHp()) {
-            currentY += 10;
-            g2.setColor(new Color(255, 100, 100, 200));
-            g2.fillRoundRect(x + 10, currentY - 15, width - 20, 25, 8, 8);
-            
-            g2.setColor(new Color(255, 255, 255));
-            g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
-            g2.drawString("💔 Current HP: " + champion.getCurrentHp() + "/" + champion.getMaxHp(), x + 15, currentY);
-        }
+        // Column 1 - Offensive stats
+        drawProfessionalStatItem(g2, "Attack Damage", String.valueOf(champion.getEffectiveAD()), 
+                                 col1X, currentY, (width / 2) - 30, new Color(220, 100, 100));
+        drawProfessionalStatItem(g2, "Ability Power", String.valueOf(champion.getEffectiveAP()), 
+                                 col2X, currentY, (width / 2) - 30, new Color(100, 150, 255));
+        currentY += statRowHeight;
+        
+        drawProfessionalStatItem(g2, "Speed", String.valueOf(champion.getEffectiveSpeed()), 
+                                 col1X, currentY, (width / 2) - 30, new Color(255, 200, 100));
+        drawProfessionalStatItem(g2, "Critical Chance", champion.getCritChance() + "%", 
+                                 col2X, currentY, (width / 2) - 30, new Color(255, 215, 0));
+        currentY += statRowHeight;
+        
+        drawProfessionalStatItem(g2, "Armor", String.valueOf(champion.getEffectiveArmor()), 
+                                 col1X, currentY, (width / 2) - 30, new Color(180, 180, 180));
+        drawProfessionalStatItem(g2, "Magic Resist", String.valueOf(champion.getEffectiveMagicResist()), 
+                                 col2X, currentY, (width / 2) - 30, new Color(150, 100, 200));
+        currentY += statRowHeight + 20;
     }
     
-    private void drawChampionAbilities(Graphics2D g2, Champion champion, int x, int y, int width, int height) {
-        int currentY = y + 40; // Move everything lower by 40 pixels
+    private void drawChampionAbilitiesPanel(Graphics2D g2, Champion champion, int x, int y, int width, int height) {
+        // Beautiful Pokémon-style abilities panel background
+        java.awt.GradientPaint panelBg = new java.awt.GradientPaint(
+            x, y, new Color(245, 250, 255),
+            x, y + height, new Color(225, 235, 250)
+        );
+        g2.setPaint(panelBg);
+        g2.fillRoundRect(x, y, width, height, 15, 15);
         
-        // Draw abilities title first
-        g2.setColor(new Color(150, 200, 255));
-        g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
-        g2.drawString("⚔ ABILITIES", x, currentY);
-        currentY += 35;
+        // Professional panel border with gradient
+        java.awt.GradientPaint borderGradient = new java.awt.GradientPaint(
+            x, y, new Color(100, 140, 200),
+            x + width, y + height, new Color(140, 170, 220)
+        );
+        g2.setPaint(borderGradient);
+        g2.setStroke(new BasicStroke(3));
+        g2.drawRoundRect(x, y, width, height, 15, 15);
         
-        // Draw passive with enhanced styling (moved under abilities title)
+        // Inner highlight border
+        g2.setColor(new Color(255, 255, 255, 100));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawRoundRect(x + 2, y + 2, width - 4, height - 4, 13, 13);
+        
+        int currentY = y + 30;
+        
+        // Panel Title with Pokémon-style design
+        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        g2.setColor(new Color(65, 105, 170));
+        String title = "CHAMPION ABILITIES";
+        int titleWidth = g2.getFontMetrics().stringWidth(title);
+        g2.drawString(title, x + (width - titleWidth) / 2, currentY);
+        
+        // Title underline
+        g2.setColor(new Color(255, 215, 0));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawLine(x + (width - titleWidth) / 2, currentY + 5, 
+                   x + (width - titleWidth) / 2 + titleWidth, currentY + 5);
+        
+        currentY += 45;
+        
+        // Passive ability with beautiful design
         if (champion.getPassive() != null) {
-            // Passive background - changed to green
-            int passiveHeight = 85;
-            java.awt.GradientPaint passiveGradient = new java.awt.GradientPaint(
-                x, currentY, new Color(100, 255, 100, 100),
-                x + width, currentY, new Color(50, 200, 50, 100)
-            );
-            g2.setPaint(passiveGradient);
-            g2.fillRoundRect(x, currentY, width, passiveHeight, 15, 15);
-            
-            g2.setColor(new Color(100, 255, 100));
-            g2.setStroke(new BasicStroke(2));
-            g2.drawRoundRect(x, currentY, width, passiveHeight, 15, 15);
-            
-            currentY += 18;
-            
-            // Passive title with icon
-            g2.setColor(new Color(100, 255, 100));
-            g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
-            g2.drawString("🌟 PASSIVE", x + 10, currentY);
-            currentY += 22;
-            
-            // Passive name
-            g2.setColor(Color.WHITE);
-            g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
-            g2.drawString(champion.getPassive().getName(), x + 10, currentY);
-            currentY += 18;
-            
-            // Passive description with word wrap
-            g2.setColor(new Color(220, 220, 220));
-            g2.setFont(g2.getFont().deriveFont(11f));
-            
-            String description = champion.getPassive().getDescription();
-            String[] words = description.split(" ");
-            StringBuilder currentLine = new StringBuilder();
-            
-            for (String word : words) {
-                String testLine = currentLine.length() == 0 ? word : currentLine + " " + word;
-                int textWidth = g2.getFontMetrics().stringWidth(testLine);
-                
-                if (textWidth > width - 20 && currentLine.length() > 0) {
-                    g2.drawString(currentLine.toString(), x + 10, currentY);
-                    currentY += 14;
-                    currentLine = new StringBuilder(word);
-                } else {
-                    currentLine = new StringBuilder(testLine);
-                }
-            }
-            
-            if (currentLine.length() > 0) {
-                g2.drawString(currentLine.toString(), x + 10, currentY);
-            }
-            
-            currentY += 35;
+            drawPokemonStylePassive(g2, champion.getPassive(), x + 15, currentY, width - 30);
+            currentY += 95;
         }
         
-        // Add extra spacing before abilities list
-        currentY += 40; // Added 25 more pixels spacing between passive and abilities
-        
-        if (champion.getMoves() != null) {
-            for (int i = 0; i < champion.getMoves().size(); i++) {
+        // Active abilities with Pokémon-style cards
+        if (champion.getMoves() != null && !champion.getMoves().isEmpty()) {
+            g2.setFont(new Font("Arial", Font.BOLD, 16));
+            g2.setColor(new Color(80, 120, 180));
+            g2.drawString("ACTIVE ABILITIES", x + 20, currentY);
+            currentY += 30;
+            
+            String[] abilityKeys = {"Q", "W", "E", "R"};
+            for (int i = 0; i < Math.min(champion.getMoves().size(), 4); i++) {
                 Move move = champion.getMoves().get(i);
-                
-                // Ability background
-                int abilityHeight = 45;
-                Color bgColor, borderColor;
-                
-                if (move.isUltimate()) {
-                    bgColor = new Color(255, 215, 0, 50);
-                    borderColor = new Color(255, 215, 0);
-                } else if (move.getType().equals("Physical")) {
-                    bgColor = new Color(255, 100, 100, 50);
-                    borderColor = new Color(255, 150, 150);
-                } else {
-                    bgColor = new Color(100, 150, 255, 50);
-                    borderColor = new Color(150, 150, 255);
-                }
-                
-                g2.setColor(bgColor);
-                g2.fillRoundRect(x, currentY - 5, width, abilityHeight, 12, 12);
-                
-                g2.setColor(borderColor);
-                g2.setStroke(new BasicStroke(1.5f));
-                g2.drawRoundRect(x, currentY - 5, width, abilityHeight, 12, 12);
-                
-                // Draw ability key and name
-                g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 16f));
-                String keyBinding;
-                switch (i) {
-                    case 0: keyBinding = "Q"; break;
-                    case 1: keyBinding = "W"; break;
-                    case 2: keyBinding = "E"; break;
-                    case 3: keyBinding = "R"; break;
-                    default: keyBinding = "?"; break;
-                }
-                
-                // Key background
-                g2.setColor(new Color(30, 30, 30, 200));
-                g2.fillRoundRect(x + 5, currentY - 2, 25, 20, 8, 8);
-                
-                // Key text
-                g2.setColor(borderColor);
-                g2.drawString(keyBinding, x + 12, currentY + 12);
-                
-                // Ability name
-                g2.setColor(Color.WHITE);
-                g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 14f));
-                String abilityName = move.getName();
-                if (move.isUltimate()) abilityName += " (ULT)";
-                g2.drawString(abilityName, x + 38, currentY + 12);
-                
-                currentY += 20;
-                
-                // Draw ability details
-                g2.setColor(new Color(200, 200, 200));
-                g2.setFont(g2.getFont().deriveFont(11f));
-                
-                String typeIcon = move.getType().equals("Physical") ? "⚔" : "✦";
-                // Show mana cost
-                int cost = move.getManaCost();
-                String costText = cost > 0 ? String.valueOf(cost) : "0";
-                String details = typeIcon + " " + move.getType() + " | PWR: " + move.getPower() + " | COST: " + costText;
-                
-                if (move.isUltimate() && move.isUltimateOnCooldown()) {
-                    details += " | CD: " + move.getUltimateCooldown();
-                    g2.setColor(new Color(255, 150, 150));
-                }
-                
-                g2.drawString(details, x + 10, currentY + 10);
-                currentY += 55; // Added 20 more pixels spacing between abilities
+                drawPokemonStyleAbility(g2, move, abilityKeys[i], x + 15, currentY, width - 30);
+                currentY += 80;
             }
         }
     }
     
+    private void drawSectionHeader(Graphics2D g2, String title, int x, int y) {
+        // Section background
+        g2.setColor(new Color(75, 115, 180, 100));
+        g2.fillRoundRect(x - 5, y - 20, 300, 30, 15, 15);
+        
+        // Section title
+        g2.setFont(new Font("Arial", Font.BOLD, 16));
+        g2.setColor(new Color(45, 75, 130));
+        g2.drawString(title, x, y);
+        
+        // Underline
+        g2.setColor(new Color(75, 115, 180, 150));
+        g2.setStroke(new BasicStroke(2));
+        FontMetrics fm = g2.getFontMetrics();
+        g2.drawLine(x, y + 5, x + fm.stringWidth(title), y + 5);
+    }
+    
+    private void drawProfessionalStatItem(Graphics2D g2, String label, String value, int x, int y, int width, Color accentColor) {
+        int itemHeight = 25;
+        
+        // Background
+        java.awt.GradientPaint itemBg = new java.awt.GradientPaint(
+            x, y, new Color(250, 252, 255, 200),
+            x, y + itemHeight, new Color(240, 245, 250, 200)
+        );
+        g2.setPaint(itemBg);
+        g2.fillRoundRect(x, y, width, itemHeight, 8, 8);
+        
+        // Left accent bar
+        g2.setColor(accentColor);
+        g2.fillRoundRect(x, y, 4, itemHeight, 2, 2);
+        
+        // Border
+        g2.setColor(new Color(180, 190, 205, 100));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawRoundRect(x, y, width, itemHeight, 8, 8);
+        
+        // Label
+        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.setColor(new Color(60, 80, 120));
+        g2.drawString(label, x + 12, y + 17);
+        
+        // Value
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(accentColor.darker());
+        FontMetrics fm = g2.getFontMetrics();
+        int valueX = x + width - fm.stringWidth(value) - 10;
+        g2.drawString(value, valueX, y + 18);
+    }
+    
+    private void drawProfessionalPassive(Graphics2D g2, Champions.Passive passive, int x, int y, int width) {
+        int passiveHeight = 70;
+        
+        // Background
+        java.awt.GradientPaint passiveBg = new java.awt.GradientPaint(
+            x, y, new Color(100, 255, 150, 100),
+            x, y + passiveHeight, new Color(50, 200, 100, 100)
+        );
+        g2.setPaint(passiveBg);
+        g2.fillRoundRect(x, y, width, passiveHeight, 12, 12);
+        
+        // Border
+        g2.setColor(new Color(50, 180, 80));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x, y, width, passiveHeight, 12, 12);
+        
+        // Passive icon
+        g2.setColor(new Color(255, 255, 255, 200));
+        g2.fillRoundRect(x + 10, y + 10, 20, 20, 5, 5);
+        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.setColor(new Color(50, 150, 80));
+        g2.drawString("P", x + 18, y + 24);
+        
+        // Passive name
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(new Color(40, 120, 60));
+        g2.drawString("PASSIVE: " + passive.getName(), x + 40, y + 25);
+        
+        // Description (truncated)
+        g2.setFont(new Font("Arial", Font.PLAIN, 11));
+        g2.setColor(new Color(60, 100, 80));
+        String desc = passive.getDescription();
+        if (desc.length() > 80) desc = desc.substring(0, 77) + "...";
+        g2.drawString(desc, x + 15, y + 45);
+    }
+    
+    private void drawProfessionalAbility(Graphics2D g2, Move move, String key, int x, int y, int width) {
+        int abilityHeight = 60;
+        
+        // Determine colors based on ability type
+        Color bgColor, borderColor;
+        if (move.isUltimate()) {
+            bgColor = new Color(255, 215, 0, 120);
+            borderColor = new Color(200, 150, 0);
+        } else if (move.getType().equals("Physical")) {
+            bgColor = new Color(255, 120, 120, 120);
+            borderColor = new Color(200, 80, 80);
+        } else {
+            bgColor = new Color(120, 150, 255, 120);
+            borderColor = new Color(80, 110, 200);
+        }
+        
+        // Background
+        g2.setPaint(bgColor);
+        g2.fillRoundRect(x, y, width, abilityHeight, 12, 12);
+        
+        // Border
+        g2.setColor(borderColor);
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x, y, width, abilityHeight, 12, 12);
+        
+        // Key badge
+        g2.setColor(new Color(255, 255, 255, 220));
+        g2.fillRoundRect(x + 10, y + 10, 25, 25, 8, 8);
+        g2.setFont(new Font("Arial", Font.BOLD, 16));
+        g2.setColor(borderColor);
+        g2.drawString(key, x + 20, y + 29);
+        
+        // Ability name
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(new Color(40, 40, 40));
+        String abilityName = move.getName();
+        if (move.isUltimate()) abilityName += " (ULTIMATE)";
+        g2.drawString(abilityName, x + 45, y + 25);
+        
+        // Stats line
+        g2.setFont(new Font("Arial", Font.PLAIN, 11));
+        g2.setColor(new Color(80, 80, 80));
+        String stats = String.format("Base: %d | AD: %.0f%% | AP: %.0f%% | Cost: %d", 
+                                     move.getBaseDamage(), move.getAdRatio() * 100, 
+                                     move.getApRatio() * 100, move.getManaCost());
+        g2.drawString(stats, x + 15, y + 45);
+    }
+    
+    private void drawPokemonStylePassive(Graphics2D g2, Champions.Passive passive, int x, int y, int width) {
+        // Passive ability card with Pokémon-style design
+        java.awt.GradientPaint cardBg = new java.awt.GradientPaint(
+            x, y, new Color(120, 60, 160, 200),
+            x, y + 60, new Color(90, 40, 120, 200)
+        );
+        g2.setPaint(cardBg);
+        g2.fillRoundRect(x, y, width, 60, 12, 12);
+        
+        // Card border
+        g2.setColor(new Color(160, 120, 200));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x, y, width, 60, 12, 12);
+        
+        // Passive icon background
+        g2.setColor(new Color(200, 150, 255));
+        g2.fillRoundRect(x + 8, y + 8, 40, 40, 8, 8);
+        
+        // Passive icon "P"
+        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        g2.setColor(new Color(80, 40, 120));
+        g2.drawString("P", x + 23, y + 33);
+        
+        // Passive name
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(Color.WHITE);
+        String passiveName = passive.getName();
+        if (passiveName.length() > 20) {
+            passiveName = passiveName.substring(0, 17) + "...";
+        }
+        g2.drawString(passiveName, x + 55, y + 25);
+        
+        // Passive type
+        g2.setFont(new Font("Arial", Font.PLAIN, 11));
+        g2.setColor(new Color(220, 190, 255));
+        g2.drawString("PASSIVE ABILITY", x + 55, y + 42);
+    }
+    
+    private void drawPokemonStyleAbility(Graphics2D g2, Move move, String key, int x, int y, int width) {
+        // Ability card with beautiful Pokémon-style design
+        Color cardColor = move.isUltimate() ? 
+            new Color(255, 150, 50, 220) :  // Orange for ultimates
+            new Color(70, 130, 200, 220);   // Blue for regular abilities
+            
+        Color borderColor = move.isUltimate() ? 
+            new Color(255, 200, 100) : 
+            new Color(120, 170, 255);
+        
+        java.awt.GradientPaint cardBg = new java.awt.GradientPaint(
+            x, y, cardColor,
+            x, y + 60, new Color(cardColor.getRed() - 30, cardColor.getGreen() - 30, cardColor.getBlue() - 30, cardColor.getAlpha())
+        );
+        g2.setPaint(cardBg);
+        g2.fillRoundRect(x, y, width, 60, 12, 12);
+        
+        // Card border with glow effect
+        g2.setColor(borderColor);
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x, y, width, 60, 12, 12);
+        
+        // Inner highlight
+        g2.setColor(new Color(255, 255, 255, 80));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawRoundRect(x + 2, y + 2, width - 4, 56, 10, 10);
+        
+        // Key badge with beautiful design
+        Color keyBgColor = move.isUltimate() ? 
+            new Color(255, 215, 0) :     // Gold for ultimates
+            new Color(255, 255, 255);    // White for regular abilities
+            
+        g2.setColor(keyBgColor);
+        g2.fillRoundRect(x + 8, y + 8, 35, 35, 8, 8);
+        
+        // Key badge border
+        g2.setColor(move.isUltimate() ? new Color(200, 160, 0) : new Color(180, 180, 180));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x + 8, y + 8, 35, 35, 8, 8);
+        
+        // Key text
+        g2.setFont(new Font("Arial", Font.BOLD, 16));
+        g2.setColor(move.isUltimate() ? new Color(120, 80, 0) : new Color(60, 60, 60));
+        int keyWidth = g2.getFontMetrics().stringWidth(key);
+        g2.drawString(key, x + 8 + (35 - keyWidth) / 2, y + 30);
+        
+        // Ability name
+        g2.setFont(new Font("Arial", Font.BOLD, 13));
+        g2.setColor(Color.WHITE);
+        String abilityName = move.getName();
+        if (abilityName.length() > 18) {
+            abilityName = abilityName.substring(0, 15) + "...";
+        }
+        g2.drawString(abilityName, x + 50, y + 22);
+        
+        // Ability stats with icons
+        g2.setFont(new Font("Arial", Font.PLAIN, 10));
+        g2.setColor(new Color(255, 255, 255, 200));
+        String typeIcon = move.getType().equals("Physical") ? "⚔" : "✨";
+        String stats = String.format("%s %s | PWR: %d | COST: %d", 
+                                    typeIcon, move.getType().substring(0, 4), 
+                                    move.getPower(), move.getManaCost());
+        
+        if (move.isUltimate() && move.isUltimateOnCooldown()) {
+            stats += " | CD: " + move.getUltimateCooldown();
+            g2.setColor(new Color(255, 200, 200));
+        }
+        
+        g2.drawString(stats, x + 50, y + 38);
+        
+        // Ultimate indicator
+        if (move.isUltimate()) {
+            g2.setFont(new Font("Arial", Font.BOLD, 9));
+            g2.setColor(new Color(255, 255, 100));
+            g2.drawString("ULTIMATE", x + width - 60, y + 15);
+        }
+    }
+    
+    private void drawTabHeaders(Graphics2D g2, int x, int y, int width, boolean isPlayerPopup) {
+        int tabWidth = 120;
+        int tabHeight = 35;
+        int gap = 10;
+        int startX = x + (width - (tabWidth * 2 + gap)) / 2;
+        
+        boolean showingAbilities = isPlayerPopup ? playerPopupShowingAbilities : enemyPopupShowingAbilities;
+        
+        // Stats tab
+        Color statsTabColor = !showingAbilities ? new Color(65, 105, 170) : new Color(180, 180, 180);
+        Color statsTextColor = !showingAbilities ? Color.WHITE : new Color(100, 100, 100);
+        
+        g2.setColor(statsTabColor);
+        g2.fillRoundRect(startX, y, tabWidth, tabHeight, 12, 12);
+        if (!showingAbilities) {
+            g2.setColor(new Color(255, 215, 0));
+            g2.setStroke(new BasicStroke(2));
+            g2.drawRoundRect(startX, y, tabWidth, tabHeight, 12, 12);
+        }
+        
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(statsTextColor);
+        String statsText = "STATS";
+        int statsTextWidth = g2.getFontMetrics().stringWidth(statsText);
+        g2.drawString(statsText, startX + (tabWidth - statsTextWidth) / 2, y + 22);
+        
+        // Abilities tab
+        Color abilitiesTabColor = showingAbilities ? new Color(65, 105, 170) : new Color(180, 180, 180);
+        Color abilitiesTextColor = showingAbilities ? Color.WHITE : new Color(100, 100, 100);
+        
+        g2.setColor(abilitiesTabColor);
+        g2.fillRoundRect(startX + tabWidth + gap, y, tabWidth, tabHeight, 12, 12);
+        if (showingAbilities) {
+            g2.setColor(new Color(255, 215, 0));
+            g2.setStroke(new BasicStroke(2));
+            g2.drawRoundRect(startX + tabWidth + gap, y, tabWidth, tabHeight, 12, 12);
+        }
+        
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(abilitiesTextColor);
+        String abilitiesText = "ABILITIES";
+        int abilitiesTextWidth = g2.getFontMetrics().stringWidth(abilitiesText);
+        g2.drawString(abilitiesText, startX + tabWidth + gap + (tabWidth - abilitiesTextWidth) / 2, y + 22);
+    }
+    
+    private void drawAbilitiesPage(Graphics2D g2, Champion champion, int x, int y, int width, int height) {
+        int currentY = y + 20;
+        
+        // Page title
+        g2.setFont(new Font("Arial", Font.BOLD, 24));
+        g2.setColor(new Color(65, 105, 170));
+        String title = "CHAMPION ABILITIES";
+        int titleWidth = g2.getFontMetrics().stringWidth(title);
+        g2.drawString(title, x + (width - titleWidth) / 2, currentY);
+        
+        // Underline
+        g2.setColor(new Color(255, 215, 0));
+        g2.setStroke(new BasicStroke(3));
+        g2.drawLine(x + (width - titleWidth) / 2, currentY + 8, 
+                   x + (width - titleWidth) / 2 + titleWidth, currentY + 8);
+        
+        currentY += 60;
+        
+        // Passive ability (if exists)
+        if (champion.getPassive() != null) {
+            g2.setFont(new Font("Arial", Font.BOLD, 20));
+            g2.setColor(new Color(120, 60, 160));
+            g2.drawString("PASSIVE ABILITY", x + 20, currentY);
+            currentY += 35;
+            
+            drawProfessionalPassive(g2, champion.getPassive(), x + 20, currentY, width - 40);
+            currentY += 100;
+        }
+        
+        // Active abilities
+        if (champion.getMoves() != null && !champion.getMoves().isEmpty()) {
+            g2.setFont(new Font("Arial", Font.BOLD, 20));
+            g2.setColor(new Color(65, 105, 170));
+            g2.drawString("ACTIVE ABILITIES", x + 20, currentY);
+            currentY += 35;
+            
+            String[] abilityKeys = {"Q", "W", "E", "R"};
+            for (int i = 0; i < Math.min(champion.getMoves().size(), 4); i++) {
+                Move move = champion.getMoves().get(i);
+                drawProfessionalAbility(g2, move, abilityKeys[i], x + 20, currentY, width - 40);
+                currentY += 80;
+            }
+        }
+    }
+    
+    private void drawProfessionalFooterWithTabs(Graphics2D g2, int x, int y, int width, int height) {
+        // Footer background
+        g2.setColor(new Color(65, 105, 170, 200));
+        g2.fillRoundRect(x + 10, y + height - 45, width - 20, 35, 15, 15);
+        
+        // Instructions
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(Color.WHITE);
+        String instructions = "SPACE: Switch Tab  |  ESC: Close";
+        int instructionsWidth = g2.getFontMetrics().stringWidth(instructions);
+        g2.drawString(instructions, x + (width - instructionsWidth) / 2, y + height - 22);
+    }
+
     private void endBattle() {
         gp.ui.battleNum = 0;
         gp.gameState = gp.playState;
@@ -2588,6 +3077,16 @@ public class BattleManager {
     public void closeAllPopups() {
         showPlayerInfoPopup = false;
         showEnemyInfoPopup = false;
+        playerPopupShowingAbilities = false;
+        enemyPopupShowingAbilities = false;
+    }
+    
+    public void switchPopupTab() {
+        if (showPlayerInfoPopup) {
+            playerPopupShowingAbilities = !playerPopupShowingAbilities;
+        } else if (showEnemyInfoPopup) {
+            enemyPopupShowingAbilities = !enemyPopupShowingAbilities;
+        }
     }
     
     // ========== STATUS EFFECTS PROCESSING ==========

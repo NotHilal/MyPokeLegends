@@ -40,9 +40,9 @@ public class Champion {
     // Auto Attack
     private AutoAttack autoAttack;
     
-    // Items (up to 2 items)
+    // Items (up to 3 items)
     private java.util.List<Item> items;
-    private static final int MAX_ITEMS = 2;
+    private static final int MAX_ITEMS = 3;
     
     // Battle stat stages (-6 to +6, like Pokemon)
     private int speedStage;

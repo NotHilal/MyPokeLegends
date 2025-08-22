@@ -26,6 +26,7 @@ public class KeyHandler implements KeyListener{
 	public void keyPressed(KeyEvent e) {
 		int code = e.getKeyCode();
 		
+		
 		// TITLE STATE
 		if(gp.gameState==gp.titleState)
 		{
@@ -267,11 +268,14 @@ public class KeyHandler implements KeyListener{
 		        return; // Don't process other keys
 		    }
 		    
-		    // If any popup is open, only allow ESC to close it
+		    // If any popup is open, allow ESC to close and TAB to switch
 		    if (gp.battleManager.isAnyPopupOpen()) {
 		        if (code == KeyEvent.VK_ESCAPE) {
 		            gp.battleManager.closeAllPopups();
 		            gp.playSE(11);
+		        } else if (code == KeyEvent.VK_SPACE) {
+		            gp.battleManager.switchPopupTab();
+		            gp.playSE(9);
 		        }
 		        return; // Block all other input when popup is open
 		    }
@@ -382,10 +386,7 @@ public class KeyHandler implements KeyListener{
 		    gPressed = true;
 		}
 		
-		// TAB key for switching modes
-		if (code == KeyEvent.VK_TAB) {
-		    tabPressed = true;
-		}
+		// TAB key for switching modes - handled per state
 
 		// Champions STATE
 				else if(gp.gameState==gp.championMenuState) {
@@ -417,16 +418,44 @@ public class KeyHandler implements KeyListener{
 		// Champion Details STATE
 		else if(gp.gameState==gp.championDetailsState) {
 			if(code ==KeyEvent.VK_ESCAPE) {
-				// Reset key states when returning to role team page
-				interctPressed = false;
-				upPressed = false;
-				downPressed = false;
-				gPressed = false;
-				tabPressed = false;
-				
-				gp.gameState = gp.roleTeamState;
+				// Check if item popup is showing first
+				if(gp.championDetailsPage != null && gp.championDetailsPage.isShowingItemPopup()) {
+					gp.championDetailsPage.closeItemPopup();
+					gp.playSE(9);
+				} else {
+					// Reset key states when returning to role team page
+					interctPressed = false;
+					upPressed = false;
+					downPressed = false;
+					gPressed = false;
+					tabPressed = false;
+					
+					gp.gameState = gp.roleTeamState;
+				}
 			}
-			// TAB key handling removed - stats only mode
+			if(code ==KeyEvent.VK_SPACE) {
+				if(gp.championDetailsPage != null) {
+					gp.championDetailsPage.switchTab();
+					gp.playSE(9);
+				}
+			}
+			// Handle item slot navigation only when not showing abilities and no popup
+			if(gp.championDetailsPage != null && !gp.championDetailsPage.isShowingAbilities() && !gp.championDetailsPage.isShowingItemPopup()) {
+				if(code == KeyEvent.VK_A) {
+					if(gp.championDetailsPage.navigateItemSlotLeft()) {
+						gp.playSE(9);
+					}
+				}
+				if(code == KeyEvent.VK_D) {
+					if(gp.championDetailsPage.navigateItemSlotRight()) {
+						gp.playSE(9);
+					}
+				}
+				if(code == KeyEvent.VK_ENTER) {
+					gp.championDetailsPage.openItemSlotPopup();
+					gp.playSE(11);
+				}
+			}
 		}
 			
 
