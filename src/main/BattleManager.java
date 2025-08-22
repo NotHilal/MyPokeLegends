@@ -67,6 +67,7 @@ public class BattleManager {
     }
     private int messageTimer = 0;
     private boolean xpAwarded = false; // Prevent multiple XP awards
+    private boolean battleEndMessageShown = false; // Prevent multiple battle end messages
     
     // Performance optimizations: Reusable objects to reduce allocations
     private final DamageResult damageResult = new DamageResult();
@@ -117,6 +118,7 @@ public class BattleManager {
         addBattleMessage("A wild " + wildChampion.getName() + " appeared!");
         this.messageTimer = 120; // Display message for 2 seconds at 60fps
         this.xpAwarded = false; // Reset XP award flag
+        this.battleEndMessageShown = false; // Reset battle end message flag
         
         // Reset passive states for new battle
         playerChampion.resetPassiveStates();
@@ -147,16 +149,17 @@ public class BattleManager {
             StringBuilder deathMessage = new StringBuilder();
             handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.DEATH_DEFIANCE, 0, deathMessage);
             
-            if (playerChampion.isFainted()) { // Still fainted after death defiance check
+            if (playerChampion.isFainted() && !battleEndMessageShown) { // Still fainted after death defiance check
                 battleState = BattleState.BATTLE_END;
                 addPlayerMessage(playerChampion.getName() + " fainted!");
                 addBattleMessage("You lost!", new Color(255, 0, 0)); // Red for defeat
                 messageTimer = 180; // 3 seconds
+                battleEndMessageShown = true;
             } else if (deathMessage.length() > 0) {
                 addBattleMessage(deathMessage.toString());
                 messageTimer = 120;
             }
-        } else if (wildChampion.isFainted() && !xpAwarded) {
+        } else if (wildChampion.isFainted() && !xpAwarded && !battleEndMessageShown) {
             // Check for death defiance passives
             StringBuilder deathMessage = new StringBuilder();
             handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.DEATH_DEFIANCE, 0, deathMessage);
@@ -192,6 +195,7 @@ public class BattleManager {
                     }
                 }
                 xpAwarded = true; // Mark XP as awarded
+                battleEndMessageShown = true; // Mark victory message as shown
                 // No timer set - message will persist until user action
             } else if (deathMessage.length() > 0) {
                 addBattleMessage(deathMessage.toString());
@@ -723,7 +727,7 @@ public class BattleManager {
         
         // Draw XP bar for player champion only
         if (showXP) {
-            int xpBarY = y + barHeight + resourceBarHeight + 25; // Adjusted for smaller resource bar
+            int xpBarY = y + barHeight + resourceBarHeight + 3; // 3px gap from resource bar
             int xpBarHeight = 8;
             
             // XP bar background
@@ -1189,6 +1193,116 @@ public class BattleManager {
         }
     }
     
+    // AI decision logic for auto attack vs moves
+    private boolean decideAIAutoAttack(List<Move> availableMoves) {
+        // AI will auto attack if:
+        // 1. No moves available (out of resources)
+        // 2. Has high attack speed (>= 1.2) for bonus auto potential
+        // 3. Low on resources and auto attack might be better
+        // 4. Random chance for variety
+        
+        if (availableMoves.isEmpty()) {
+            return true; // Force auto attack if no moves available
+        }
+        
+        double attackSpeed = wildChampion.getTotalAttackSpeed();
+        int currentResource = wildChampion.getCurrentResource();
+        int maxResource = wildChampion.getMaxResource();
+        double resourcePercent = (double) currentResource / maxResource;
+        
+        // High attack speed champions (like ADCs) prefer auto attacks
+        if (attackSpeed >= 1.2) {
+            return Math.random() < 0.4; // 40% chance to auto attack
+        }
+        
+        // Low resource situation - consider auto attack
+        if (resourcePercent < 0.3) {
+            return Math.random() < 0.6; // 60% chance when low on resources
+        }
+        
+        // General random chance for strategic variety
+        return Math.random() < 0.15; // 15% baseline chance
+    }
+    
+    // Execute AI auto attack with bonus attack logic
+    private void executeAIAutoAttack(StringBuilder statusMessage, StringBuilder startTurnMessage) {
+        StringBuilder message = getCleanMessageBuilder();
+        message.append("Wild ").append(wildChampion.getName()).append(" attacks with ").append(wildChampion.getAutoAttack().getName()).append("!");
+        
+        // Add status effect and start of turn passive messages
+        if (statusMessage.length() > 0) {
+            message.append(statusMessage);
+        }
+        if (startTurnMessage.length() > 0) {
+            message.append(startTurnMessage);
+        }
+        
+        // Mark enemy as attacked for first attack tracking
+        if (wildChampion.isFirstAttackOnEnemy()) {
+            wildChampion.addAttackedEnemy(playerChampion.getName());
+        }
+        
+        // Execute primary auto attack
+        Champions.AutoAttack autoAttack = wildChampion.getAutoAttack();
+        executeAutoAttackHit(autoAttack, wildChampion, playerChampion, message, false);
+        
+        // Check for bonus auto attack based on attack speed
+        if (autoAttack.shouldGetBonusAuto(wildChampion)) {
+            message.append("\nWild ").append(wildChampion.getName()).append(" attacks again with incredible speed!");
+            executeAutoAttackHit(autoAttack, wildChampion, playerChampion, message, true);
+        }
+        
+        // Remove blind and stealth status effects after attack
+        wildChampion.removeStatusEffect(StatusEffect.StatusType.BLIND);
+        playerChampion.removeStatusEffect(StatusEffect.StatusType.STEALTH);
+        
+        // Mark first attack as used
+        if (wildChampion.isFirstAttackOnEnemy()) {
+            wildChampion.setFirstAttackOnEnemy(false);
+        }
+        
+        // Trigger end of turn passives
+        StringBuilder endTurnMessage = new StringBuilder();
+        handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.END_OF_TURN, 0, endTurnMessage);
+        if (endTurnMessage.length() > 0) {
+            message.append(endTurnMessage);
+        }
+        
+        // Regenerate resources for both champions
+        int playerResourceBefore = playerChampion.getCurrentResource();
+        int enemyResourceBefore = wildChampion.getCurrentResource();
+        
+        playerChampion.regenerateResource();
+        wildChampion.regenerateResource();
+        
+        // Show resource regeneration messages separately with appropriate colors
+        if (playerChampion.getCurrentResource() > playerResourceBefore) {
+            int regenAmount = playerChampion.getCurrentResource() - playerResourceBefore;
+            addPlayerMessage(playerChampion.getName() + " regenerated " + regenAmount + " " + 
+                           playerChampion.getResourceType().getDisplayName() + "!");
+        }
+        if (wildChampion.getCurrentResource() > enemyResourceBefore) {
+            int regenAmount = wildChampion.getCurrentResource() - enemyResourceBefore;
+            addEnemyMessage(wildChampion.getName() + " regenerated " + regenAmount + " " + 
+                           wildChampion.getResourceType().getDisplayName() + "!");
+        }
+        
+        // Trigger turn-based passives
+        handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.EVERY_N_TURNS, 0, message);
+        
+        addEnemyMessage(message.toString());
+        messageTimer = 120;
+        
+        // Set first attack flag to false after first attack
+        if (wildChampion.isFirstAttackOnEnemy()) {
+            wildChampion.setFirstAttackOnEnemy(false);
+        }
+        
+        playerTurn = true;
+        battleState = BattleState.MAIN_MENU;
+        gp.ui.battleNum = 0; // Reset cursor to attack option
+    }
+    
     private List<Move> getAIAvailableMoves() {
         int currentResource = wildChampion.getCurrentResource();
         
@@ -1419,10 +1533,16 @@ public class BattleManager {
         StringBuilder startTurnMessage = getCleanTempBuilder();
         handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.START_OF_TURN, 0, startTurnMessage);
         
-        // Simple AI: choose random available move using cached moves
+        // Enhanced AI: choose between moves and auto attacks
         List<Move> availableMoves = getAIAvailableMoves();
-            
-        if (!availableMoves.isEmpty()) {
+        
+        // AI decision logic: auto attack vs moves
+        boolean shouldAutoAttack = decideAIAutoAttack(availableMoves);
+        
+        if (shouldAutoAttack) {
+            // Execute AI auto attack
+            executeAIAutoAttack(statusMessage, startTurnMessage);
+        } else if (!availableMoves.isEmpty()) {
             Move aiMove = availableMoves.get(random.nextInt(availableMoves.size()));
             StringBuilder message = getCleanMessageBuilder();
             message.append("Wild ").append(wildChampion.getName()).append(" used ").append(aiMove.getName()).append("!");
