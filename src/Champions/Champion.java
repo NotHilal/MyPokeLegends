@@ -30,8 +30,11 @@ public class Champion {
     private int critChance; // Critical hit chance (0-100%)
     private int lifesteal; // Lifesteal percentage (0-100%)
     
-    // New League-style stats
-    private int attackSpeed; // Attacks per turn (base 100)
+    // League of Legends-style attack speed system
+    private double baseAttackSpeed; // Base attacks per second (e.g., 0.625)
+    private double attackSpeedRatio; // AS growth ratio (how much champion benefits from AS items)
+    private double attackSpeedPerLevel; // AS gained per level
+    private double bonusAttackSpeedPercent; // Bonus AS% from items/abilities
     private int spellVamp; // Spell vamp percentage (0-100%)
     private int armorPenetration; // Flat armor penetration
     private int magicPenetration; // Flat magic penetration
@@ -114,8 +117,11 @@ public class Champion {
         this.currentResource = resourceType.isConsumable() ? maxResource : 0;
         this.resourceRegen = resourceType.getBaseRegen();
         
-        // New League stats with defaults
-        this.attackSpeed = 100; // Base attack speed
+        // League of Legends attack speed system with defaults
+        this.baseAttackSpeed = getDefaultBaseAttackSpeed(championClass);
+        this.attackSpeedRatio = getDefaultAttackSpeedRatio(championClass);
+        this.attackSpeedPerLevel = getDefaultAttackSpeedPerLevel(championClass);
+        this.bonusAttackSpeedPercent = 0.0;
         this.spellVamp = 0;
         this.armorPenetration = 0;
         this.magicPenetration = 0;
@@ -198,8 +204,11 @@ public class Champion {
         // Initialize status effects list
         this.statusEffects = new java.util.ArrayList<>();
         
-        // New League stats with defaults
-        this.attackSpeed = 100; // Base attack speed
+        // League of Legends attack speed system with defaults
+        this.baseAttackSpeed = getDefaultBaseAttackSpeed(championClass);
+        this.attackSpeedRatio = getDefaultAttackSpeedRatio(championClass);
+        this.attackSpeedPerLevel = getDefaultAttackSpeedPerLevel(championClass);
+        this.bonusAttackSpeedPercent = 0.0;
         this.spellVamp = 0;
         this.armorPenetration = 0;
         this.magicPenetration = 0;
@@ -389,7 +398,17 @@ public class Champion {
     
     // New League stats getters
     public ChampionClass getChampionClass() { return championClass; }
-    public int getAttackSpeed() { return attackSpeed; }
+    public double getBaseAttackSpeed() { return baseAttackSpeed; }
+    public double getAttackSpeedRatio() { return attackSpeedRatio; }
+    public double getAttackSpeedPerLevel() { return attackSpeedPerLevel; }
+    public double getBonusAttackSpeedPercent() { return bonusAttackSpeedPercent; }
+    public void setBonusAttackSpeedPercent(double bonusAS) { this.bonusAttackSpeedPercent = bonusAS; }
+    public void addBonusAttackSpeedPercent(double bonusAS) { this.bonusAttackSpeedPercent += bonusAS; }
+    
+    // Testing method to override base attack speed
+    public void setBaseAttackSpeedForTesting(double newBaseAS) { 
+        this.baseAttackSpeed = newBaseAS; 
+    }
     public int getSpellVamp() { return spellVamp; }
     public int getArmorPenetration() { return armorPenetration; }
     public int getMagicPenetration() { return magicPenetration; }
@@ -1074,9 +1093,53 @@ public class Champion {
         return getEffectiveMagicResist() + itemMR;
     }
     
-    public int getTotalAttackSpeed() {
-        int itemAS = items.stream().mapToInt(Item::getBonusAttackSpeed).sum();
-        return attackSpeed + itemAS;
+    public double getTotalAttackSpeed() {
+        // League of Legends formula: Final AS = (Base AS + AS Per Level * (Level - 1)) * (1 + Bonus AS%) * AS Ratio
+        // Capped at 2.5 attacks per second
+        double levelBasedAS = baseAttackSpeed + (attackSpeedPerLevel * (level - 1));
+        double itemBonusAS = items.stream().mapToDouble(Item::getBonusAttackSpeed).sum() / 100.0; // Convert percentage to decimal
+        double totalBonusAS = bonusAttackSpeedPercent + itemBonusAS;
+        double finalAS = levelBasedAS * (1.0 + totalBonusAS) * attackSpeedRatio;
+        return Math.min(finalAS, 2.5); // Cap at 2.5 AS
+    }
+    
+    public String getTotalAttackSpeedFormatted() {
+        // Format for display as decimal number with dot separator (e.g., "1.45")
+        return String.format(java.util.Locale.US, "%.2f", getTotalAttackSpeed());
+    }
+    
+    // League of Legends attack speed defaults by champion class
+    private static double getDefaultBaseAttackSpeed(ChampionClass championClass) {
+        return switch (championClass) {
+            case MARKSMAN -> 0.658; // ADCs typically have higher base AS
+            case ASSASSIN -> 0.625; // Standard base AS for assassins
+            case FIGHTER -> 0.625; // Standard base AS for fighters
+            case MAGE -> 0.625; // Standard base AS for mages
+            case SUPPORT -> 0.625; // Standard base AS for supports
+            case TANK -> 0.625; // Standard base AS for tanks
+        };
+    }
+    
+    private static double getDefaultAttackSpeedRatio(ChampionClass championClass) {
+        return switch (championClass) {
+            case MARKSMAN -> 1.0; // Full benefit from AS items
+            case ASSASSIN -> 0.9; // Good benefit from AS items
+            case FIGHTER -> 0.8; // Moderate benefit from AS items
+            case MAGE -> 0.625; // Low benefit from AS items (like League mages)
+            case SUPPORT -> 0.625; // Low benefit from AS items
+            case TANK -> 0.625; // Low benefit from AS items
+        };
+    }
+    
+    private static double getDefaultAttackSpeedPerLevel(ChampionClass championClass) {
+        return switch (championClass) {
+            case MARKSMAN -> 0.04; // High AS growth per level
+            case ASSASSIN -> 0.035; // Good AS growth per level
+            case FIGHTER -> 0.03; // Moderate AS growth per level
+            case MAGE -> 0.02; // Low AS growth per level
+            case SUPPORT -> 0.02; // Low AS growth per level
+            case TANK -> 0.025; // Low-moderate AS growth per level
+        };
     }
     
     public int getTotalCritChance() {

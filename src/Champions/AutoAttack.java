@@ -12,6 +12,11 @@ public class AutoAttack {
     
     // Calculate auto attack damage based on champion's AD or AP
     public int calculateDamage(Champion champion) {
+        return calculateDamage(champion, false);
+    }
+    
+    // Calculate auto attack damage with option for bonus auto (reduced damage)
+    public int calculateDamage(Champion champion, boolean isBonusAuto) {
         int baseDamage;
         
         // Most champions use AD for auto attacks, some exceptions use AP
@@ -33,7 +38,12 @@ public class AutoAttack {
                 break;
         }
         
-        // Apply critical hit chance
+        // Apply bonus auto damage reduction (60% reduction = 40% damage)
+        if (isBonusAuto) {
+            baseDamage = (int) (baseDamage * 0.4);
+        }
+        
+        // Apply critical hit chance (full crit chance even for bonus autos)
         boolean isCrit = Math.random() * 100 < champion.getCritChance();
         if (isCrit) {
             baseDamage = (int) (baseDamage * 2.0); // 200% damage on crit
@@ -59,6 +69,25 @@ public class AutoAttack {
             return 0; // For now, no spell vamp from auto attacks
         }
         return 0;
+    }
+    
+    // Check if champion gets a bonus auto attack based on attack speed
+    public boolean shouldGetBonusAuto(Champion champion) {
+        double attackSpeed = champion.getTotalAttackSpeed();
+        
+        // Only champions with AS > 1.0 can get bonus autos
+        if (attackSpeed <= 1.0) {
+            return false;
+        }
+        
+        // Percentage chance = (AS - 1.0) * 100
+        double bonusChance = (attackSpeed - 1.0) * 100.0;
+        
+        // Cap at 100% chance (AS 2.0+)
+        bonusChance = Math.min(bonusChance, 100.0);
+        
+        // Roll for bonus auto
+        return Math.random() * 100 < bonusChance;
     }
     
     // Check if auto attack hits based on accuracy

@@ -48,7 +48,23 @@ public class BattleManager {
     private boolean playerTurn;
     private int selectedMoveIndex = 0;
     private Random random = new Random();
-    private String battleMessage = "";
+    
+    // Scrollable text system with colors
+    private java.util.List<ColoredMessage> battleMessages = new java.util.ArrayList<>();
+    private int scrollOffset = 0; // How many lines we've scrolled up
+    private int maxVisibleLines = 8; // Maximum lines visible in text box
+    private Color lastMessageColor = null; // Track last message color for spacing
+    
+    // Message class to store text with color
+    private static class ColoredMessage {
+        final String text;
+        final Color color;
+        
+        ColoredMessage(String text, Color color) {
+            this.text = text;
+            this.color = color;
+        }
+    }
     private int messageTimer = 0;
     private boolean xpAwarded = false; // Prevent multiple XP awards
     
@@ -97,7 +113,8 @@ public class BattleManager {
         this.battleState = BattleState.MAIN_MENU;
         this.playerTurn = determineFirstTurn();
         this.selectedMoveIndex = 0;
-        this.battleMessage = "A wild " + wildChampion.getName() + " appeared!";
+        clearBattleMessages();
+        addBattleMessage("A wild " + wildChampion.getName() + " appeared!");
         this.messageTimer = 120; // Display message for 2 seconds at 60fps
         this.xpAwarded = false; // Reset XP award flag
         
@@ -111,7 +128,7 @@ public class BattleManager {
         handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.START_OF_BATTLE, 0, startMessage);
         
         if (startMessage.length() > 0) {
-            battleMessage += startMessage.toString();
+            addBattleMessage(startMessage.toString());
         }
         
         gp.gameState = gp.battleState;
@@ -132,10 +149,11 @@ public class BattleManager {
             
             if (playerChampion.isFainted()) { // Still fainted after death defiance check
                 battleState = BattleState.BATTLE_END;
-                battleMessage = playerChampion.getName() + " fainted! You lost!";
+                addPlayerMessage(playerChampion.getName() + " fainted!");
+                addBattleMessage("You lost!", new Color(255, 0, 0)); // Red for defeat
                 messageTimer = 180; // 3 seconds
             } else if (deathMessage.length() > 0) {
-                battleMessage = deathMessage.toString();
+                addBattleMessage(deathMessage.toString());
                 messageTimer = 120;
             }
         } else if (wildChampion.isFainted() && !xpAwarded) {
@@ -155,24 +173,28 @@ public class BattleManager {
                 
                 if (statIncrease != null) {
                     // Level up occurred - show stats display
-                    battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
-                                   "You won!\n" +
-                                   playerChampion.getName() + " gained " + expGained + " XP!\n" + 
-                                   playerChampion.getName() + " leveled up to level " + playerChampion.getLevel() + "!" +
-                                   killMessage.toString();
+                    addEnemyMessage("Wild " + wildChampion.getName() + " fainted!");
+                    addBattleMessage("You won!", new Color(0, 255, 0)); // Green for victory
+                    addPlayerMessage(playerChampion.getName() + " gained " + expGained + " XP!");
+                    addPlayerMessage(playerChampion.getName() + " leveled up to level " + playerChampion.getLevel() + "!");
+                    if (killMessage.length() > 0) {
+                        addBattleMessage(killMessage.toString());
+                    }
                     showLevelUpStats = true;
                     levelUpStats = statIncrease;
                     levelUpChampion = playerChampion;
                 } else {
-                    battleMessage = "Wild " + wildChampion.getName() + " fainted!\n" + 
-                                   "You won!\n" +
-                                   playerChampion.getName() + " gained " + expGained + " XP!" +
-                                   killMessage.toString();
+                    addEnemyMessage("Wild " + wildChampion.getName() + " fainted!");
+                    addBattleMessage("You won!", new Color(0, 255, 0)); // Green for victory
+                    addPlayerMessage(playerChampion.getName() + " gained " + expGained + " XP!");
+                    if (killMessage.length() > 0) {
+                        addBattleMessage(killMessage.toString());
+                    }
                 }
                 xpAwarded = true; // Mark XP as awarded
                 // No timer set - message will persist until user action
             } else if (deathMessage.length() > 0) {
-                battleMessage = deathMessage.toString();
+                addBattleMessage(deathMessage.toString());
                 messageTimer = 120;
             }
         }
@@ -188,7 +210,7 @@ public class BattleManager {
             StringBuilder hpMessage = new StringBuilder();
             handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.HP_THRESHOLD, 0, hpMessage);
             if (hpMessage.length() > 0 && messageTimer <= 0) {
-                battleMessage = hpMessage.toString();
+                addBattleMessage(hpMessage.toString());
                 messageTimer = 90;
             }
         }
@@ -198,7 +220,7 @@ public class BattleManager {
             StringBuilder hpMessage = new StringBuilder();
             handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.HP_THRESHOLD, 0, hpMessage);
             if (hpMessage.length() > 0 && messageTimer <= 0) {
-                battleMessage = hpMessage.toString();
+                addBattleMessage(hpMessage.toString());
                 messageTimer = 90;
             }
         }
@@ -953,20 +975,20 @@ public class BattleManager {
                 // Don't clear battle message when switching to move selection
             }
             case 1 -> {
-                battleMessage = "No items available!";
+                addBattleMessage("No items available!");
                 messageTimer = 60;
             }
             case 2 -> {
-                battleMessage = "No other champions available!";
+                addBattleMessage("No other champions available!");
                 messageTimer = 60;
             }
             case 3 -> {
                 if (attemptRun()) {
-                    battleMessage = "Got away safely!";
+                    addBattleMessage("Got away safely!");
                     messageTimer = 60;
                     battleState = BattleState.BATTLE_END;
                 } else {
-                    battleMessage = "Couldn't escape!";
+                    addBattleMessage("Couldn't escape!");
                     messageTimer = 60;
                 }
             }
@@ -987,11 +1009,11 @@ public class BattleManager {
             Move selectedMove = playerChampion.getMoves().get(actualMoveIndex);
             if (!playerChampion.canUseMove(selectedMove)) {
                 if (selectedMove.getManaCost() > playerChampion.getCurrentResource()) {
-                    battleMessage = "Not enough " + playerChampion.getResourceName() + "! (" + 
+                    addPlayerMessage("Not enough " + playerChampion.getResourceName() + "! (" + 
                                    selectedMove.getManaCost() + " needed, " + 
-                                   playerChampion.getCurrentResource() + " available)";
+                                   playerChampion.getCurrentResource() + " available)");
                 } else if (selectedMove.isUltimateOnCooldown()) {
-                    battleMessage = selectedMove.getName() + " is on cooldown! (" + selectedMove.getUltimateCooldown() + " turns left)";
+                    addPlayerMessage(selectedMove.getName() + " is on cooldown! (" + selectedMove.getUltimateCooldown() + " turns left)");
                 }
                 messageTimer = 60;
             } else {
@@ -1011,7 +1033,7 @@ public class BattleManager {
         
         // Check if player is stunned
         if (isChampionStunned(playerChampion)) {
-            battleMessage = playerChampion.getName() + " is stunned and cannot act!" + statusMessage.toString();
+            addPlayerMessage(playerChampion.getName() + " is stunned and cannot act!" + statusMessage.toString());
             playerTurn = false; // Switch to AI turn
             return;
         }
@@ -1036,52 +1058,14 @@ public class BattleManager {
             playerChampion.addAttackedEnemy(wildChampion.getName());
         }
         
-        // Calculate auto attack damage
+        // Execute primary auto attack
         Champions.AutoAttack autoAttack = playerChampion.getAutoAttack();
+        executeAutoAttackHit(autoAttack, playerChampion, wildChampion, message, false);
         
-        if (autoAttack.doesHit(playerChampion, wildChampion)) {
-            int damage = autoAttack.calculateDamage(playerChampion);
-            
-            // Apply damage
-            wildChampion.takeDamage(damage);
-            message.append("\nDealt ").append(damage).append(" damage!");
-            
-            // Apply lifesteal healing
-            int lifestealHeal = autoAttack.calculateLifesteal(damage, playerChampion);
-            if (lifestealHeal > 0) {
-                int oldHp = playerChampion.getCurrentHp();
-                playerChampion.setCurrentHp(oldHp + lifestealHeal);
-                message.append("\n").append(playerChampion.getName()).append(" healed ").append(lifestealHeal).append(" HP from lifesteal!");
-            }
-            
-            // Trigger passives that activate on attack
-            StringBuilder attackPassiveMessage = new StringBuilder();
-            handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_ATTACK, damage, attackPassiveMessage);
-            if (attackPassiveMessage.length() > 0) {
-                message.append(attackPassiveMessage);
-            }
-            
-            // Trigger enemy passives that activate on being damaged
-            StringBuilder damagedPassiveMessage = new StringBuilder();
-            handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.ON_DAMAGED, damage, damagedPassiveMessage);
-            if (damagedPassiveMessage.length() > 0) {
-                message.append(damagedPassiveMessage);
-            }
-            
-            // Check for critical hit message
-            boolean wasCrit = playerChampion.getTotalCritChance() > 0 && damage > playerChampion.getTotalAD();
-            if (wasCrit) {
-                message.append("\nCritical hit!");
-                // Trigger critical hit passives
-                StringBuilder critPassiveMessage = new StringBuilder();
-                handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.ON_CRITICAL, damage, critPassiveMessage);
-                if (critPassiveMessage.length() > 0) {
-                    message.append(critPassiveMessage);
-                }
-            }
-            
-        } else {
-            message.append("\n").append(playerChampion.getName()).append("'s attack missed!");
+        // Check for bonus auto attack based on attack speed
+        if (autoAttack.shouldGetBonusAuto(playerChampion)) {
+            message.append("\n").append(playerChampion.getName()).append(" attacks again with incredible speed!");
+            executeAutoAttackHit(autoAttack, playerChampion, wildChampion, message, true);
         }
         
         // Remove blind and stealth status effects after attack
@@ -1094,14 +1078,14 @@ public class BattleManager {
         }
         
         playerTurn = false; // Switch to AI turn
-        battleMessage = message.toString();
+        addPlayerMessage(message.toString());
         messageTimer = 120; // 2 seconds
         
         // Trigger end of turn passives
         StringBuilder endTurnMessage = new StringBuilder();
         handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.END_OF_TURN, 0, endTurnMessage);
         if (endTurnMessage.length() > 0) {
-            battleMessage += endTurnMessage.toString();
+            addBattleMessage(endTurnMessage.toString());
         }
         
         // Regenerate resources for both champions
@@ -1114,13 +1098,13 @@ public class BattleManager {
         // Show resource regeneration messages if any occurred
         if (playerChampion.getCurrentResource() > playerResourceBefore) {
             int regenAmount = playerChampion.getCurrentResource() - playerResourceBefore;
-            battleMessage += playerChampion.getName() + " regenerated " + regenAmount + " " + 
-                           playerChampion.getResourceType().getDisplayName() + "! ";
+            addPlayerMessage(playerChampion.getName() + " regenerated " + regenAmount + " " + 
+                           playerChampion.getResourceType().getDisplayName() + "!");
         }
         if (wildChampion.getCurrentResource() > enemyResourceBefore) {
             int regenAmount = wildChampion.getCurrentResource() - enemyResourceBefore;
-            battleMessage += wildChampion.getName() + " regenerated " + regenAmount + " " + 
-                           wildChampion.getResourceType().getDisplayName() + "! ";
+            addEnemyMessage(wildChampion.getName() + " regenerated " + regenAmount + " " + 
+                           wildChampion.getResourceType().getDisplayName() + "!");
         }
     }
     
@@ -1141,6 +1125,68 @@ public class BattleManager {
     private StringBuilder getCleanTempBuilder() {
         tempMessage.setLength(0);
         return tempMessage;
+    }
+    
+    // Scrollable text system methods
+    private void addBattleMessage(String message) {
+        addBattleMessage(message, Color.WHITE); // Default white color
+    }
+    
+    private void addBattleMessage(String message, Color color) {
+        // Define player and enemy colors for spacing detection
+        Color playerColor = new Color(100, 149, 237);
+        Color enemyColor = new Color(220, 20, 60);
+        
+        // Add empty line if switching between player and enemy colors
+        if (lastMessageColor != null && !battleMessages.isEmpty()) {
+            boolean lastWasPlayer = lastMessageColor.equals(playerColor);
+            boolean lastWasEnemy = lastMessageColor.equals(enemyColor);
+            boolean currentIsPlayer = color.equals(playerColor);
+            boolean currentIsEnemy = color.equals(enemyColor);
+            
+            // Add spacing when switching from player to enemy or enemy to player
+            if ((lastWasPlayer && currentIsEnemy) || (lastWasEnemy && currentIsPlayer)) {
+                battleMessages.add(new ColoredMessage("", Color.WHITE)); // Empty line
+            }
+        }
+        
+        // Split message by newlines and add each line separately
+        String[] lines = message.split("\n");
+        for (String line : lines) {
+            if (!line.trim().isEmpty()) {
+                battleMessages.add(new ColoredMessage(line.trim(), color));
+                lastMessageColor = color; // Update last color for each line
+            }
+        }
+        // Auto-scroll to bottom when new messages arrive
+        scrollOffset = 0;
+    }
+    
+    private void addPlayerMessage(String message) {
+        addBattleMessage(message, new Color(100, 149, 237)); // Cornflower blue
+    }
+    
+    private void addEnemyMessage(String message) {
+        addBattleMessage(message, new Color(220, 20, 60)); // Crimson red
+    }
+    
+    private void clearBattleMessages() {
+        battleMessages.clear();
+        scrollOffset = 0;
+        lastMessageColor = null; // Reset color tracking
+    }
+    
+    public void scrollTextUp() {
+        int totalLines = battleMessages.size();
+        if (scrollOffset < totalLines - maxVisibleLines) {
+            scrollOffset++;
+        }
+    }
+    
+    public void scrollTextDown() {
+        if (scrollOffset > 0) {
+            scrollOffset--;
+        }
     }
     
     private List<Move> getAIAvailableMoves() {
@@ -1206,7 +1252,7 @@ public class BattleManager {
         
         // Check if player is stunned
         if (isChampionStunned(playerChampion)) {
-            battleMessage = playerChampion.getName() + " is stunned and cannot act!" + statusMessage.toString();
+            addPlayerMessage(playerChampion.getName() + " is stunned and cannot act!" + statusMessage.toString());
             playerTurn = false; // Switch to AI turn
             return;
         }
@@ -1284,7 +1330,7 @@ public class BattleManager {
         // Trigger turn-based passives
         handlePassiveTrigger(playerChampion, Champions.Passive.PassiveType.EVERY_N_TURNS, 0, message);
         
-        battleMessage = message.toString();
+        addPlayerMessage(message.toString());
         messageTimer = 120;
         
         playerTurn = false;
@@ -1292,6 +1338,65 @@ public class BattleManager {
         // Set first attack flag to false after first attack
         if (playerChampion.isFirstAttackOnEnemy()) {
             playerChampion.setFirstAttackOnEnemy(false);
+        }
+    }
+    
+    // Helper method to execute a single auto attack hit (primary or bonus)
+    private void executeAutoAttackHit(Champions.AutoAttack autoAttack, Champion attacker, Champion defender, StringBuilder message, boolean isBonusAuto) {
+        if (autoAttack.doesHit(attacker, defender)) {
+            int damage = autoAttack.calculateDamage(attacker, isBonusAuto);
+            
+            // Apply damage
+            defender.takeDamage(damage);
+            if (isBonusAuto) {
+                message.append("\nBonus auto dealt ").append(damage).append(" damage!");
+            } else {
+                message.append("\nDealt ").append(damage).append(" damage!");
+            }
+            
+            // Apply lifesteal healing (full lifesteal even on bonus autos)
+            int lifestealHeal = autoAttack.calculateLifesteal(damage, attacker);
+            if (lifestealHeal > 0) {
+                int oldHp = attacker.getCurrentHp();
+                attacker.setCurrentHp(oldHp + lifestealHeal);
+                message.append("\n").append(attacker.getName()).append(" healed ").append(lifestealHeal).append(" HP from lifesteal!");
+            }
+            
+            // Trigger passives that activate on attack (only on primary auto to prevent double triggers)
+            if (!isBonusAuto) {
+                StringBuilder attackPassiveMessage = new StringBuilder();
+                handlePassiveTrigger(attacker, Champions.Passive.PassiveType.ON_ATTACK, damage, attackPassiveMessage);
+                if (attackPassiveMessage.length() > 0) {
+                    message.append(attackPassiveMessage);
+                }
+                
+                // Trigger enemy passives that activate on being damaged
+                StringBuilder damagedPassiveMessage = new StringBuilder();
+                handlePassiveTrigger(defender, Champions.Passive.PassiveType.ON_DAMAGED, damage, damagedPassiveMessage);
+                if (damagedPassiveMessage.length() > 0) {
+                    message.append(damagedPassiveMessage);
+                }
+            }
+            
+            // Check for critical hit message (both primary and bonus can crit)
+            boolean wasCrit = attacker.getTotalCritChance() > 0 && damage > (isBonusAuto ? attacker.getTotalAD() * 0.4 : attacker.getTotalAD());
+            if (wasCrit) {
+                message.append("\nCritical hit!");
+                // Trigger critical hit passives (only on primary auto)
+                if (!isBonusAuto) {
+                    StringBuilder critPassiveMessage = new StringBuilder();
+                    handlePassiveTrigger(attacker, Champions.Passive.PassiveType.ON_CRITICAL, damage, critPassiveMessage);
+                    if (critPassiveMessage.length() > 0) {
+                        message.append(critPassiveMessage);
+                    }
+                }
+            }
+        } else {
+            if (isBonusAuto) {
+                message.append("\n").append(attacker.getName()).append("'s bonus attack missed!");
+            } else {
+                message.append("\n").append(attacker.getName()).append("'s attack missed!");
+            }
         }
     }
     
@@ -1304,7 +1409,7 @@ public class BattleManager {
         
         // Check if AI is stunned
         if (isChampionStunned(wildChampion)) {
-            battleMessage = "Wild " + wildChampion.getName() + " is stunned and cannot act!" + statusMessage.toString();
+            addEnemyMessage("Wild " + wildChampion.getName() + " is stunned and cannot act!" + statusMessage.toString());
             playerTurn = true; // Switch to player turn
             battleState = BattleState.MAIN_MENU;
             return;
@@ -1389,7 +1494,7 @@ public class BattleManager {
             // Trigger turn-based passives
             handlePassiveTrigger(wildChampion, Champions.Passive.PassiveType.EVERY_N_TURNS, 0, message);
             
-            battleMessage = message.toString();
+            addEnemyMessage(message.toString());
             messageTimer = 120;
             
             // Set first attack flag to false after first attack
@@ -1397,7 +1502,7 @@ public class BattleManager {
                 wildChampion.setFirstAttackOnEnemy(false);
             }
         } else {
-            battleMessage = "Wild " + wildChampion.getName() + " has no moves left!";
+            addEnemyMessage("Wild " + wildChampion.getName() + " has no moves left!");
             messageTimer = 90;
         }
         
@@ -1997,70 +2102,120 @@ public class BattleManager {
         g2.setStroke(new java.awt.BasicStroke(2));
         g2.drawRoundRect(textBoxX, textBoxY, textBoxWidth, textBoxHeight, 15, 15);
         
-        // Determine what text to show
-        String displayText = battleMessage;
-        if (displayText.isEmpty()) {
-            switch (battleState) {
-                case MAIN_MENU:
-                    displayText = "What will " + playerChampion.getName() + " do?";
-                    break;
-                case MOVE_SELECTION:
-                    displayText = "Choose a move for " + playerChampion.getName() + ".";
-                    break;
-                case EXECUTING:
-                    displayText = "Battle in progress...";
-                    break;
-                case BATTLE_END:
-                    displayText = "Battle ended.";
-                    break;
-                default:
-                    displayText = "...";
-                    break;
-            }
-        }
-        
-        // Draw battle text
+        // Draw scrollable battle text
         g2.setFont(g2.getFont().deriveFont(14f));
         g2.setColor(Color.WHITE);
         
-        // Handle line breaks and word wrap, limiting to 5 lines maximum
-        String[] lines = displayText.split("\n");
-        int lineY = textBoxY + 25;
+        // Calculate how many lines we can display
         int lineHeight = 18;
-        int maxLines = 5;
-        int linesDrawn = 0;
+        int startY = textBoxY + 25;
+        int availableHeight = textBoxHeight - 60; // Leave space for U/I buttons
+        maxVisibleLines = availableHeight / lineHeight;
         
-        for (String line : lines) {
-            if (linesDrawn >= maxLines) break; // Limit to 5 lines
-            
-            // Word wrap each line to fit in the text box
-            String[] words = line.split(" ");
-            StringBuilder currentLine = new StringBuilder();
-            
-            for (String word : words) {
-                if (linesDrawn >= maxLines) break; // Limit to 5 lines
-                
-                String testLine = currentLine.length() == 0 ? word : currentLine + " " + word;
-                int textWidth = g2.getFontMetrics().stringWidth(testLine);
-                
-                if (textWidth > textBoxWidth - 20 && currentLine.length() > 0) {
-                    // Draw current line and start new line
-                    g2.drawString(currentLine.toString(), textBoxX + 10, lineY);
-                    lineY += lineHeight;
-                    linesDrawn++;
-                    currentLine = new StringBuilder(word);
-                } else {
-                    currentLine = new StringBuilder(testLine);
-                }
-            }
-            
-            // Draw the last part of this line
-            if (currentLine.length() > 0 && linesDrawn < maxLines) {
-                g2.drawString(currentLine.toString(), textBoxX + 10, lineY);
-                lineY += lineHeight;
-                linesDrawn++;
+        // Add default text if no messages exist
+        if (battleMessages.isEmpty()) {
+            switch (battleState) {
+                case MAIN_MENU:
+                    addBattleMessage("What will " + playerChampion.getName() + " do?");
+                    break;
+                case MOVE_SELECTION:
+                    addBattleMessage("Choose a move for " + playerChampion.getName() + ".");
+                    break;
+                case EXECUTING:
+                    addBattleMessage("Battle in progress...");
+                    break;
+                case BATTLE_END:
+                    addBattleMessage("Battle ended.");
+                    break;
+                default:
+                    addBattleMessage("...");
+                    break;
             }
         }
+        
+        // Draw visible messages with scrolling
+        int totalLines = battleMessages.size();
+        int startIndex = Math.max(0, totalLines - maxVisibleLines - scrollOffset);
+        int endIndex = Math.min(totalLines, startIndex + maxVisibleLines);
+        
+        int currentY = startY;
+        for (int i = startIndex; i < endIndex; i++) {
+            ColoredMessage message = battleMessages.get(i);
+            g2.setColor(message.color);
+            g2.drawString(message.text, textBoxX + 10, currentY);
+            currentY += lineHeight;
+        }
+        // Reset color to white for other UI elements
+        g2.setColor(Color.WHITE);
+        
+        // Draw scroll indicator if there are more messages
+        if (totalLines > maxVisibleLines) {
+            String scrollText = "↑↓ Scroll [" + (totalLines - maxVisibleLines - scrollOffset) + "/" + totalLines + "]";
+            g2.setFont(g2.getFont().deriveFont(10f));
+            g2.setColor(new Color(200, 200, 200));
+            g2.drawString(scrollText, textBoxX + textBoxWidth - 120, textBoxY + 15);
+            g2.setFont(g2.getFont().deriveFont(14f));
+            g2.setColor(Color.WHITE);
+        }
+        
+        // Draw champion info instruction buttons at bottom of text box
+        drawChampionInfoButtons(g2, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
+    }
+    
+    private void drawChampionInfoButtons(Graphics2D g2, int textBoxX, int textBoxY, int textBoxWidth, int textBoxHeight) {
+        // Pokemon-style instruction buttons at bottom of text box
+        int buttonWidth = 70;
+        int buttonHeight = 25;
+        int buttonY = textBoxY + textBoxHeight - buttonHeight - 10;
+        int spacing = 10;
+        
+        // Calculate positions for two buttons
+        int totalButtonsWidth = (buttonWidth * 2) + spacing;
+        int startX = textBoxX + (textBoxWidth - totalButtonsWidth) / 2;
+        
+        // U button (Enemy Champion Info)
+        int uButtonX = startX;
+        Color uButtonColor = showEnemyInfoPopup ? new Color(255, 215, 0) : new Color(65, 105, 170);
+        Color uTextColor = showEnemyInfoPopup ? Color.BLACK : Color.WHITE;
+        drawPokemonStyleButton(g2, "U: Enemy", uButtonX, buttonY, buttonWidth, buttonHeight, uButtonColor, uTextColor, showEnemyInfoPopup);
+        
+        // I button (Your Champion Info)  
+        int iButtonX = startX + buttonWidth + spacing;
+        Color iButtonColor = showPlayerInfoPopup ? new Color(255, 215, 0) : new Color(65, 105, 170);
+        Color iTextColor = showPlayerInfoPopup ? Color.BLACK : Color.WHITE;
+        drawPokemonStyleButton(g2, "I: Yours", iButtonX, buttonY, buttonWidth, buttonHeight, iButtonColor, iTextColor, showPlayerInfoPopup);
+    }
+    
+    private void drawPokemonStyleButton(Graphics2D g2, String text, int x, int y, int width, int height, Color bgColor, Color textColor, boolean selected) {
+        // Professional Pokemon-style button design matching champion details UI
+        
+        // Button background with gradient
+        java.awt.GradientPaint buttonGradient = new java.awt.GradientPaint(
+            x, y, selected ? bgColor.brighter() : bgColor,
+            x, y + height, selected ? bgColor : bgColor.darker()
+        );
+        g2.setPaint(buttonGradient);
+        g2.fillRoundRect(x, y, width, height, 12, 12);
+        
+        // Button border
+        g2.setColor(selected ? new Color(255, 215, 0) : new Color(180, 190, 205));
+        g2.setStroke(new BasicStroke(selected ? 2 : 1));
+        g2.drawRoundRect(x, y, width, height, 12, 12);
+        
+        // Selection highlight
+        if (selected) {
+            g2.setColor(new Color(255, 255, 255, 100));
+            g2.setStroke(new BasicStroke(1));
+            g2.drawRoundRect(x + 2, y + 2, width - 4, height - 4, 10, 10);
+        }
+        
+        // Button text
+        g2.setFont(new Font("Arial", Font.BOLD, 11));
+        g2.setColor(textColor);
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = x + (width - fm.stringWidth(text)) / 2;
+        int textY = y + (height - fm.getHeight()) / 2 + fm.getAscent();
+        g2.drawString(text, textX, textY);
     }
     
     private void drawLevelUpStatsBox(Graphics2D g2) {
@@ -3016,7 +3171,7 @@ public class BattleManager {
         // Reset battle state
         battleState = BattleState.MAIN_MENU;
         gp.ui.battleNum = 0; // Reset cursor to attack option
-        battleMessage = "";
+        clearBattleMessages();
         messageTimer = 0;
         
         // Reset level up display

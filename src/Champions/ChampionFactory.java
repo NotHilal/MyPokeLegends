@@ -78,7 +78,7 @@ public class ChampionFactory {
 		ResourceType resourceType = ResourceType.valueOf(template.resourceType.toUpperCase());
 		
 		// Create champion with all data from JSON
-		return new Champion(
+		Champion champion = new Champion(
 			template.name, 
 			template.imageName,
 			template.region,
@@ -101,6 +101,13 @@ public class ChampionFactory {
 			resourceType,
 			template.stats.mana
 		);
+		
+		// TESTING: Give Aatrox 1.5 attack speed to test bonus auto system
+		if ("Aatrox".equals(champion.getName())) {
+			champion.setBaseAttackSpeedForTesting(1.5);
+		}
+		
+		return champion;
 	}
 	
 	/**

@@ -387,6 +387,16 @@ public class KeyHandler implements KeyListener{
 		}
 		
 		// TAB key for switching modes - handled per state
+		
+		// Scroll controls for battle text (available in all battle states)
+		if (gp.gameState == gp.battleState) {
+		    if (code == KeyEvent.VK_UP) {
+		        gp.battleManager.scrollTextUp();
+		    }
+		    if (code == KeyEvent.VK_DOWN) {
+		        gp.battleManager.scrollTextDown();
+		    }
+		}
 
 		// Champions STATE
 				else if(gp.gameState==gp.championMenuState) {

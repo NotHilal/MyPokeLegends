@@ -694,7 +694,7 @@ public class ChampionDetailsPage {
                                  col1X, currentY, colWidth, new Color(33, 150, 243));
         currentY += statRowHeight;
         
-        drawProfessionalStatItem(g2, "Attack Speed", champion.getTotalAttackSpeed() + "%", 
+        drawProfessionalStatItem(g2, "Attack Speed", champion.getTotalAttackSpeedFormatted(), 
                                  col1X, currentY, colWidth, new Color(255, 152, 0));
         currentY += statRowHeight;
         
