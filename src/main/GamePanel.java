@@ -91,6 +91,8 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int transitionState = 6; // New transition state
 	public final int championMenuState = 7; // New state for the champion menu
 	public final int dexState = 8; // New state for the Dex
+	public final int roleTeamState = 9; // New role-based team overview
+	public final int championDetailsState = 10; // New individual champion details
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -102,6 +104,8 @@ public class GamePanel extends JPanel implements Runnable{
 	public BattleManager battleManager;
 	
 	public Dex dex; // Declare Dex
+	public RoleTeamPage roleTeamPage; // New role-based team page
+	public ChampionDetailsPage championDetailsPage; // New champion details page
 	
 	
 	public GamePanel() {
@@ -112,6 +116,8 @@ public class GamePanel extends JPanel implements Runnable{
 		this.setFocusable(true);
 		this.championMenu = new ChampionMenu(this);
 		this.dex = new Dex(this);
+		this.roleTeamPage = new RoleTeamPage(this);
+		this.championDetailsPage = new ChampionDetailsPage(this);
 
 	    // Add mouse listener for detecting clicks
 	    this.addMouseListener(new MouseAdapter() {
@@ -206,6 +212,16 @@ public class GamePanel extends JPanel implements Runnable{
 	    if (gameState == battleState) {
 	        // Update the battle logic
 	        battleManager.update();
+	    }
+	    
+	    if (gameState == roleTeamState) {
+	        // Handle input for role team page
+	        roleTeamPage.handleInput();
+	    }
+	    
+	    if (gameState == championDetailsState) {
+	        // Handle input for champion details page
+	        championDetailsPage.handleInput();
 	    }
 
 	    if (gameState == transitionState) {
@@ -302,6 +318,17 @@ public class GamePanel extends JPanel implements Runnable{
 	        dex.draw(g2);
 	    }
 	    
+	    else if (gameState == roleTeamState) {
+	        roleTeamPage.draw(g2);
+	    }
+	    
+	    else if (gameState == championDetailsState) {
+	        // Draw the team overview first, then the champion details popup on top
+	        // This replicates the combat behavior where background is drawn first
+	        roleTeamPage.draw(g2);
+	        championDetailsPage.draw(g2);
+	    }
+	    
 	    else {
 	        // PLAY STATE
 	        // TILE
@@ -396,7 +423,18 @@ public class GamePanel extends JPanel implements Runnable{
 
 	public void openChampions() {
 		ui.currentDialog="Action done!\nYou openned the Champions list!";
-		gameState = championMenuState; // Switch to champion menu state
+		
+		// Reset all key states to prevent accidental navigation
+		keyH.interctPressed = false;
+		keyH.upPressed = false;
+		keyH.downPressed = false;
+		keyH.gPressed = false;
+		keyH.tabPressed = false;
+		
+		// Reset the role team page to prevent immediate champion details opening
+		roleTeamPage.resetJustEntered();
+		
+		gameState = roleTeamState; // Switch to role team overview
 	}
 	public void openBag() {
 		gameState = dialogState;

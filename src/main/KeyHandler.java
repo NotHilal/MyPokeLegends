@@ -8,6 +8,7 @@ public class KeyHandler implements KeyListener{
 
 	public boolean upPressed, downPressed, leftPressed, rightPressed,f2Pressed, f3Pressed, interctPressed, enterPressed;
 	public boolean num1Pressed = false, num2Pressed = false, num3Pressed = false, num4Pressed = false;
+	public boolean gPressed = false, tabPressed = false;
 	GamePanel gp;
 	// DEBUG 
 	public boolean checkDrawTime=false;
@@ -375,14 +376,58 @@ public class KeyHandler implements KeyListener{
 		if (code == KeyEvent.VK_4) {
 		    num4Pressed = true;
 		}
+		
+		// G key for champion selection
+		if (code == KeyEvent.VK_G) {
+		    gPressed = true;
+		}
+		
+		// TAB key for switching modes
+		if (code == KeyEvent.VK_TAB) {
+		    tabPressed = true;
+		}
 
 		// Champions STATE
 				else if(gp.gameState==gp.championMenuState) {
 					if(code ==KeyEvent.VK_ESCAPE) {
 						
-						gp.gameState = gp.playState;
+						gp.gameState = gp.roleTeamState;
 					}
 				}
+				
+		// Role Team STATE
+		else if(gp.gameState==gp.roleTeamState) {
+			if(code ==KeyEvent.VK_ESCAPE) {
+				gp.gameState = gp.playState;
+			}
+			if(code ==KeyEvent.VK_G) {
+				gPressed = true;
+			}
+			if (code == KeyEvent.VK_W) {
+				upPressed = true;
+			}
+			if (code == KeyEvent.VK_S) {
+				downPressed = true;
+			}
+			if (code == KeyEvent.VK_ENTER) {
+				interctPressed = true;
+			}
+		}
+		
+		// Champion Details STATE
+		else if(gp.gameState==gp.championDetailsState) {
+			if(code ==KeyEvent.VK_ESCAPE) {
+				// Reset key states when returning to role team page
+				interctPressed = false;
+				upPressed = false;
+				downPressed = false;
+				gPressed = false;
+				tabPressed = false;
+				
+				gp.gameState = gp.roleTeamState;
+			}
+			// TAB key handling removed - stats only mode
+		}
 			
 
 		
