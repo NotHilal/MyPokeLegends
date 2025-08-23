@@ -80,6 +80,10 @@ public class Champion {
     private int evolveAt; // Level required for evolution
     private String nextEvolution; // Name of the evolved form
     
+    // Ability Upgrade System
+    private int abilityUpgradeTokens; // Normal tokens available for upgrading basic abilities
+    private int ultimateUpgradeTokens; // Ultimate tokens available for upgrading ultimate abilities
+    
     // Image
     private String imageName;
     
@@ -103,12 +107,16 @@ public class Champion {
         this.speed = speed;
         this.critChance = critChance;
         this.lifesteal = lifesteal;
-        this.currentHp = maxHp;
+        // Current HP will be set to scaled max HP after initialization
         this.evolveAt = evolveAt;
         this.nextEvolution = nextEvolution;
         this.moves = moves;
         this.passive = passive;
         this.championClass = championClass;
+        
+        // Initialize ability upgrade tokens
+        this.abilityUpgradeTokens = 0;
+        this.ultimateUpgradeTokens = 0;
         
         // Resource system
         this.resourceType = resourceType;
@@ -159,6 +167,9 @@ public class Champion {
         this.armorStage = 0;
         this.apStage = 0;
         this.magicResistStage = 0;
+        
+        // Set current HP to scaled max HP (important: do this AFTER all other initialization)
+        this.currentHp = getCurrentMaxHP();
     }
     
     // Constructor without passive (for backward compatibility)
@@ -187,12 +198,16 @@ public class Champion {
         this.speed = speed;
         this.critChance = critChance;
         this.lifesteal = lifesteal;
-        this.currentHp = maxHp;
+        // Current HP will be set to scaled max HP after initialization
         this.evolveAt = evolveAt;
         this.nextEvolution = nextEvolution;
         this.moves = moves;
         this.passive = passive;
         this.championClass = championClass;
+        
+        // Initialize ability upgrade tokens
+        this.abilityUpgradeTokens = 0;
+        this.ultimateUpgradeTokens = 0;
         
         // Resource system with custom mana pool
         this.resourceType = resourceType;
@@ -246,6 +261,9 @@ public class Champion {
         this.armorStage = 0;
         this.apStage = 0;
         this.magicResistStage = 0;
+        
+        // Set current HP to scaled max HP (important: do this AFTER all other initialization)
+        this.currentHp = getCurrentMaxHP();
     }
 
     // Getters and Setters
@@ -256,12 +274,37 @@ public class Champion {
     public int getLevel() {
         return level;
     }
+    
+    // DEBUG: Setter for level (for testing purposes)
+    public void setLevel(int level) {
+        int oldMaxHP = getCurrentMaxHP(); // Get current max HP before level change
+        this.level = level;
+        int newMaxHP = getCurrentMaxHP(); // Get new max HP after level change
+        
+        // Scale current HP proportionally to maintain HP percentage
+        if (oldMaxHP > 0) {
+            double hpPercentage = (double) currentHp / oldMaxHP;
+            currentHp = (int) (newMaxHP * hpPercentage);
+        } else {
+            // If no previous HP, set to full
+            currentHp = newMaxHP;
+        }
+        
+        // Ensure current HP doesn't exceed max HP
+        currentHp = Math.min(currentHp, newMaxHP);
+        
+        // Debug: Log stat changes when level changes
+        System.out.println("=== LEVEL " + level + " STATS FOR " + name.toUpperCase() + " (" + championClass + ") ===");
+        System.out.println("HP: " + currentHp + "/" + getCurrentMaxHP() + " | AD: " + getCurrentAD() + " | AP: " + getCurrentAP());
+        System.out.println("Armor: " + getCurrentArmor() + " | MR: " + getCurrentMagicResist() + " | Speed: " + speed);
+        System.out.println("==============================================");
+    }
 
     public int getCurrentHp() {
         return currentHp;
     }
     public int getMaxHp() {
-        return maxHp;
+        return getCurrentMaxHP();
     }
 
     public List<Move> getMoves() {
@@ -286,6 +329,112 @@ public class Champion {
 
     public int getSpeed() {
         return speed;
+    }
+    
+    // ==================== LEVEL-BASED STAT SCALING ====================
+    
+    /**
+     * Get current max HP based on level scaling
+     */
+    public int getCurrentMaxHP() {
+        return maxHp + ((level - 1) * getHPPerLevel());
+    }
+    
+    /**
+     * Get current AD based on level scaling
+     */
+    public int getCurrentAD() {
+        return AD + (int)((level - 1) * getADPerLevel());
+    }
+    
+    /**
+     * Get current AP based on level scaling
+     */
+    public int getCurrentAP() {
+        return AP + (int)((level - 1) * getAPPerLevel());
+    }
+    
+    /**
+     * Get current armor based on level scaling
+     */
+    public int getCurrentArmor() {
+        return armor + (int)((level - 1) * getArmorPerLevel());
+    }
+    
+    /**
+     * Get current magic resist based on level scaling
+     */
+    public int getCurrentMagicResist() {
+        return magicResist + (int)((level - 1) * 1.25); // All classes: +1.25 MR per level
+    }
+    
+    /**
+     * Get base AP stat for champions who don't have natural AP
+     */
+    private int getBaseAPForClass() {
+        return switch(championClass) {
+            case MAGE -> 60;        // Strong base AP
+            case SUPPORT -> 45;     // Medium base AP  
+            case ASSASSIN -> isAPAssassin() ? 55 : 0; // AP assassins get base AP
+            default -> 0;           // Physical champions get no AP
+        };
+    }
+    
+    // Use centralized growth rates system for cleaner management
+    private ChampionGrowthRates.GrowthRates getGrowthRates() {
+        return ChampionGrowthRates.getGrowthRates(name, championClass);
+    }
+    
+    /**
+     * HP growth per level based on champion-specific rates
+     */
+    private int getHPPerLevel() {
+        return (int) getGrowthRates().hpPerLevel;
+    }
+    
+    /**
+     * AD growth per level based on champion-specific rates
+     */
+    private double getADPerLevel() {
+        return getGrowthRates().adPerLevel;
+    }
+    
+    /**
+     * AP growth per level based on champion-specific rates
+     */
+    private double getAPPerLevel() {
+        return getGrowthRates().apPerLevel;
+    }
+    
+    /**
+     * Armor growth per level based on champion class
+     */
+    /*private double getArmorPerLevel() {
+        return 1.5; // All classes: +1.5 armor per level
+    }*/
+    
+    /**
+     * Armor growth per level based on champion class
+     */
+    private double getArmorPerLevel() {
+        return switch(championClass) {
+            case TANK -> 2.5;      // Tank: ~167 Armor at level 50
+            case FIGHTER -> 2.2;   // Fighter: ~143 Armor at level 50
+            case SUPPORT -> 1.8;   // Support: ~122 Armor at level 50
+            case MAGE -> 1.3;      // Mage: ~85 Armor at level 50
+            case ASSASSIN -> 1.3;  // Assassin: ~85 Armor at level 50
+            case MARKSMAN -> 1.3;  // Marksman: ~85 Armor at level 50
+        };
+    }
+    
+    /**
+     * Check if this champion is an AP-based assassin
+     */
+    private boolean isAPAssassin() {
+        return switch(name.toLowerCase()) {
+            case "akali", "katarina", "diana", "fizz", "kassadin", "leblanc", "sylas" -> true;
+            default -> false;
+        };
     }
     
     // getCritChance() and getLifesteal() enhanced versions are below
@@ -502,6 +651,17 @@ public class Champion {
         level++;
         exp = 0; // Reset experience for the next level
         
+        // Grant ability upgrade tokens every 5 levels, except level 35 gives ultimate token
+        if (level % 5 == 0) {
+            if (level == 35) {
+                ultimateUpgradeTokens++;
+                System.out.println(name + " gained an Ultimate Upgrade Token! (Total: " + ultimateUpgradeTokens + ")");
+            } else {
+                abilityUpgradeTokens++;
+                System.out.println(name + " gained an Ability Upgrade Token! (Total: " + abilityUpgradeTokens + ")");
+            }
+        }
+        
         // Define stat increases
         int hpInc = 5;
         int adInc = 2;
@@ -554,6 +714,105 @@ public class Champion {
 	public String getRole2() {
 		
 		return role2;
+	}
+	
+	// ==================== ABILITY UPGRADE SYSTEM ====================
+	
+	public int getAbilityUpgradeTokens() {
+	    return abilityUpgradeTokens;
+	}
+	
+	public int getUltimateUpgradeTokens() {
+	    return ultimateUpgradeTokens;
+	}
+	
+	public boolean canUpgradeAbility(int moveIndex) {
+	    if (moves == null || moveIndex < 0 || moveIndex >= moves.size()) {
+	        return false;
+	    }
+	    
+	    Move move = moves.get(moveIndex);
+	    
+	    // Check if ability can be upgraded further
+	    if (!move.canUpgrade()) {
+	        return false;
+	    }
+	    
+	    // Check if we have the right type of token
+	    if (move.isUltimate()) {
+	        return ultimateUpgradeTokens >= 1;
+	    } else {
+	        return abilityUpgradeTokens >= 1;
+	    }
+	}
+	
+	public boolean upgradeAbility(int moveIndex) {
+	    if (!canUpgradeAbility(moveIndex)) {
+	        return false;
+	    }
+	    
+	    Move move = moves.get(moveIndex);
+	    
+	    // Spend the appropriate token
+	    if (move.isUltimate()) {
+	        ultimateUpgradeTokens--;
+	    } else {
+	        abilityUpgradeTokens--;
+	    }
+	    
+	    // Apply upgrade bonuses and increment upgrade level
+	    grantAbilityUpgradeBonus(move);
+	    move.incrementUpgradeLevel();
+	    
+	    String tokenType = move.isUltimate() ? "Ultimate" : "Normal";
+	    int remainingTokens = move.isUltimate() ? ultimateUpgradeTokens : abilityUpgradeTokens;
+	    
+	    System.out.println(name + " upgraded " + move.getName() + " to upgrade level " + move.getUpgradeLevel() + "!");
+	    System.out.println("Remaining " + tokenType + " tokens: " + remainingTokens);
+	    
+	    return true;
+	}
+	
+	private void grantAbilityUpgradeBonus(Move move) {
+	    // Grant damage bonuses directly to the ability
+	    if (move.isUltimate()) {
+	        // Ultimate upgrades give bigger damage bonuses
+	        int flatDamage = 40;
+	        double ratioBonus = 0.10; // 10% ratio bonus
+	        
+	        if (move.getType().equals("Physical")) {
+	            move.addUpgradeBonus(flatDamage, ratioBonus, 0.0);
+	            System.out.println(name + "'s " + move.getName() + " gained ultimate upgrade bonuses! (+" + 
+	                             flatDamage + " damage, +" + (int)(ratioBonus*100) + "% AD ratio)");
+	        } else if (move.getType().equals("Magic")) {
+	            move.addUpgradeBonus(flatDamage, 0.0, ratioBonus);
+	            System.out.println(name + "'s " + move.getName() + " gained ultimate upgrade bonuses! (+" + 
+	                             flatDamage + " damage, +" + (int)(ratioBonus*100) + "% AP ratio)");
+	        }
+	        
+	        // Small champion stat bonus for ultimates
+	        maxHp += 10;
+	        currentHp += 10;
+	        
+	    } else {
+	        // Basic ability upgrades give smaller damage bonuses
+	        int flatDamage = 12;
+	        double ratioBonus = 0.08; // 8% ratio bonus
+	        
+	        if (move.getType().equals("Physical")) {
+	            move.addUpgradeBonus(flatDamage, ratioBonus, 0.0);
+	            System.out.println(name + "'s " + move.getName() + " gained upgrade bonuses! (+" + 
+	                             flatDamage + " damage, +" + (int)(ratioBonus*100) + "% AD ratio)");
+	        } else if (move.getType().equals("Magic")) {
+	            move.addUpgradeBonus(flatDamage, 0.0, ratioBonus);
+	            System.out.println(name + "'s " + move.getName() + " gained upgrade bonuses! (+" + 
+	                             flatDamage + " damage, +" + (int)(ratioBonus*100) + "% AP ratio)");
+	        }
+	        
+	        // Small champion stat bonus for basic abilities
+	        maxHp += 5;
+	        currentHp += 5;
+	    }
 	}
 
     // Getter for Abilities
@@ -864,7 +1123,7 @@ public class Champion {
     }
     
     public int getEffectiveAD() {
-        int baseAD = (int) (AD * getAttackAPMultiplier(attackStage));
+        int baseAD = (int) (getCurrentAD() * getAttackAPMultiplier(attackStage));
         
         // Apply attack boost/reduction status effects
         StatusEffect attackBoost = getStatusEffect(StatusEffect.StatusType.ATTACK_BOOST);
@@ -881,7 +1140,7 @@ public class Champion {
     }
     
     public int getEffectiveAP() {
-        int baseAP = (int) (AP * getAttackAPMultiplier(apStage));
+        int baseAP = (int) (getCurrentAP() * getAttackAPMultiplier(apStage));
         
         // Apply AP boost/reduction status effects
         StatusEffect apBoost = getStatusEffect(StatusEffect.StatusType.AP_BOOST);
@@ -898,7 +1157,7 @@ public class Champion {
     }
     
     public int getEffectiveArmor() {
-        int baseArmor = (int) (armor * getAttackAPMultiplier(armorStage));
+        int baseArmor = (int) (getCurrentArmor() * getAttackAPMultiplier(armorStage));
         
         // Apply armor boost/reduction status effects
         StatusEffect armorBoost = getStatusEffect(StatusEffect.StatusType.ARMOR_BOOST);
@@ -915,7 +1174,7 @@ public class Champion {
     }
     
     public int getEffectiveMagicResist() {
-        int baseMR = (int) (magicResist * getAttackAPMultiplier(magicResistStage));
+        int baseMR = (int) (getCurrentMagicResist() * getAttackAPMultiplier(magicResistStage));
         
         // Apply magic resist boost/reduction status effects
         StatusEffect mrBoost = getStatusEffect(StatusEffect.StatusType.MAGIC_RESIST_BOOST);

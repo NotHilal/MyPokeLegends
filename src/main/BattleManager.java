@@ -79,6 +79,9 @@ public class BattleManager {
     private boolean aiMovesCacheValid = false;
     private int lastAIResource = -1;
     
+    // Run away attempt tracking
+    private int runAttempts = 0;
+    
     // Turn priority caching system
     private enum TurnOrder { PLAYER_FIRST, WILD_FIRST, SPEED_CHECK_NEEDED }
     private TurnOrder baseTurnOrder = TurnOrder.SPEED_CHECK_NEEDED;
@@ -115,10 +118,24 @@ public class BattleManager {
         this.playerTurn = determineFirstTurn();
         this.selectedMoveIndex = 0;
         clearBattleMessages();
+        
+        // DEBUG: Test level scaling system
+        int testPlayerLevel = 1 + random.nextInt(50); // 1-50
+        int testWildLevel = 1 + random.nextInt(50); // 1-50
+        
+        playerChampion.setLevel(testPlayerLevel);
+        wildChampion.setLevel(testWildLevel);
+        
+        System.out.println("=== BATTLE SETUP ===");
+        System.out.println("Player " + playerChampion.getName() + " Level: " + testPlayerLevel);
+        System.out.println("Wild " + wildChampion.getName() + " Level: " + testWildLevel);
+        System.out.println("===================");
+        
         addBattleMessage("A wild " + wildChampion.getName() + " appeared!");
         this.messageTimer = 120; // Display message for 2 seconds at 60fps
         this.xpAwarded = false; // Reset XP award flag
         this.battleEndMessageShown = false; // Reset battle end message flag
+        this.runAttempts = 0; // Reset run attempts for new battle
         
         // Reset passive states for new battle
         playerChampion.resetPassiveStates();
@@ -992,8 +1009,13 @@ public class BattleManager {
                     messageTimer = 60;
                     battleState = BattleState.BATTLE_END;
                 } else {
+                    runAttempts++; // Increment failed attempts
                     addBattleMessage("Couldn't escape!");
                     messageTimer = 60;
+                    
+                    // Failed escape counts as player's turn - now it's enemy's turn
+                    playerTurn = false;
+                    battleState = BattleState.EXECUTING;
                 }
             }
         }
@@ -1202,6 +1224,15 @@ public class BattleManager {
         // 4. Random chance for variety
         
         if (availableMoves.isEmpty()) {
+            // Debug: Show why no moves are available
+            System.out.println("=== AI AUTO ATTACK DEBUG ===");
+            System.out.println(wildChampion.getName() + " has " + wildChampion.getCurrentResource() + "/" + wildChampion.getMaxResource() + " " + wildChampion.getResourceName());
+            System.out.println("Available moves: " + availableMoves.size());
+            for (Move move : wildChampion.getMoves()) {
+                boolean canUse = wildChampion.canUseMove(move);
+                System.out.println("- " + move.getName() + " (Cost: " + move.getManaCost() + ") = " + (canUse ? "USABLE" : "NOT USABLE"));
+            }
+            System.out.println("============================");
             return true; // Force auto attack if no moves available
         }
         
@@ -2021,7 +2052,7 @@ public class BattleManager {
         }
         
         // League of Legends damage formula: Base damage + ratio scaling
-        double baseDamage = move.getBaseDamage(); // Level-scaling base damage
+        double baseDamage = move.getBaseDamage(attacker.getLevel()); // Level-scaling base damage
         double adScaling = 0.0;
         double apScaling = 0.0;
         
@@ -2110,10 +2141,49 @@ public class BattleManager {
     }
     
     private boolean attemptRun() {
-        // Base 50% run chance, modified by effective speed difference
+        int playerLevel = playerChampion.getLevel();
+        int wildLevel = wildChampion.getLevel();
+        int levelDiff = playerLevel - wildLevel;
+        
+        // 10+ level advantage = automatic escape
+        if (levelDiff >= 10) {
+            return true; // 100% escape chance
+        }
+        
+        // Calculate base chance from level difference
+        int baseChance;
+        if (levelDiff >= 1 && levelDiff <= 6) {
+            // 1-6 levels higher: 78-85% range
+            baseChance = 78 + levelDiff; // Level 1 = 79%, Level 6 = 84%
+        } else if (levelDiff >= -2 && levelDiff <= 0) {
+            // Similar level (-2 to 0): 70-75% range  
+            baseChance = 75 + levelDiff; // Level -2 = 73%, Level 0 = 75%
+        } else {
+            // Lower level (-3 and below): MUCH harsher penalties
+            baseChance = 75 + (levelDiff * 8); // -3 = 51%, -5 = 35%, -7 = 19%, -10 = -5%
+        }
+        
+        // Speed modifier (secondary factor)
         int speedDiff = playerChampion.getEffectiveSpeed() - wildChampion.getEffectiveSpeed();
-        int runChance = 50 + (speedDiff / 4); // +/- 1% per 4 speed difference
-        runChance = Math.max(10, Math.min(90, runChance)); // Clamp between 10-90%
+        int speedBonus = speedDiff / 3; // +/-1% per 3 speed difference
+        speedBonus = Math.max(-10, Math.min(10, speedBonus)); // Cap at ±10%
+        
+        // Attempt bonus: +8% per failed attempt for all scenarios
+        int attemptBonus = runAttempts * 8; // 0, 8%, 16%, 24%, etc.
+        
+        // Final calculation - apply minimum to base chance first, then add bonuses
+        int protectedBaseChance = Math.max(25, baseChance); // Protect base chance with 25% minimum
+        int runChance = protectedBaseChance + speedBonus + attemptBonus;
+        runChance = Math.min(95, runChance); // Apply 95% maximum only
+        
+        // Debug logging for development
+        System.out.println("=== ESCAPE ATTEMPT DEBUG ===");
+        System.out.println("Player Level: " + playerLevel + " | Wild Level: " + wildLevel + " | Level Diff: " + levelDiff);
+        System.out.println("Attempt Number: " + (runAttempts + 1));
+        System.out.println("Raw Base: " + baseChance + "% | Protected Base: " + protectedBaseChance + "%");
+        System.out.println("Speed Bonus: " + speedBonus + "% | Attempt Bonus: " + attemptBonus + "%");
+        System.out.println("Final Escape Chance: " + runChance + "%");
+        System.out.println("=============================");
         
         return random.nextInt(100) < runChance;
     }

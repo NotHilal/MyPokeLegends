@@ -38,6 +38,12 @@ public class Move {
     private boolean isUltimate; // true if this is an ultimate (R) move
     private int ultimateCooldown; // Current cooldown turns remaining
     private static final int ULTIMATE_COOLDOWN_TURNS = 4; // 4 turns cooldown for ultimates
+    
+    // Upgrade bonus system
+    private int upgradeDamageBonus; // Flat damage bonus from upgrades
+    private double upgradeAdRatioBonus; // AD ratio bonus from upgrades
+    private double upgradeApRatioBonus; // AP ratio bonus from upgrades
+    private int upgradeLevel; // Number of times this ability has been upgraded (0-3 for basic, 0-1 for ultimate)
 
     // Legacy Constructor (for backward compatibility)
     public Move(String name, String type, int power, int accuracy, int manaCost, String effect, int effectChance) {
@@ -69,6 +75,12 @@ public class Move {
         this.targetsSelf = true; // Default to self-targeting
         this.isUltimate = false; // Default to not ultimate
         this.ultimateCooldown = 0;
+        
+        // Initialize upgrade bonuses
+        this.upgradeDamageBonus = 0;
+        this.upgradeAdRatioBonus = 0.0;
+        this.upgradeApRatioBonus = 0.0;
+        this.upgradeLevel = 0;
     }
     
     // League of Legends style constructor
@@ -102,6 +114,12 @@ public class Move {
         this.apStageChange = 0;
         this.magicResistStageChange = 0;
         this.targetsSelf = false;
+        
+        // Initialize upgrade bonuses
+        this.upgradeDamageBonus = 0;
+        this.upgradeAdRatioBonus = 0.0;
+        this.upgradeApRatioBonus = 0.0;
+        this.upgradeLevel = 0;
     }
     
     // Constructor with stat stage changes
@@ -116,6 +134,12 @@ public class Move {
         this.targetsSelf = targetsSelf;
         this.isUltimate = false; // Default to not ultimate
         this.ultimateCooldown = 0;
+        
+        // Initialize upgrade bonuses
+        this.upgradeDamageBonus = 0;
+        this.upgradeAdRatioBonus = 0.0;
+        this.upgradeApRatioBonus = 0.0;
+        this.upgradeLevel = 0;
     }
     
     // Constructor for ultimate moves
@@ -123,6 +147,12 @@ public class Move {
         this(name, type, power, accuracy, manaCost, effect, effectChance);
         this.isUltimate = isUltimate;
         this.ultimateCooldown = 0;
+        
+        // Initialize upgrade bonuses
+        this.upgradeDamageBonus = 0;
+        this.upgradeAdRatioBonus = 0.0;
+        this.upgradeApRatioBonus = 0.0;
+        this.upgradeLevel = 0;
     }
     
     // Convenience constructor with difficulty-based accuracy
@@ -180,12 +210,31 @@ public class Move {
         return baseDamages[currentLevel - 1]; // Convert 1-based level to 0-based index
     }
     
+    // Get base damage with exponential champion level scaling for Pokémon-style pacing
+    public int getBaseDamage(int championLevel) {
+        int baseDamage = baseDamages[currentLevel - 1];
+        
+        // Exponential scaling for authentic Pokémon feel
+        double levelMultiplier;
+        if (championLevel <= 15) {
+            levelMultiplier = 1.0; // Slow, strategic early game (2% per level)
+        } else if (championLevel <= 35) {
+            levelMultiplier = 1.5; // Medium-paced mid game (3% per level)
+        } else {
+            levelMultiplier = 2.0; // Fast, explosive late game (4% per level)
+        }
+        
+        double championScaling = 1.0 + ((championLevel - 1) * 0.02 * levelMultiplier);
+        // Add flat upgrade bonus
+        return (int) (baseDamage * championScaling) + upgradeDamageBonus;
+    }
+    
     public double getAdRatio() {
-        return adRatio;
+        return adRatio + upgradeAdRatioBonus;
     }
     
     public double getApRatio() {
-        return apRatio;
+        return apRatio + upgradeApRatioBonus;
     }
     
     public int getCurrentLevel() {
@@ -392,5 +441,43 @@ public class Move {
     
     public Move withStealth(int duration) {
         return addSelfStatusEffect(StatusEffect.createStealth(duration));
+    }
+    
+    // ==================== UPGRADE BONUS SYSTEM ====================
+    
+    public void addUpgradeBonus(int flatDamage, double adRatioBonus, double apRatioBonus) {
+        this.upgradeDamageBonus += flatDamage;
+        this.upgradeAdRatioBonus += adRatioBonus;
+        this.upgradeApRatioBonus += apRatioBonus;
+    }
+    
+    public int getUpgradeDamageBonus() {
+        return upgradeDamageBonus;
+    }
+    
+    public double getUpgradeAdRatioBonus() {
+        return upgradeAdRatioBonus;
+    }
+    
+    public double getUpgradeApRatioBonus() {
+        return upgradeApRatioBonus;
+    }
+    
+    public int getUpgradeLevel() {
+        return upgradeLevel;
+    }
+    
+    public int getMaxUpgradeLevel() {
+        return isUltimate ? 1 : 3; // Ultimates: 1 upgrade, Basic abilities: 3 upgrades
+    }
+    
+    public boolean canUpgrade() {
+        return upgradeLevel < getMaxUpgradeLevel();
+    }
+    
+    public void incrementUpgradeLevel() {
+        if (canUpgrade()) {
+            upgradeLevel++;
+        }
     }
 }

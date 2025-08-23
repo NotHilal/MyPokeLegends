@@ -791,11 +791,63 @@ public class ChampionDetailsPage {
             currentY += 70; // Reduced spacing
         }
         
-        // Active abilities section header
+        // Active abilities section header with token info
         if (champion.getMoves() != null && !champion.getMoves().isEmpty()) {
             g2.setFont(new Font("Arial", Font.BOLD, 14));
             g2.setColor(new Color(80, 120, 180));
             g2.drawString("ACTIVE ABILITIES", x + 20, currentY);
+            
+            // Pretty compact token display next to title
+            int tokenStartX = x + 200;
+            int tokenY = currentY - 3;
+            
+            // Ability tokens badge
+            int abilityTokens = champion.getAbilityUpgradeTokens();
+            String abilityText = abilityTokens + " Ability Token";
+            g2.setFont(new Font("Arial", Font.BOLD, 11));
+            FontMetrics fm = g2.getFontMetrics();
+            int abilityWidth = fm.stringWidth(abilityText) + 12;
+            
+            // Ability token background (green)
+            java.awt.GradientPaint abilityBg = new java.awt.GradientPaint(
+                tokenStartX, tokenY - 8, new Color(76, 175, 80, 180),
+                tokenStartX, tokenY + 8, new Color(56, 142, 60, 180)
+            );
+            g2.setPaint(abilityBg);
+            g2.fillRoundRect(tokenStartX, tokenY - 8, abilityWidth, 16, 8, 8);
+            
+            // Ability token border
+            g2.setColor(new Color(129, 199, 132, 200));
+            g2.setStroke(new BasicStroke(1));
+            g2.drawRoundRect(tokenStartX, tokenY - 8, abilityWidth, 16, 8, 8);
+            
+            // Ability token text
+            g2.setColor(Color.WHITE);
+            g2.drawString(abilityText, tokenStartX + 6, tokenY + 4);
+            
+            // Ultimate tokens badge
+            int ultimateStartX = tokenStartX + abilityWidth + 8;
+            int ultimateTokens = champion.getUltimateUpgradeTokens();
+            String ultimateText = ultimateTokens + " Ultimate Token";
+            int ultimateWidth = fm.stringWidth(ultimateText) + 12;
+            
+            // Ultimate token background (red)
+            java.awt.GradientPaint ultimateBg = new java.awt.GradientPaint(
+                ultimateStartX, tokenY - 8, new Color(244, 67, 54, 180),
+                ultimateStartX, tokenY + 8, new Color(211, 47, 47, 180)
+            );
+            g2.setPaint(ultimateBg);
+            g2.fillRoundRect(ultimateStartX, tokenY - 8, ultimateWidth, 16, 8, 8);
+            
+            // Ultimate token border
+            g2.setColor(new Color(255, 138, 128, 200));
+            g2.setStroke(new BasicStroke(1));
+            g2.drawRoundRect(ultimateStartX, tokenY - 8, ultimateWidth, 16, 8, 8);
+            
+            // Ultimate token text
+            g2.setColor(Color.WHITE);
+            g2.drawString(ultimateText, ultimateStartX + 6, tokenY + 4);
+            
             currentY += 25; // Reduced spacing
             
             // Calculate available space and ability height
@@ -1098,8 +1150,11 @@ public class ChampionDetailsPage {
             g2.setFont(new Font("Arial", Font.PLAIN, 9));
             g2.setColor(new Color(255, 255, 255, 200));
             String typeIcon = move.getType().equals("Physical") ? "⚔" : "✨";
-            String stats = String.format("%s PWR: %d | COST: %d", 
-                                        typeIcon, move.getPower(), move.getManaCost());
+            // Show scaled damage based on champion level
+            int scaledPower = selectedChampion != null ? move.getBaseDamage(selectedChampion.getLevel()) : move.getPower();
+            String stats = String.format("%s PWR: %d | COST: %d | UPG: %d/%d", 
+                                        typeIcon, scaledPower, move.getManaCost(),
+                                        move.getUpgradeLevel(), move.getMaxUpgradeLevel());
             
             if (move.isUltimate() && move.isUltimateOnCooldown()) {
                 stats += " | CD: " + move.getUltimateCooldown();
@@ -1114,6 +1169,27 @@ public class ChampionDetailsPage {
             g2.setFont(new Font("Arial", Font.BOLD, 8));
             g2.setColor(new Color(255, 255, 100));
             g2.drawString("ULT", x + width - 30, y + 15);
+        }
+        
+        // Upgrade available indicator
+        if (height > 50) { // Only show if there's enough space
+            Champion champ = selectedChampion; // Get the selected champion
+            if (champ != null) {
+                int moveIndex = -1;
+                // Find the move index in the champion's move list
+                for (int i = 0; i < champ.getMoves().size(); i++) {
+                    if (champ.getMoves().get(i) == move) {
+                        moveIndex = i;
+                        break;
+                    }
+                }
+                
+                if (moveIndex >= 0 && champ.canUpgradeAbility(moveIndex)) {
+                    g2.setFont(new Font("Arial", Font.BOLD, 9));
+                    g2.setColor(new Color(0, 255, 0));
+                    g2.drawString("⬆ CAN UPGRADE", x + width - 90, y + height - 5);
+                }
+            }
         }
     }
     
