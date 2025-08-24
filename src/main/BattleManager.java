@@ -119,9 +119,9 @@ public class BattleManager {
         this.selectedMoveIndex = 0;
         clearBattleMessages();
         
-        // DEBUG: Test level scaling system - FIXED LEVELS, RANDOM CHAMPIONS
-        int testPlayerLevel = 50;  // Force player to level 50
-        int testWildLevel = 30;    // Force wild to level 30
+        // Random level scaling system
+        int testPlayerLevel = random.nextInt(51); // 0-50
+        int testWildLevel = random.nextInt(51); // 0-50
         
         playerChampion.setLevel(testPlayerLevel);
         wildChampion.setLevel(testWildLevel);
