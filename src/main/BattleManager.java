@@ -119,9 +119,9 @@ public class BattleManager {
         this.selectedMoveIndex = 0;
         clearBattleMessages();
         
-        // DEBUG: Test level scaling system
-        int testPlayerLevel = 1 + random.nextInt(50); // 1-50
-        int testWildLevel = 1 + random.nextInt(50); // 1-50
+        // DEBUG: Test level scaling system - FIXED LEVELS, RANDOM CHAMPIONS
+        int testPlayerLevel = 50;  // Force player to level 50
+        int testWildLevel = 30;    // Force wild to level 30
         
         playerChampion.setLevel(testPlayerLevel);
         wildChampion.setLevel(testWildLevel);
@@ -1428,6 +1428,15 @@ public class BattleManager {
         boolean isCrit = result.isCrit;
         boolean isMiss = result.isMiss;
         
+        // DETAILED CONSOLE LOGGING
+        System.out.println("\n" + "=".repeat(60));
+        System.out.println("PLAYER TURN: " + playerChampion.getName() + " uses " + move.getName());
+        System.out.println("=".repeat(60));
+        logChampionStats("ATTACKER", playerChampion);
+        logChampionStats("DEFENDER", wildChampion);
+        logDamageCalculation(move, playerChampion, wildChampion, result);
+        System.out.println("=".repeat(60));
+        
         if (isMiss) {
             message.append("\n").append(playerChampion.getName()).append("'s ").append(move.getName()).append(" missed!");
         } else if (damage > 0) {
@@ -1596,6 +1605,15 @@ public class BattleManager {
             int damage = result.damage;
             boolean isCrit = result.isCrit;
             boolean isMiss = result.isMiss;
+            
+            // DETAILED CONSOLE LOGGING
+            System.out.println("\n" + "=".repeat(60));
+            System.out.println("AI TURN: " + wildChampion.getName() + " uses " + aiMove.getName());
+            System.out.println("=".repeat(60));
+            logChampionStats("ATTACKER", wildChampion);
+            logChampionStats("DEFENDER", playerChampion);
+            logDamageCalculation(aiMove, wildChampion, playerChampion, result);
+            System.out.println("=".repeat(60));
             
             if (isMiss) {
                 message.append("\n").append(wildChampion.getName()).append("'s ").append(aiMove.getName()).append(" missed!");
@@ -2039,43 +2057,81 @@ public class BattleManager {
     private int calculateDamage(Move move, Champion attacker, Champion defender) {
         if (move.getPower() == 0) return 0; // Non-damaging moves
         
-        double attackStat;
-        double defense;
-        
-        // Calculate base damage and defense based on move type
-        if (move.getType().equals("Physical")) {
-            attackStat = attacker.getEffectiveAD();
-            defense = defender.getEffectiveArmor();
-        } else { // Magic
-            attackStat = attacker.getEffectiveAP();
-            defense = defender.getEffectiveMagicResist();
-        }
-        
         // League of Legends damage formula: Base damage + ratio scaling
         double baseDamage = move.getBaseDamage(attacker.getLevel()); // Level-scaling base damage
-        double adScaling = 0.0;
-        double apScaling = 0.0;
+        double adScaling = attacker.getEffectiveAD() * move.getAdRatio();
+        double apScaling = attacker.getEffectiveAP() * move.getApRatio();
         
-        // Calculate scaling based on move type and ratios
-        if (move.getType().equals("Physical")) {
-            adScaling = attacker.getEffectiveAD() * move.getAdRatio();
-            apScaling = attacker.getEffectiveAP() * move.getApRatio(); // Some physical abilities scale with AP too
-        } else { // Magic
-            adScaling = attacker.getEffectiveAD() * move.getAdRatio(); // Some magic abilities scale with AD
-            apScaling = attacker.getEffectiveAP() * move.getApRatio();
+        double rawDamage = baseDamage + adScaling + apScaling;
+        
+        // Apply LEVEL GAP DAMAGE MULTIPLIER - REDUCED VALUES (OPTION 2)
+        int levelGap = attacker.getLevel() - defender.getLevel();
+        if (levelGap >= 20) {
+            // 20+ level gap: 1.6x damage (was 2.0x)
+            rawDamage *= 1.6;
+        } else if (levelGap >= 15) {
+            // 15-19 level gap: 1.4x damage (was 1.7x)
+            rawDamage *= 1.4;
+        } else if (levelGap >= 10) {
+            // 10-14 level gap: 1.2x damage (was 1.4x)
+            rawDamage *= 1.2;
         }
         
-        double baseDamageCalc = baseDamage + adScaling + apScaling;
+        // Apply LEVEL GAP DAMAGE RESISTANCE for defenders (high level takes less damage)
+        int reverseLevelGap = defender.getLevel() - attacker.getLevel();
+        if (reverseLevelGap >= 20) {
+            // 20+ level advantage: 60% damage reduction (take 40% damage)
+            rawDamage *= 0.40;
+        } else if (reverseLevelGap >= 15) {
+            // 15-19 level advantage: 50% damage reduction (take 50% damage)
+            rawDamage *= 0.50;
+        } else if (reverseLevelGap >= 13) {
+            // 13-14 level advantage: 40% damage reduction (take 60% damage)
+            rawDamage *= 0.60;
+        }
         
-        // Convert defense to damage reduction percentage (like League of Legends)
-        // Formula: Damage Reduction = Defense / (Defense + 100)
-        double damageReduction = defense / (defense + 100.0);
-        
-        // Apply damage reduction: Final damage = Base damage × (1 - damage reduction)
-        double finalDamage = baseDamageCalc * (1.0 - damageReduction);
+        // Apply armor/magic resist reduction with penetration
+        double finalDamage;
+        if (move.getType().equals("Physical")) {
+            finalDamage = applyArmorReduction(rawDamage, attacker, defender);
+        } else { // Magic
+            finalDamage = applyMagicResistReduction(rawDamage, attacker, defender);
+        }
         
         // Ensure minimum damage of 1 for successful hits
         return Math.max(1, (int) finalDamage);
+    }
+    
+    /**
+     * Apply armor reduction with proper penetration calculations (League-style)
+     */
+    private double applyArmorReduction(double damage, Champion attacker, Champion defender) {
+        int armor = defender.getEffectiveArmor();
+        int armorPen = attacker.getTotalArmorPen();
+        
+        // Apply armor penetration (flat reduction)
+        int effectiveArmor = Math.max(0, armor - armorPen);
+        
+        // League's damage reduction formula: reduction = armor / (armor + 100)
+        double damageReduction = (double)effectiveArmor / (effectiveArmor + 100.0);
+        
+        return damage * (1.0 - damageReduction);
+    }
+    
+    /**
+     * Apply magic resist reduction with proper penetration calculations
+     */
+    private double applyMagicResistReduction(double damage, Champion attacker, Champion defender) {
+        int magicResist = defender.getEffectiveMagicResist();
+        int magicPen = attacker.getTotalMagicPen();
+        
+        // Apply magic penetration (flat reduction)
+        int effectiveMR = Math.max(0, magicResist - magicPen);
+        
+        // League's damage reduction formula: reduction = MR / (MR + 100)
+        double damageReduction = (double)effectiveMR / (effectiveMR + 100.0);
+        
+        return damage * (1.0 - damageReduction);
     }
     
     private DamageResult calculateDamageWithCrit(Move move, Champion attacker, Champion defender) {
@@ -3513,6 +3569,104 @@ public class BattleManager {
     // Check if champion is stunned (cannot act)
     public boolean isChampionStunned(Champion champion) {
         return champion.hasStatusEffect(StatusEffect.StatusType.STUN);
+    }
+    
+    // ==================== DETAILED CONSOLE LOGGING METHODS ====================
+    
+    /**
+     * Log detailed champion stats for combat analysis
+     */
+    private void logChampionStats(String role, Champion champion) {
+        System.out.printf("%-9s: %-15s (Lv%2d %s)%n", role, champion.getName(), 
+            champion.getLevel(), champion.getChampionClass());
+        System.out.printf("          HP: %4d/%4d | AD: %3d | AP: %3d | Armor: %3d | MR: %3d%n",
+            champion.getCurrentHp(), champion.getMaxHp(), 
+            champion.getEffectiveAD(), champion.getEffectiveAP(),
+            champion.getEffectiveArmor(), champion.getEffectiveMagicResist());
+        System.out.printf("          ArmorPen: %2d | MagicPen: %2d | Crit: %2d%% | Speed: %3d%n",
+            champion.getTotalArmorPen(), champion.getTotalMagicPen(),
+            champion.getCritChance(), champion.getEffectiveSpeed());
+    }
+    
+    /**
+     * Log detailed damage calculation breakdown
+     */
+    private void logDamageCalculation(Move move, Champion attacker, Champion defender, DamageResult result) {
+        System.out.printf("ABILITY: %s (%s) | Power: %d | Accuracy: %d%%%n",
+            move.getName(), move.getType(), move.getPower(), move.getAccuracy());
+        
+        if (result.isMiss) {
+            System.out.println("RESULT: MISS!");
+            return;
+        }
+        
+        // Calculate raw damage components
+        double baseDamage = move.getBaseDamage(attacker.getLevel());
+        double adScaling = attacker.getEffectiveAD() * move.getAdRatio();
+        double apScaling = attacker.getEffectiveAP() * move.getApRatio();
+        int rawDamage = (int)(baseDamage + adScaling + apScaling);
+        
+        System.out.printf("DAMAGE CALC: %.0f base + %.0f AD scaling + %.0f AP scaling = %d raw%n",
+            baseDamage, adScaling, apScaling, rawDamage);
+        
+        // Show level gap multiplier if applicable
+        int levelGap = attacker.getLevel() - defender.getLevel();
+        if (levelGap >= 10) {
+            double multiplier = levelGap >= 20 ? 1.6 : (levelGap >= 15 ? 1.4 : 1.2);
+            int boostedDamage = (int)(rawDamage * multiplier);
+            System.out.printf("LEVEL GAP BOOST: %d raw × %.1fx (Lv%d gap) = %d boosted%n",
+                rawDamage, multiplier, levelGap, boostedDamage);
+            rawDamage = boostedDamage; // Update for defense calculation display
+        }
+        
+        // Show level gap resistance if applicable
+        int reverseLevelGap = defender.getLevel() - attacker.getLevel();
+        if (reverseLevelGap >= 13) {
+            double resistance = reverseLevelGap >= 20 ? 0.40 : (reverseLevelGap >= 15 ? 0.50 : 0.60);
+            int resistedDamage = (int)(rawDamage * resistance);
+            System.out.printf("LEVEL GAP RESIST: %d damage × %.0f%% (Lv%d defender advantage) = %d resisted%n",
+                rawDamage, resistance * 100, reverseLevelGap, resistedDamage);
+            rawDamage = resistedDamage; // Update for defense calculation display
+        }
+        
+        // Calculate defense reduction
+        int defenderDefense;
+        int attackerPen;
+        String defenseType;
+        
+        if (move.getType().equals("Physical")) {
+            defenderDefense = defender.getEffectiveArmor();
+            attackerPen = attacker.getTotalArmorPen();
+            defenseType = "Armor";
+        } else {
+            defenderDefense = defender.getEffectiveMagicResist();
+            attackerPen = attacker.getTotalMagicPen();
+            defenseType = "MagicResist";
+        }
+        
+        int effectiveDefense = Math.max(0, defenderDefense - attackerPen);
+        double reductionPercent = (double)effectiveDefense / (effectiveDefense + 100.0) * 100;
+        int finalDamage = result.damage;
+        
+        System.out.printf("DEFENSE: %d %s - %d Pen = %d effective (%.1f%% reduction)%n",
+            defenderDefense, defenseType, attackerPen, effectiveDefense, reductionPercent);
+        
+        String critText = result.isCrit ? " (CRITICAL HIT!)" : "";
+        System.out.printf("FINAL: %d raw → %d final%s%n", rawDamage, finalDamage, critText);
+        
+        // Calculate damage as percentage of defender HP
+        double hpPercent = (double)finalDamage / defender.getCurrentHp() * 100;
+        double hitsToKill = (double)defender.getCurrentHp() / finalDamage;
+        
+        System.out.printf("IMPACT: %.1f%% of %d HP | %.1f hits to kill%n",
+            hpPercent, defender.getCurrentHp(), hitsToKill);
+        
+        // Level difference analysis
+        int levelDiff = attacker.getLevel() - defender.getLevel();
+        if (Math.abs(levelDiff) >= 5) {
+            String dominance = levelDiff > 0 ? "ATTACKER DOMINANCE" : "DEFENDER ADVANTAGE";
+            System.out.printf("LEVEL GAP: %+d levels (%s)%n", levelDiff, dominance);
+        }
     }
 
 }

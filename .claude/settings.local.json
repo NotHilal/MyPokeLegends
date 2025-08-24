@@ -4,7 +4,9 @@
       "Bash(rm:*)",
       "Bash(javac:*)",
       "Bash(grep:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(java:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

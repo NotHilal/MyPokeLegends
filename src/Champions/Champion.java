@@ -334,38 +334,52 @@ public class Champion {
     // ==================== LEVEL-BASED STAT SCALING ====================
     
     /**
-     * Get current max HP based on level scaling
+     * Get current max HP based on exponential level scaling
      */
     public int getCurrentMaxHP() {
-        return maxHp + ((level - 1) * getHPPerLevel());
+        double hpGrowthRate = getHPGrowthRate();
+        return (int)(maxHp * (1.0 + hpGrowthRate * (level - 1)));
     }
     
     /**
-     * Get current AD based on level scaling
+     * Get current AD based on exponential level scaling
      */
     public int getCurrentAD() {
-        return AD + (int)((level - 1) * getADPerLevel());
+        double adGrowthRate = getADGrowthRate();
+        return (int)(AD * (1.0 + adGrowthRate * (level - 1)));
     }
     
     /**
-     * Get current AP based on level scaling
+     * Get current AP based on exponential level scaling
      */
     public int getCurrentAP() {
-        return AP + (int)((level - 1) * getAPPerLevel());
+        if (championClass == ChampionClass.MAGE) {
+            double apGrowthRate = getAPGrowthRate();
+            return (int)(80 * (1.0 + apGrowthRate * (level - 1)));
+        } else if (championClass == ChampionClass.ASSASSIN && (name.equals("Akali") || name.equals("Katarina") || name.equals("Diana"))) {
+            double apGrowthRate = 0.10; // AP Assassins
+            return (int)(60 * (1.0 + apGrowthRate * (level - 1)));
+        } else if (championClass == ChampionClass.SUPPORT) {
+            double apGrowthRate = 0.08;
+            return (int)(40 * (1.0 + apGrowthRate * (level - 1)));
+        }
+        return AP; // Other classes get minimal or no AP
     }
     
     /**
-     * Get current armor based on level scaling
+     * Get current armor based on exponential level scaling
      */
     public int getCurrentArmor() {
-        return armor + (int)((level - 1) * getArmorPerLevel());
+        double armorGrowthRate = getArmorGrowthRate();
+        return (int)(armor * (1.0 + armorGrowthRate * (level - 1)));
     }
     
     /**
-     * Get current magic resist based on level scaling
+     * Get current magic resist based on exponential level scaling
      */
     public int getCurrentMagicResist() {
-        return magicResist + (int)((level - 1) * 1.25); // All classes: +1.25 MR per level
+        double mrGrowthRate = getMRGrowthRate();
+        return (int)(magicResist * (1.0 + mrGrowthRate * (level - 1)));
     }
     
     /**
@@ -386,32 +400,64 @@ public class Champion {
     }
     
     /**
-     * HP growth per level based on champion-specific rates
+     * HP exponential growth rate per level based on champion class
      */
-    private int getHPPerLevel() {
-        return (int) getGrowthRates().hpPerLevel;
+    private double getHPGrowthRate() {
+        return switch (championClass) {
+            case TANK -> 0.08;      // 8% per level - becomes fortress
+            case FIGHTER -> 0.06;   // 6% per level - beefy bruiser
+            case ASSASSIN -> 0.05;  // 5% per level - mobile glass
+            case MAGE -> 0.05;      // 5% per level - burst glass
+            case SUPPORT -> 0.06;   // 6% per level - utility
+            case MARKSMAN -> 0.04;  // 4% per level - ultimate glass
+        };
     }
     
     /**
-     * AD growth per level based on champion-specific rates
+     * AD exponential growth rate per level based on champion class - BALANCED EXTREME SCALING
      */
-    private double getADPerLevel() {
-        return getGrowthRates().adPerLevel;
+    private double getADGrowthRate() {
+        return switch (championClass) {
+            case MARKSMAN -> 0.15;  // 15% per level - DPS king
+            case ASSASSIN -> 0.13;  // 13% per level - burst assassin  
+            case FIGHTER -> 0.10;   // 10% per level - sustained damage
+            case TANK -> 0.07;      // 7% per level - moderate damage
+            case SUPPORT -> 0.04;   // 4% per level - minimal damage
+            case MAGE -> 0.03;      // 3% per level - focus on AP instead
+        };
     }
     
     /**
-     * AP growth per level based on champion-specific rates
+     * AP exponential growth rate per level based on champion class - BALANCED EXTREME SCALING
      */
-    private double getAPPerLevel() {
-        return getGrowthRates().apPerLevel;
+    private double getAPGrowthRate() {
+        return switch (championClass) {
+            case MAGE -> 0.15;      // 15% per level - nuclear burst (matches Marksman AD)
+            case ASSASSIN -> 0.13;  // 13% per level - AP assassins (matches AD assassins)
+            case SUPPORT -> 0.10;   // 10% per level - utility scaling
+            default -> 0.0;         // Others get no AP scaling
+        };
     }
     
     /**
-     * Armor growth per level based on champion class
+     * Armor exponential growth rate per level based on champion class
      */
-    /*private double getArmorPerLevel() {
-        return 1.5; // All classes: +1.5 armor per level
-    }*/
+    private double getArmorGrowthRate() {
+        return switch (championClass) {
+            case TANK -> 0.08;      // 8% per level - fortress
+            default -> 0.03;        // 3% per level - moderate defense
+        };
+    }
+    
+    /**
+     * Magic Resist exponential growth rate per level based on champion class
+     */
+    private double getMRGrowthRate() {
+        return switch (championClass) {
+            case TANK -> 0.08;      // 8% per level - magic fortress
+            default -> 0.03;        // 3% per level - moderate defense
+        };
+    }
     
     /**
      * Armor growth per level based on champion class
@@ -452,7 +498,7 @@ public class Champion {
     }
     
     public void setCurrentHp(int hp) {
-        this.currentHp = Math.min(hp, maxHp); // Don't exceed max HP
+        this.currentHp = Math.min(hp, getCurrentMaxHP()); // Don't exceed current max HP (level-scaled)
     }
     
     // Battle stat stage methods - enhanced versions with status effects are below
@@ -1055,7 +1101,7 @@ public class Champion {
                     break;
                     
                 case REGENERATION:
-                    int healAmount = Math.min(effect.getValue(), maxHp - currentHp);
+                    int healAmount = Math.min(effect.getValue(), getCurrentMaxHP() - currentHp);
                     currentHp += healAmount;
                     if (healAmount > 0) {
                         message.append("\n").append(name).append(" regenerates ").append(healAmount)
@@ -1418,12 +1464,49 @@ public class Champion {
     
     public int getTotalArmorPen() {
         int itemArmorPen = items.stream().mapToInt(Item::getBonusArmorPen).sum();
-        return armorPenetration + itemArmorPen;
+        int levelArmorPen = getLevelBasedArmorPen();
+        return armorPenetration + itemArmorPen + levelArmorPen;
+    }
+    
+    /**
+     * Get armor penetration based on champion class and level - INCREASED FOR DRAMATIC SCALING
+     */
+    private int getLevelBasedArmorPen() {
+        return switch (championClass) {
+            case MARKSMAN -> (int)(level * 4.0);  // ADCs get +4.0 per level (was 2.5)
+            case ASSASSIN -> (int)(level * 3.0);  // Assassins get +3.0 per level (was 1.5)
+            case MAGE -> (int)(level * 2.0);      // Mages get magic pen equivalent
+            default -> 0;                         // Other classes get no level-based armor pen
+        };
+    }
+    
+    /**
+     * Debug method to print current stats for testing
+     */
+    public void printCurrentStats() {
+        System.out.println("\n=== " + name + " (Level " + level + " " + championClass + ") ===");
+        System.out.println("HP: " + currentHp + "/" + getCurrentMaxHP());
+        System.out.println("AD: " + getCurrentAD() + " | AP: " + getCurrentAP());
+        System.out.println("Armor: " + getCurrentArmor() + " | MR: " + getCurrentMagicResist());
+        System.out.println("Armor Pen: " + getTotalArmorPen());
+        System.out.println("==========================================");
     }
     
     public int getTotalMagicPen() {
         int itemMagicPen = items.stream().mapToInt(Item::getBonusMagicPen).sum();
-        return magicPenetration + itemMagicPen;
+        int levelMagicPen = getLevelBasedMagicPen();
+        return magicPenetration + itemMagicPen + levelMagicPen;
+    }
+    
+    /**
+     * Get magic penetration based on champion class and level
+     */
+    private int getLevelBasedMagicPen() {
+        return switch (championClass) {
+            case MAGE -> (int)(level * 2.0);      // Mages get +2.0 magic pen per level
+            case ASSASSIN -> isAPAssassin() ? (int)(level * 1.5) : 0; // AP assassins get magic pen
+            default -> 0;                         // Other classes get no level-based magic pen
+        };
     }
     
     public int getTotalTenacity() {
