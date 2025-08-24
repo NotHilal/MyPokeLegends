@@ -41,12 +41,9 @@ public class WildChampionSpawner {
                     // Select the spawn list based on the region
                     List<ChampionSpawn> spawnList = getSpawnListForRegion(region);
                     
-                    // Get level range for this region
-                    int[] levelRange = getLevelRangeForRegion(region);
-
                     // Perform a true 15% chance check
                     if (random.nextInt(100) < 15) { // 15% chance
-                        spawnWildChampion(spawnList, levelRange);
+                        spawnWildChampion(spawnList);
                     }
                 }
             }
@@ -64,22 +61,11 @@ public class WildChampionSpawner {
         }
     }
     
-    private int[] getLevelRangeForRegion(String region) {
-        // Returns [minLevel, maxLevel] for the region
-        switch (region.toLowerCase()) {
-            case "hometown":
-                return new int[]{1, 7}; // Beginner area: levels 1-7
-            case "mountain":
-                return new int[]{6, 15}; // Intermediate area: levels 6-15
-            default:
-                return new int[]{1, 5}; // Default range for undefined regions
-        }
-    }
 
 
 
 
-    private void spawnWildChampion(List<ChampionSpawn> spawnList, int[] levelRange) {
+    private void spawnWildChampion(List<ChampionSpawn> spawnList) {
         if (spawnList.isEmpty()) {
             System.out.println("No wild champions available for this region.");
             return;
@@ -103,13 +89,10 @@ public class WildChampionSpawner {
             if (randomValue < cumulativeWeight) {
                 Champion wildChampion = spawn.getChampion();
                 
-                // Set random level within region range
-                int minLevel = levelRange[0];
-                int maxLevel = levelRange[1];
-                int randomLevel = minLevel + random.nextInt(maxLevel - minLevel + 1);
-                wildChampion.setLevel(randomLevel);
+                // Set all wild champions to level 1
+                wildChampion.setLevel(1);
                 
-                System.out.println("A wild " + wildChampion.getName() + " (Level " + randomLevel + ") appeared!");
+                System.out.println("A wild " + wildChampion.getName() + " (Level 1) appeared!");
 
                 // Set up the battle
                 gamePanel.battleManager.startBattle(

@@ -97,7 +97,7 @@ public class Champion {
         this.region = region;
         this.role = role;
         this.role2 = role2;
-        this.level = level;
+        this.level = Math.max(constants.GameConstants.MIN_CHAMPION_LEVEL, Math.min(constants.GameConstants.MAX_CHAMPION_LEVEL, level)); // Ensure level is between 1 and 50
         this.exp = 0;
         this.maxHp = maxHp;
         this.AD = AD;
@@ -188,7 +188,7 @@ public class Champion {
         this.region = region;
         this.role = role;
         this.role2 = role2;
-        this.level = level;
+        this.level = Math.max(constants.GameConstants.MIN_CHAMPION_LEVEL, Math.min(constants.GameConstants.MAX_CHAMPION_LEVEL, level)); // Ensure level is between 1 and 50
         this.exp = 0;
         this.maxHp = maxHp;
         this.AD = AD;
@@ -277,6 +277,8 @@ public class Champion {
     
     // DEBUG: Setter for level (for testing purposes)
     public void setLevel(int level) {
+        // Ensure level is between 1 and 50
+        level = Math.max(constants.GameConstants.MIN_CHAMPION_LEVEL, Math.min(constants.GameConstants.MAX_CHAMPION_LEVEL, level));
         int oldMaxHP = getCurrentMaxHP(); // Get current max HP before level change
         this.level = level;
         int newMaxHP = getCurrentMaxHP(); // Get new max HP after level change
@@ -345,41 +347,96 @@ public class Champion {
      * Get current AD based on exponential level scaling
      */
     public int getCurrentAD() {
+        int baseAD = getLeagueReferenceAD();
         double adGrowthRate = getADGrowthRate();
-        return (int)(AD * (1.0 + adGrowthRate * (level - 1)));
+        return (int)(baseAD * (1.0 + adGrowthRate * (level - 1)));
     }
     
     /**
-     * Get current AP based on exponential level scaling
+     * Get base AD from League of Legends reference data
+     */
+    private int getLeagueReferenceAD() {
+        for (LeagueStatsReference.ChampionStats stats : LeagueStatsReference.CHAMPION_STATS) {
+            if (stats.name.equals(this.name)) {
+                return stats.attackDamage;
+            }
+        }
+        return AD; // Fallback to JSON value if not found in reference
+    }
+    
+    /**
+     * Get current AP based on exponential level scaling using League reference stats
      */
     public int getCurrentAP() {
+        // Get base AP from League reference stats
+        int baseAP = getLeagueReferenceAP();
+        
+        // Apply exponential AP scaling like AD for AP-based classes
         if (championClass == ChampionClass.MAGE) {
-            double apGrowthRate = getAPGrowthRate();
-            return (int)(80 * (1.0 + apGrowthRate * (level - 1)));
+            double apGrowthRate = 0.17; // 17% per level - stronger than MARKSMAN AD
+            return (int)(baseAP * (1.0 + apGrowthRate * (level - 1)));
         } else if (championClass == ChampionClass.ASSASSIN && (name.equals("Akali") || name.equals("Katarina") || name.equals("Diana"))) {
-            double apGrowthRate = 0.10; // AP Assassins
-            return (int)(60 * (1.0 + apGrowthRate * (level - 1)));
+            double apGrowthRate = 0.13; // 13% per level like ASSASSIN AD
+            return (int)(baseAP * (1.0 + apGrowthRate * (level - 1)));
         } else if (championClass == ChampionClass.SUPPORT) {
-            double apGrowthRate = 0.08;
-            return (int)(40 * (1.0 + apGrowthRate * (level - 1)));
+            double apGrowthRate = 0.04; // 4% per level like SUPPORT AD
+            return (int)(baseAP * (1.0 + apGrowthRate * (level - 1)));
         }
-        return AP; // Other classes get minimal or no AP
+        return baseAP; // Other classes stay at base AP
     }
     
     /**
-     * Get current armor based on exponential level scaling
+     * Get base AP from League of Legends reference data
+     */
+    private int getLeagueReferenceAP() {
+        for (LeagueStatsReference.ChampionStats stats : LeagueStatsReference.CHAMPION_STATS) {
+            if (stats.name.equals(this.name)) {
+                return stats.abilityPower; // This is 0 for all champions in League
+            }
+        }
+        return AP; // Fallback to JSON value if not found in reference
+    }
+    
+    /**
+     * Get current armor based on exponential level scaling using League reference stats
      */
     public int getCurrentArmor() {
+        int baseArmor = getLeagueReferenceArmor();
         double armorGrowthRate = getArmorGrowthRate();
-        return (int)(armor * (1.0 + armorGrowthRate * (level - 1)));
+        return (int)(baseArmor * (1.0 + armorGrowthRate * (level - 1)));
     }
     
     /**
-     * Get current magic resist based on exponential level scaling
+     * Get current magic resist based on exponential level scaling using League reference stats
      */
     public int getCurrentMagicResist() {
+        int baseMR = getLeagueReferenceMagicResist();
         double mrGrowthRate = getMRGrowthRate();
-        return (int)(magicResist * (1.0 + mrGrowthRate * (level - 1)));
+        return (int)(baseMR * (1.0 + mrGrowthRate * (level - 1)));
+    }
+    
+    /**
+     * Get base Armor from League of Legends reference data
+     */
+    private int getLeagueReferenceArmor() {
+        for (LeagueStatsReference.ChampionStats stats : LeagueStatsReference.CHAMPION_STATS) {
+            if (stats.name.equals(this.name)) {
+                return stats.armor;
+            }
+        }
+        return armor; // Fallback to JSON value if not found in reference
+    }
+    
+    /**
+     * Get base Magic Resist from League of Legends reference data
+     */
+    private int getLeagueReferenceMagicResist() {
+        for (LeagueStatsReference.ChampionStats stats : LeagueStatsReference.CHAMPION_STATS) {
+            if (stats.name.equals(this.name)) {
+                return stats.magicResist;
+            }
+        }
+        return magicResist; // Fallback to JSON value if not found in reference
     }
     
     /**
@@ -694,6 +751,11 @@ public class Champion {
     }
 
     private StatIncrease levelUp() {
+        // Check if already at max level
+        if (level >= constants.GameConstants.MAX_CHAMPION_LEVEL) {
+            return null; // Cannot level up beyond max level
+        }
+        
         level++;
         exp = 0; // Reset experience for the next level
         
@@ -1199,7 +1261,7 @@ public class Champion {
             baseAP = (int) (baseAP * (1.0 - apReduction.getValue() * 0.3));
         }
         
-        return Math.max(1, baseAP);
+        return baseAP;
     }
     
     public int getEffectiveArmor() {

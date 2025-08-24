@@ -129,6 +129,9 @@ public class GamePanel extends JPanel implements Runnable{
 	            if (gameState == dexState) {
 	                dex.handleMouseClick(e.getX(), e.getY());
 	            }
+	            if (gameState == roleTeamState) {
+	                roleTeamPage.handleMouseClick(e.getX(), e.getY());
+	            }
 	        }
 	    });
 		
@@ -419,6 +422,10 @@ public class GamePanel extends JPanel implements Runnable{
 		gameState = dexState;
 	    playSE(7);
 	    ui.currentDialog="Action done!\nYou openned the Dex!";
+	    // Initialize keyboard navigation for Dex
+	    if (dex != null) {
+	        dex.onDexOpened();
+	    }
 	}
 
 	public void openChampions() {

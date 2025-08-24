@@ -29,7 +29,10 @@ public final class GameConstants {
     // ==================== CHAMPION SYSTEM ====================
     
     /** Maximum level a champion can reach */
-    public static final int MAX_CHAMPION_LEVEL = 100;
+    public static final int MAX_CHAMPION_LEVEL = 50;
+    
+    /** Minimum level a champion can have */
+    public static final int MIN_CHAMPION_LEVEL = 1;
     
     /** Starting level for all champions */
     public static final int BASE_CHAMPION_LEVEL = 1;

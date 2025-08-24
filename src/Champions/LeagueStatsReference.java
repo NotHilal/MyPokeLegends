@@ -47,32 +47,32 @@ public class LeagueStatsReference {
         
         // A
         new ChampionStats("Aatrox", 650, 0, 60, 0, 38, 32, 345, new AbilityCosts(0, 0, 0, 0)),
-        new ChampionStats("Ahri", 526, 418, 53, 0, 21, 30, 330, new AbilityCosts(65, 55, 50, 100)),
+        new ChampionStats("Ahri", 526, 418, 53, 30, 21, 30, 330, new AbilityCosts(65, 55, 50, 100)),
         new ChampionStats("Akali", 500, 200, 62, 0, 23, 37, 345, new AbilityCosts(120, 80, 30, 0)),
         new ChampionStats("Akshan", 630, 350, 52, 0, 26, 30, 330, new AbilityCosts(60, 40, 70, 100)),
         new ChampionStats("Alistar", 685, 350, 62, 0, 44, 32, 330, new AbilityCosts(65, 65, 50, 100)),
         new ChampionStats("Ambessa", 658, 0, 65, 0, 30, 32, 340, new AbilityCosts(0, 0, 0, 0)),
         new ChampionStats("Amumu", 685, 285, 53, 0, 35, 32, 335, new AbilityCosts(80, 35, 35, 100)),
-        new ChampionStats("Anivia", 550, 495, 51, 0, 21, 30, 325, new AbilityCosts(80, 50, 70, 75)),
-        new ChampionStats("Annie", 560, 418, 50, 0, 19, 30, 335, new AbilityCosts(60, 70, 20, 100)),
+        new ChampionStats("Anivia", 550, 495, 51, 32, 21, 30, 325, new AbilityCosts(80, 50, 70, 75)),
+        new ChampionStats("Annie", 560, 418, 50, 28, 19, 30, 335, new AbilityCosts(60, 70, 20, 100)),
         new ChampionStats("Aphelios", 580, 348, 57, 0, 26, 30, 325, new AbilityCosts(0, 60, 0, 0)),
         new ChampionStats("Ashe", 640, 280, 59, 0, 26, 30, 325, new AbilityCosts(75, 50, 0, 100)),
-        new ChampionStats("Aurelion Sol", 620, 530, 55, 0, 22, 30, 325, new AbilityCosts(70, 80, 60, 100)),
-        new ChampionStats("Aurora", 550, 425, 52, 0, 23, 30, 335, new AbilityCosts(60, 70, 50, 100)),
-        new ChampionStats("Azir", 550, 438, 52, 0, 19, 30, 335, new AbilityCosts(70, 40, 60, 100)),
+        new ChampionStats("Aurelion Sol", 620, 530, 55, 31, 22, 30, 325, new AbilityCosts(70, 80, 60, 100)),
+        new ChampionStats("Aurora", 550, 425, 52, 29, 23, 30, 335, new AbilityCosts(60, 70, 50, 100)),
+        new ChampionStats("Azir", 550, 438, 52, 30, 19, 30, 335, new AbilityCosts(70, 40, 60, 100)),
         
         // B
         new ChampionStats("Bard", 630, 350, 52, 0, 34, 30, 330, new AbilityCosts(60, 70, 30, 100)),
         new ChampionStats("Bel'Veth", 610, 0, 60, 0, 32, 32, 340, new AbilityCosts(0, 0, 0, 0)),
         new ChampionStats("Blitzcrank", 650, 267, 62, 0, 40, 32, 325, new AbilityCosts(100, 75, 25, 100)),
-        new ChampionStats("Brand", 560, 469, 57, 0, 22, 30, 340, new AbilityCosts(50, 60, 70, 100)),
+        new ChampionStats("Brand", 560, 469, 57, 32, 22, 30, 340, new AbilityCosts(50, 60, 70, 100)),
         new ChampionStats("Braum", 610, 311, 55, 0, 47, 32, 335, new AbilityCosts(55, 50, 50, 100)),
         new ChampionStats("Briar", 590, 0, 60, 0, 30, 32, 340, new AbilityCosts(0, 0, 0, 0)),
         
         // C
         new ChampionStats("Caitlyn", 580, 315, 62, 0, 27, 30, 325, new AbilityCosts(50, 60, 75, 100)),
         new ChampionStats("Camille", 646, 338, 68, 0, 35, 32, 340, new AbilityCosts(70, 65, 50, 100)),
-        new ChampionStats("Cassiopeia", 575, 418, 53, 0, 18, 30, 328, new AbilityCosts(50, 40, 70, 100)),
+        new ChampionStats("Cassiopeia", 575, 418, 53, 31, 18, 30, 328, new AbilityCosts(50, 40, 70, 100)),
         new ChampionStats("Cho'Gath", 644, 270, 69, 0, 38, 32, 345, new AbilityCosts(60, 70, 30, 100)),
         new ChampionStats("Corki", 610, 350, 55, 0, 30, 30, 325, new AbilityCosts(60, 50, 80, 100)),
         
@@ -84,12 +84,12 @@ public class LeagueStatsReference {
         
         // E
         new ChampionStats("Ekko", 655, 280, 58, 0, 32, 32, 340, new AbilityCosts(50, 65, 50, 100)),
-        new ChampionStats("Elise", 598, 324, 55, 0, 30, 30, 330, new AbilityCosts(75, 60, 50, 100)),
+        new ChampionStats("Elise", 598, 324, 55, 28, 30, 30, 330, new AbilityCosts(75, 60, 50, 100)),
         new ChampionStats("Evelynn", 642, 315, 61, 0, 37, 32, 335, new AbilityCosts(0, 60, 40, 100)),
         new ChampionStats("Ezreal", 583, 375, 60, 0, 24, 30, 325, new AbilityCosts(28, 50, 90, 100)),
         
         // F
-        new ChampionStats("Fiddlesticks", 650, 500, 48, 0, 34, 30, 335, new AbilityCosts(65, 70, 70, 100)),
+        new ChampionStats("Fiddlesticks", 650, 500, 48, 29, 34, 30, 335, new AbilityCosts(65, 70, 70, 100)),
         new ChampionStats("Fiora", 620, 300, 68, 0, 33, 32, 345, new AbilityCosts(25, 50, 40, 100)),
         new ChampionStats("Fizz", 570, 317, 58, 0, 22, 32, 335, new AbilityCosts(50, 65, 75, 100)),
         
@@ -104,8 +104,8 @@ public class LeagueStatsReference {
         
         // H
         new ChampionStats("Hecarim", 625, 277, 66, 0, 36, 32, 345, new AbilityCosts(57, 60, 60, 100)),
-        new ChampionStats("Heimerdinger", 558, 385, 56, 0, 19, 30, 340, new AbilityCosts(70, 60, 85, 100)),
-        new ChampionStats("Hwei", 550, 480, 52, 0, 23, 30, 330, new AbilityCosts(35, 45, 55, 100)),
+        new ChampionStats("Heimerdinger", 558, 385, 56, 30, 19, 30, 340, new AbilityCosts(70, 60, 85, 100)),
+        new ChampionStats("Hwei", 550, 480, 52, 28, 23, 30, 330, new AbilityCosts(35, 45, 55, 100)),
         
         // I
         new ChampionStats("Illaoi", 656, 300, 68, 0, 35, 32, 340, new AbilityCosts(40, 35, 40, 100)),

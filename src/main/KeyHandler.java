@@ -398,11 +398,94 @@ public class KeyHandler implements KeyListener{
 		    }
 		}
 
+		// Dex STATE
+		else if(gp.gameState==gp.dexState) {
+			if(code ==KeyEvent.VK_ESCAPE) {
+				// Close popup if open, otherwise return to pause menu
+				if(gp.dex != null && gp.dex.showPopup) {
+					gp.dex.closePopup();
+				} else {
+					gp.gameState = gp.pauseState;
+				}
+			}
+			// WASD navigation for dex grid
+			if(code == KeyEvent.VK_W) {
+				if(gp.dex != null) {
+					gp.dex.navigateUp();
+				}
+			}
+			if(code == KeyEvent.VK_S) {
+				if(gp.dex != null) {
+					gp.dex.navigateDown();
+				}
+			}
+			if(code == KeyEvent.VK_A) {
+				if(gp.dex != null) {
+					gp.dex.navigateLeft();
+				}
+			}
+			if(code == KeyEvent.VK_D) {
+				if(gp.dex != null) {
+					gp.dex.navigateRight();
+				}
+			}
+			// Enter to select
+			if(code == KeyEvent.VK_ENTER) {
+				if(gp.dex != null) {
+					gp.dex.selectCurrent();
+				}
+			}
+			// Return to menu
+			if(code == KeyEvent.VK_M) {
+				if(gp.dex != null) {
+					gp.dex.returnToMenu();
+				}
+			}
+		}
+
 		// Champions STATE
 				else if(gp.gameState==gp.championMenuState) {
 					if(code ==KeyEvent.VK_ESCAPE) {
-						
-						gp.gameState = gp.roleTeamState;
+						// Close popup if open, otherwise return to role team state
+						if(gp.championMenu != null && gp.championMenu.showPopup) {
+							gp.championMenu.closePopup();
+						} else {
+							gp.gameState = gp.roleTeamState;
+						}
+					}
+					// WASD navigation for champion grid
+					if(code == KeyEvent.VK_W) {
+						if(gp.championMenu != null) {
+							gp.championMenu.navigateUp();
+						}
+					}
+					if(code == KeyEvent.VK_S) {
+						if(gp.championMenu != null) {
+							gp.championMenu.navigateDown();
+						}
+					}
+					if(code == KeyEvent.VK_A) {
+						if(gp.championMenu != null) {
+							gp.championMenu.navigateLeft();
+						}
+					}
+					if(code == KeyEvent.VK_D) {
+						if(gp.championMenu != null) {
+							gp.championMenu.navigateRight();
+						}
+					}
+					// Arrow keys removed - page navigation now done with A/D + Enter
+					// Enter to select
+					if(code == KeyEvent.VK_ENTER) {
+						if(gp.championMenu != null) {
+							gp.championMenu.selectCurrent();
+						}
+					}
+					// Return to menu
+					if(code == KeyEvent.VK_M) {
+						if(gp.championMenu != null) {
+							gp.championMenu.returnToMenu();
+						}
 					}
 				}
 				
@@ -419,6 +502,12 @@ public class KeyHandler implements KeyListener{
 			}
 			if (code == KeyEvent.VK_S) {
 				downPressed = true;
+			}
+			if (code == KeyEvent.VK_A) {
+				leftPressed = true;
+			}
+			if (code == KeyEvent.VK_D) {
+				rightPressed = true;
 			}
 			if (code == KeyEvent.VK_ENTER) {
 				interctPressed = true;

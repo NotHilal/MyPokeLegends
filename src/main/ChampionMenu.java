@@ -22,12 +22,331 @@ import Champions.Champion;
 	    private final int championsPerPage = 9; // Number of champions shown per page
 	
 	    private Champion selectedChampion = null; // Track the selected champion for the popup
-	    private boolean showPopup = false;        // Whether the popup is currently visible
+	    public boolean showPopup = false;        // Whether the popup is currently visible
 	    private final Map<String, BufferedImage> imageCache = new HashMap<>(); // Cache for champion images
+	    
+	    // Keyboard navigation variables
+	    private int selectedGridRow = 0;    // Currently selected row in the 3x3 grid (0-2)
+	    private int selectedGridCol = 0;    // Currently selected column in the 3x3 grid (0-2)
+	    private int selectedPopupButton = 0; // Currently selected button in popup (0 or 1)
+	    private boolean keyboardMode = false; // Track if we're using keyboard navigation
+	    
+	    // Arrow navigation states
+	    private boolean leftArrowSelected = false;  // Is left arrow selected
+	    private boolean rightArrowSelected = false; // Is right arrow selected
+	    
+	    // Helper method to check if any arrow is selected
+	    private boolean isAnyArrowSelected() {
+	        return leftArrowSelected || rightArrowSelected;
+	    }
+	    
+	    // Helper method to reset grid selection to first available champion
+	    private void resetToFirstChampion() {
+	        selectedGridRow = 0;
+	        selectedGridCol = 0;
+	        
+	        // Make sure we actually have champions on this page
+	        int championsOnPage = getChampionsOnCurrentPage();
+	        if (championsOnPage == 0) {
+	            // No champions, stay at (0,0) even though it's empty
+	            return;
+	        }
+	        
+	        // The first champion is always at (0,0) if there are any champions
+	        // This is already correct, so no need to change anything
+	    }
+	    
+	    // Helper method to set grid position with bounds checking
+	    private void setGridPosition(int row, int col) {
+	        int championsOnPage = getChampionsOnCurrentPage();
+	        if (championsOnPage == 0) {
+	            selectedGridRow = 0;
+	            selectedGridCol = 0;
+	            return;
+	        }
+	        
+	        // Clamp to valid grid bounds
+	        row = Math.max(0, Math.min(2, row));
+	        col = Math.max(0, Math.min(2, col));
+	        
+	        // Check if this position has a champion
+	        int index = row * 3 + col;
+	        if (index >= championsOnPage) {
+	            // Position is beyond available champions, find the closest valid position
+	            // Try to go to the last available champion
+	            index = championsOnPage - 1;
+	            row = index / 3;
+	            col = index % 3;
+	        }
+	        
+	        selectedGridRow = row;
+	        selectedGridCol = col;
+	    }
 	    
 	    public ChampionMenu(GamePanel gp) {
 	        this.gp = gp;
 	        preloadImages();
+	    }
+	    
+	    // Enable keyboard navigation mode
+	    public void enableKeyboardMode() {
+	        keyboardMode = true;
+	        // Reset grid selection to first champion
+	        resetToFirstChampion();
+	        selectedPopupButton = 0;
+	        // Reset arrow selection
+	        leftArrowSelected = false;
+	        rightArrowSelected = false;
+	    }
+	    
+	    // Disable keyboard mode (when using mouse)
+	    public void disableKeyboardMode() {
+	        keyboardMode = false;
+	    }
+	    
+	    // Method to call when menu is opened to ensure first champion is highlighted
+	    public void onMenuOpened() {
+	        enableKeyboardMode();
+	        resetToFirstChampion();
+	    }
+	    
+	    // Navigation methods for keyboard input
+	    public void navigateUp() {
+	        if (!keyboardMode) enableKeyboardMode();
+	        if (showPopup) return; // Don't navigate grid while popup is open
+	        
+	        // Handle arrow to grid transitions with specific positions
+	        if (leftArrowSelected) {
+	            leftArrowSelected = false;
+	            setGridPosition(0, 0); // Top-left from left arrow
+	            gp.playSE(9);
+	            return;
+	        } else if (rightArrowSelected) {
+	            rightArrowSelected = false;
+	            setGridPosition(0, 2); // Top-right from right arrow
+	            gp.playSE(9);
+	            return;
+	        }
+	        
+	        // Normal grid navigation
+	        selectedGridRow = Math.max(0, selectedGridRow - 1);
+	        gp.playSE(9); // Navigation sound
+	    }
+	    
+	    public void navigateDown() {
+	        if (!keyboardMode) enableKeyboardMode();
+	        if (showPopup) return; // Don't navigate grid while popup is open
+	        
+	        // Handle arrow to grid transitions with specific positions
+	        if (leftArrowSelected) {
+	            leftArrowSelected = false;
+	            setGridPosition(2, 0); // Bottom-left from left arrow
+	            gp.playSE(9);
+	            return;
+	        } else if (rightArrowSelected) {
+	            rightArrowSelected = false;
+	            setGridPosition(2, 2); // Bottom-right from right arrow
+	            gp.playSE(9);
+	            return;
+	        }
+	        
+	        // Normal grid navigation
+	        int maxRow = Math.min(2, (getChampionsOnCurrentPage() - 1) / 3);
+	        selectedGridRow = Math.min(maxRow, selectedGridRow + 1);
+	        gp.playSE(9); // Navigation sound
+	    }
+	    
+	    public void navigateLeft() {
+	        if (!keyboardMode) enableKeyboardMode();
+	        if (showPopup) {
+	            // Navigate popup buttons
+	            if (selectedChampion != null && !isRoleSelectionSingleButton()) {
+	                selectedPopupButton = 0; // Select first role button
+	                gp.playSE(9);
+	            }
+	        } else {
+	            // Check if we're at the left edge of grid and can select left arrow
+	            if (selectedGridCol == 0 && !leftArrowSelected && !rightArrowSelected) {
+	                if (currentPage > 0) { // Left arrow is available
+	                    leftArrowSelected = true;
+	                    gp.playSE(9);
+	                }
+	            }
+	            // If right arrow is selected, go to middle-right position (1,2)
+	            else if (rightArrowSelected) {
+	                rightArrowSelected = false;
+	                setGridPosition(1, 2); // Middle-right from right arrow
+	                gp.playSE(9);
+	            }
+	            // Normal grid navigation
+	            else if (!leftArrowSelected) {
+	                selectedGridCol = Math.max(0, selectedGridCol - 1);
+	                gp.playSE(9);
+	            }
+	        }
+	    }
+	    
+	    public void navigateRight() {
+	        if (!keyboardMode) enableKeyboardMode();
+	        if (showPopup) {
+	            // Navigate popup buttons
+	            if (selectedChampion != null && !isRoleSelectionSingleButton()) {
+	                selectedPopupButton = 1; // Select second role button
+	                gp.playSE(9);
+	            }
+	        } else {
+	            // Check if we're at the right edge of grid and can select right arrow
+	            int championsOnPage = getChampionsOnCurrentPage();
+	            int currentIndex = selectedGridRow * 3 + selectedGridCol;
+	            boolean atRightEdge = (currentIndex >= championsOnPage - 1) || 
+	                (selectedGridCol == 2) || 
+	                (currentIndex + 1 >= championsOnPage);
+	            
+	            if (atRightEdge && !leftArrowSelected && !rightArrowSelected) {
+	                if ((currentPage + 1) * championsPerPage < applyFilters().size()) { // Right arrow is available
+	                    rightArrowSelected = true;
+	                    gp.playSE(9);
+	                }
+	            }
+	            // If left arrow is selected, go to middle-left position (1,0)
+	            else if (leftArrowSelected) {
+	                leftArrowSelected = false;
+	                setGridPosition(1, 0); // Middle-left from left arrow
+	                gp.playSE(9);
+	            }
+	            // Normal grid navigation
+	            else if (!rightArrowSelected && !atRightEdge) {
+	                selectedGridCol = Math.min(2, selectedGridCol + 1);
+	                // Make sure we don't go past available champions
+	                int newIndex = selectedGridRow * 3 + selectedGridCol;
+	                if (newIndex >= championsOnPage) {
+	                    selectedGridCol--; // Go back if we went too far
+	                } else {
+	                    gp.playSE(9);
+	                }
+	            }
+	        }
+	    }
+	    
+	    public void navigatePageLeft() {
+	        if (currentPage > 0) {
+	            currentPage--;
+	            // Reset grid selection to first champion on new page
+	            resetToFirstChampion();
+	            gp.playSE(9);
+	        }
+	    }
+	    
+	    public void navigatePageRight() {
+	        if ((currentPage + 1) * championsPerPage < applyFilters().size()) {
+	            currentPage++;
+	            // Reset grid selection to first champion on new page
+	            resetToFirstChampion();
+	            gp.playSE(9);
+	        }
+	    }
+	    
+	    public void selectCurrent() {
+	        if (!keyboardMode) return;
+	        
+	        if (showPopup) {
+	            // Handle popup selection
+	            if (selectedChampion != null) {
+	                handlePopupSelection();
+	            }
+	        } else if (leftArrowSelected) {
+	            // Handle left arrow selection (go to previous page)
+	            navigatePageLeft();
+	            // Keep arrow selected after page change
+	            // Check if we can still go left, otherwise switch to right arrow or grid
+	            if (currentPage == 0) {
+	                leftArrowSelected = false;
+	                // If right arrow is available, select it, otherwise go back to grid
+	                if ((currentPage + 1) * championsPerPage < applyFilters().size()) {
+	                    rightArrowSelected = true;
+	                }
+	            }
+	        } else if (rightArrowSelected) {
+	            // Handle right arrow selection (go to next page)
+	            navigatePageRight();
+	            // Keep arrow selected after page change
+	            // Check if we can still go right, otherwise switch to left arrow or grid
+	            if ((currentPage + 1) * championsPerPage >= applyFilters().size()) {
+	                rightArrowSelected = false;
+	                // If left arrow is available, select it, otherwise go back to grid
+	                if (currentPage > 0) {
+	                    leftArrowSelected = true;
+	                }
+	            }
+	        } else {
+	            // Handle grid selection
+	            int championIndex = getSelectedChampionIndex();
+	            if (championIndex >= 0 && championIndex < applyFilters().size()) {
+	                Champion selectedChamp = applyFilters().get(championIndex);
+	                // Check if champion is already in party
+	                boolean inParty = false;
+	                for (Champion partyMember : gp.player.getParty()) {
+	                    if (partyMember != null && partyMember.equals(selectedChamp)) {
+	                        inParty = true;
+	                        break;
+	                    }
+	                }
+	                
+	                if (!inParty) {
+	                    selectedChampion = selectedChamp;
+	                    showPopup = true;
+	                    selectedPopupButton = 0; // Default to first button
+	                    gp.playSE(11);
+	                }
+	            }
+	        }
+	    }
+	    
+	    public void closePopup() {
+	        if (showPopup) {
+	            showPopup = false;
+	            selectedChampion = null;
+	            gp.playSE(9);
+	        }
+	    }
+	    
+	    public void returnToMenu() {
+	        gp.gameState = gp.pauseState;
+	    }
+	    
+	    // Helper methods
+	    private int getChampionsOnCurrentPage() {
+	        List<Champion> filteredChampions = applyFilters();
+	        int start = currentPage * championsPerPage;
+	        int end = Math.min(filteredChampions.size(), start + championsPerPage);
+	        return end - start;
+	    }
+	    
+	    private int getSelectedChampionIndex() {
+	        int index = selectedGridRow * 3 + selectedGridCol;
+	        int pageOffset = currentPage * championsPerPage;
+	        return pageOffset + index;
+	    }
+	    
+	    private boolean isRoleSelectionSingleButton() {
+	        if (selectedChampion == null) return true;
+	        String role2 = selectedChampion.getRole2();
+	        return role2 == null || role2.isEmpty() || role2.equalsIgnoreCase("None");
+	    }
+	    
+	    private void handlePopupSelection() {
+	        if (selectedChampion == null) return;
+	        
+	        String selectedRole;
+	        if (isRoleSelectionSingleButton()) {
+	            selectedRole = selectedChampion.getRole();
+	        } else {
+	            selectedRole = selectedPopupButton == 0 ? selectedChampion.getRole() : selectedChampion.getRole2();
+	        }
+	        
+	        promptAddToParty(selectedChampion, selectedRole);
+	        showPopup = false;
+	        gp.playSE(11);
 	    }
 	    private void preloadImages() {
 	        for (Champion champion : gp.champList) {
@@ -185,22 +504,52 @@ import Champions.Champion;
 	
 	        // Left arrow (only draw if there's a previous page)
 	        if (currentPage > 0) {
-	            g2.setColor(Color.LIGHT_GRAY);
+	            // Highlight left arrow if selected
+	            Color leftArrowColor = keyboardMode && leftArrowSelected ? 
+	                new Color(0, 150, 255) : Color.LIGHT_GRAY;
+	            g2.setColor(leftArrowColor);
 	            g2.fillPolygon(
 	                new int[] { rightPanelX + arrowPadding, rightPanelX + arrowPadding + arrowSize, rightPanelX + arrowPadding + arrowSize },
 	                new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
 	                3
 	            );
+	            
+	            // Draw border for keyboard selection
+	            if (keyboardMode && leftArrowSelected) {
+	                g2.setColor(Color.WHITE);
+	                g2.setStroke(new BasicStroke(3));
+	                g2.drawPolygon(
+	                    new int[] { rightPanelX + arrowPadding, rightPanelX + arrowPadding + arrowSize, rightPanelX + arrowPadding + arrowSize },
+	                    new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
+	                    3
+	                );
+	                g2.setStroke(new BasicStroke(1)); // Reset stroke
+	            }
 	        }
 	
 	        // Right arrow (only draw if there's a next page)
 	        if ((currentPage + 1) * championsPerPage < applyFilters().size()) {
-	            g2.setColor(Color.LIGHT_GRAY);
+	            // Highlight right arrow if selected
+	            Color rightArrowColor = keyboardMode && rightArrowSelected ? 
+	                new Color(0, 150, 255) : Color.LIGHT_GRAY;
+	            g2.setColor(rightArrowColor);
 	            g2.fillPolygon(
 	                new int[] { rightPanelX + rightPanelWidth - arrowPadding, rightPanelX + rightPanelWidth - arrowPadding - arrowSize, rightPanelX + rightPanelWidth - arrowPadding - arrowSize },
 	                new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
 	                3
 	            );
+	            
+	            // Draw border for keyboard selection
+	            if (keyboardMode && rightArrowSelected) {
+	                g2.setColor(Color.WHITE);
+	                g2.setStroke(new BasicStroke(3));
+	                g2.drawPolygon(
+	                    new int[] { rightPanelX + rightPanelWidth - arrowPadding, rightPanelX + rightPanelWidth - arrowPadding - arrowSize, rightPanelX + rightPanelWidth - arrowPadding - arrowSize },
+	                    new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
+	                    3
+	                );
+	                g2.setStroke(new BasicStroke(1)); // Reset stroke
+	            }
 	        }
 	
 	        // Apply filters and draw the grid
@@ -246,8 +595,18 @@ import Champions.Champion;
 	                    mousePoint.x >= xOffset + 10 && mousePoint.x <= xOffset + cellWidth - 10 &&
 	                    mousePoint.y >= yOffset + 10 && mousePoint.y <= yOffset + cellHeight - 10;
 
-	            // Draw the cell background
-	            g2.setColor(isHovered ? new Color(255, 215, 0, 150) : Color.WHITE); // Gold highlight on hover
+	            // Check if this cell is selected via keyboard (but not when arrow is selected)
+	            boolean isKeyboardSelected = keyboardMode && !showPopup && !isAnyArrowSelected() &&
+	                    selectedGridRow == row && selectedGridCol == col;
+
+	            // Draw the cell background with keyboard selection priority
+	            Color cellColor = Color.WHITE;
+	            if (isKeyboardSelected) {
+	                cellColor = new Color(0, 150, 255, 180); // Blue highlight for keyboard selection
+	            } else if (isHovered) {
+	                cellColor = new Color(255, 215, 0, 150); // Gold highlight on mouse hover
+	            }
+	            g2.setColor(cellColor);
 	            g2.fillRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
 
 	            // Draw the cell border
@@ -332,8 +691,19 @@ import Champions.Champion;
 
 	        if (role2Text.equals("None")) { 
 	            int buttonX = popupX + (popupWidth - buttonWidth) / 2;
-	            g2.setColor(new Color(100, 255, 100));
+	            // Highlight button if selected via keyboard
+	            Color buttonColor = keyboardMode && selectedPopupButton == 0 ? 
+	                new Color(0, 150, 255) : new Color(100, 255, 100);
+	            g2.setColor(buttonColor);
 	            g2.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+	            
+	            // Draw button border for keyboard selection
+	            if (keyboardMode && selectedPopupButton == 0) {
+	                g2.setColor(Color.WHITE);
+	                g2.setStroke(new BasicStroke(3));
+	                g2.drawRect(buttonX, buttonY, buttonWidth, buttonHeight);
+	                g2.setStroke(new BasicStroke(1)); // Reset stroke
+	            }
 
 	            g2.setColor(Color.BLACK);
 	            String buttonText = "Add (" + selectedChampion.getRole() + ")";
@@ -344,9 +714,29 @@ import Champions.Champion;
 	            int button1X = popupX + popupWidth / 4 - buttonWidth / 2;
 	            int button2X = popupX + 3 * popupWidth / 4 - buttonWidth / 2;
 
-	            g2.setColor(new Color(100, 255, 100));
+	            // Highlight buttons based on keyboard selection
+	            Color button1Color = keyboardMode && selectedPopupButton == 0 ? 
+	                new Color(0, 150, 255) : new Color(100, 255, 100);
+	            Color button2Color = keyboardMode && selectedPopupButton == 1 ? 
+	                new Color(0, 150, 255) : new Color(100, 255, 100);
+	                
+	            g2.setColor(button1Color);
 	            g2.fillRect(button1X, buttonY, buttonWidth, buttonHeight);
+	            g2.setColor(button2Color);
 	            g2.fillRect(button2X, buttonY, buttonWidth, buttonHeight);
+	            
+	            // Draw borders for keyboard selection
+	            if (keyboardMode) {
+	                g2.setStroke(new BasicStroke(3));
+	                if (selectedPopupButton == 0) {
+	                    g2.setColor(Color.WHITE);
+	                    g2.drawRect(button1X, buttonY, buttonWidth, buttonHeight);
+	                } else if (selectedPopupButton == 1) {
+	                    g2.setColor(Color.WHITE);
+	                    g2.drawRect(button2X, buttonY, buttonWidth, buttonHeight);
+	                }
+	                g2.setStroke(new BasicStroke(1)); // Reset stroke
+	            }
 
 	            g2.setColor(Color.BLACK);
 	            g2.drawString("Add (" + selectedChampion.getRole() + ")", button1X + 10, buttonY + 25);
@@ -357,6 +747,8 @@ import Champions.Champion;
 	
 	
 	    public void handleMouseClick(int mouseX, int mouseY) {
+	        // Disable keyboard mode when mouse is used
+	        disableKeyboardMode();
 	        int leftPanelWidth = gp.screenWidth / 4;
 	        int rightPanelX = leftPanelWidth;
 	        int rightPanelWidth = gp.screenWidth - leftPanelWidth;

@@ -59,7 +59,7 @@ public class Move {
         // Initialize League system with defaults
         this.baseDamages = new int[]{power, power, power, power, power}; // Same damage all levels
         this.adRatio = type.equals("Physical") ? 1.0 : 0.0; // 100% AD for physical, 0% for magic
-        this.apRatio = type.equals("Magic") ? 0.6 : 0.0; // 60% AP for magic, 0% for physical
+        this.apRatio = type.equals("Magic") ? 1.0 : 0.0; // 100% AP for magic, 0% for physical
         this.currentLevel = 1;
         
         // Initialize status effects system
