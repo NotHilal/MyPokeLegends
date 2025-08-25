@@ -497,6 +497,9 @@ public class KeyHandler implements KeyListener{
 			if(code ==KeyEvent.VK_G) {
 				gPressed = true;
 			}
+			if(code ==KeyEvent.VK_TAB) {
+				gp.openTeamOrder(); // Switch to team order management
+			}
 			if (code == KeyEvent.VK_W) {
 				upPressed = true;
 			}
@@ -511,6 +514,35 @@ public class KeyHandler implements KeyListener{
 			}
 			if (code == KeyEvent.VK_ENTER) {
 				interctPressed = true;
+			}
+		}
+		
+		// Team Order STATE
+		else if(gp.gameState==gp.teamOrderState) {
+			if(code ==KeyEvent.VK_ESCAPE) {
+				gp.gameState = gp.roleTeamState; // Return to role team overview
+			}
+			if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
+				gp.teamOrderPage.navigateUp();
+			}
+			if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
+				gp.teamOrderPage.navigateDown();
+			}
+			if (code == KeyEvent.VK_ENTER || code == KeyEvent.VK_SPACE) {
+				if(gp.teamOrderPage.draggedChampion == null) {
+					gp.teamOrderPage.startDrag();
+				} else {
+					gp.teamOrderPage.drop();
+				}
+			}
+			if (code == KeyEvent.VK_A) {
+				gp.teamOrderPage.swapWithPrevious();
+			}
+			if (code == KeyEvent.VK_D) {
+				gp.teamOrderPage.swapWithNext();
+			}
+			if (code == KeyEvent.VK_C) {
+				gp.teamOrderPage.cancelDrag();
 			}
 		}
 		

@@ -38,11 +38,12 @@ public class RoleTeamPage {
     }
     
     /**
-     * Returns a compacted list of champions (no null/empty slots) for navigation
+     * Returns a list of champions in battle order (no null/empty slots) for navigation
      */
     private java.util.List<Champion> getCompactedChampions() {
         java.util.List<Champion> compacted = new java.util.ArrayList<>();
-        for (Champion champion : gamePanel.player.getParty()) {
+        Champion[] battleOrderedTeam = gamePanel.player.getBattleOrderedTeam();
+        for (Champion champion : battleOrderedTeam) {
             if (champion != null) {
                 compacted.add(champion);
             }
@@ -62,23 +63,29 @@ public class RoleTeamPage {
     }
     
     /**
-     * Converts a compacted index to the original party index
+     * Converts a battle order index to the role index
      */
     private int getPartyIndexFromCompacted(int compactedIndex) {
-        java.util.List<Champion> compacted = getCompactedChampions();
-        if (compactedIndex < 0 || compactedIndex >= compacted.size()) {
+        // Get battle order array
+        int[] battleOrder = gamePanel.player.getBattleOrder();
+        Champion[] battleTeam = gamePanel.player.getBattleOrderedTeam();
+        
+        if (compactedIndex < 0 || compactedIndex >= battleOrder.length) {
             return -1;
         }
         
-        Champion targetChampion = compacted.get(compactedIndex);
-        Champion[] party = gamePanel.player.getParty();
-        
-        // Find this champion in the original party array
-        for (int i = 0; i < party.length; i++) {
-            if (party[i] == targetChampion) {
-                return i;
+        // Skip null entries in battle team to find the right compacted index
+        int nonNullCount = 0;
+        for (int i = 0; i < battleTeam.length; i++) {
+            if (battleTeam[i] != null) {
+                if (nonNullCount == compactedIndex) {
+                    // Return the role index for this battle position
+                    return battleOrder[i];
+                }
+                nonNullCount++;
             }
         }
+        
         return -1;
     }
     
@@ -101,7 +108,7 @@ public class RoleTeamPage {
     }
     
     private void preloadImages() {
-        for (Champion champion : gamePanel.player.getParty()) {
+        for (Champion champion : gamePanel.player.getChampions()) { // Use new system
             if (champion != null) {
                 loadChampionImage(champion.getImageName());
             }
@@ -401,9 +408,9 @@ public class RoleTeamPage {
     }
     
     private Champion getRoleChampion(int roleIndex) {
-        // Get champion for specific role from player's party
-        if (roleIndex >= 0 && roleIndex < gamePanel.player.getParty().length) {
-            return gamePanel.player.getParty()[roleIndex];
+        // Get champion for specific role from player's champions array
+        if (roleIndex >= 0 && roleIndex < gamePanel.player.getChampions().length) {
+            return gamePanel.player.getChampions()[roleIndex];
         }
         return null;
     }
@@ -508,21 +515,55 @@ public class RoleTeamPage {
     
     
     private void swapChampions(int fromIndex, int toIndex) {
-        Champion[] party = gamePanel.player.getParty();
+        // Find which battle positions these role indices correspond to
+        int[] battleOrder = gamePanel.player.getBattleOrder();
+        int battlePos1 = -1;
+        int battlePos2 = -1;
         
-        // Swap the champions
-        Champion temp = party[fromIndex];
-        party[fromIndex] = party[toIndex];
-        party[toIndex] = temp;
+        // Find where these role indices appear in the battle order
+        for (int i = 0; i < battleOrder.length; i++) {
+            if (battleOrder[i] == fromIndex) {
+                battlePos1 = i;
+            } else if (battleOrder[i] == toIndex) {
+                battlePos2 = i;
+            }
+        }
         
-        // Note: selectedChampionIndex is already updated in the calling method
-        // to follow the moved champion, so we don't need to update it here
+        if (battlePos1 != -1 && battlePos2 != -1) {
+            // Swap only the battle order positions, keeping roles intact
+            gamePanel.player.swapBattleOrderPositions(battlePos1, battlePos2);
+            
+            Champion[] champions = gamePanel.player.getChampions();
+            Champion champ1 = champions[fromIndex];
+            Champion champ2 = champions[toIndex];
+            String champ1Role = gamePanel.player.getRoleName(fromIndex);
+            String champ2Role = gamePanel.player.getRoleName(toIndex);
+            
+            System.out.println("Swapped battle positions of " + champ1Role + " champion and " + champ2Role + " champion");
+            System.out.println("Roles remain: " + (champ1 != null ? champ1.getName() : "Empty") + " stays " + champ1Role + ", " + (champ2 != null ? champ2.getName() : "Empty") + " stays " + champ2Role);
+        } else {
+            System.out.println("Warning: Could not find battle positions for role indices " + fromIndex + " and " + toIndex);
+        }
         
-        Champion champ1 = party[fromIndex];
-        Champion champ2 = party[toIndex];
-        String champ1Role = champ1 != null ? champ1.getRole() : "Empty";
-        String champ2Role = champ2 != null ? champ2.getRole() : "Empty";
-        System.out.println("Swapped " + champ1Role + " champion and " + champ2Role + " champion between positions " + fromIndex + " and " + toIndex);
+        // Debug: Print current display order
+        printDisplayOrder();
+    }
+    
+    private void printDisplayOrder() {
+        System.out.println("=== ROLE TEAM PAGE DISPLAY ORDER ===");
+        Champion[] battleTeam = gamePanel.player.getBattleOrderedTeam();
+        int[] battleOrder = gamePanel.player.getBattleOrder();
+        
+        for (int i = 0; i < battleTeam.length; i++) {
+            Champion champ = battleTeam[i];
+            String roleName = gamePanel.player.getRoleName(battleOrder[i]);
+            if (champ != null) {
+                System.out.println("Position " + (i+1) + ": " + roleName + " (" + champ.getName() + ")");
+            } else {
+                System.out.println("Position " + (i+1) + ": " + roleName + " (Empty)");
+            }
+        }
+        System.out.println("=====================================");
     }
     
     private void drawModernTitle(Graphics2D g2, int leftPanelWidth) {
@@ -546,25 +587,23 @@ public class RoleTeamPage {
         int slotWidth = leftPanelWidth - 100; // Less space reserved for arrows to make boxes bigger
         int startY = 80;
         
-        // Get compacted champions and create display order (filled slots first, then empty)
-        java.util.List<Champion> compactedChampions = getCompactedChampions();
+        // Create display order based on battle order
+        int[] battleOrder = gamePanel.player.getBattleOrder();
+        Champion[] champions = gamePanel.player.getChampions();
         java.util.List<Integer> displayOrder = new java.util.ArrayList<>();
         
-        // First, add all filled slots (in compacted order)
-        for (Champion champion : compactedChampions) {
-            // Find the role index for this champion
-            Champion[] party = gamePanel.player.getParty();
-            for (int roleIndex = 0; roleIndex < party.length; roleIndex++) {
-                if (party[roleIndex] == champion) {
-                    displayOrder.add(roleIndex);
-                    break;
-                }
+        // First, add all non-null champions in battle order
+        for (int i = 0; i < battleOrder.length; i++) {
+            int roleIndex = battleOrder[i];
+            if (roleIndex < champions.length && champions[roleIndex] != null) {
+                displayOrder.add(roleIndex);
             }
         }
         
-        // Then add empty slots
-        for (int roleIndex = 0; roleIndex < 5; roleIndex++) {
-            if (getRoleChampion(roleIndex) == null) {
+        // Then add empty slots (null champions) at the bottom
+        for (int i = 0; i < battleOrder.length; i++) {
+            int roleIndex = battleOrder[i];
+            if (roleIndex < champions.length && champions[roleIndex] == null) {
                 displayOrder.add(roleIndex);
             }
         }

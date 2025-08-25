@@ -49,10 +49,10 @@ import Champions.Champion;
 	        return xButtonMode;
 	    }
 	    
-	    // Helper method to get count of champions in party
+	    // Helper method to get count of champions in useChamps
 	    private int getChampionsInPartyCount() {
 	        int count = 0;
-	        for (Champion champion : gp.player.getParty()) {
+	        for (Champion champion : gp.player.getUseChamps()) {
 	            if (champion != null) {
 	                count++;
 	            }
@@ -327,9 +327,9 @@ import Champions.Champion;
 	            int championIndex = getSelectedChampionIndex();
 	            if (championIndex >= 0 && championIndex < applyFilters().size()) {
 	                Champion selectedChamp = applyFilters().get(championIndex);
-	                // Check if champion is already in party
+	                // Check if champion is already in useChamps
 	                boolean inParty = false;
-	                for (Champion partyMember : gp.player.getParty()) {
+	                for (Champion partyMember : gp.player.getUseChamps()) {
 	                    if (partyMember != null && partyMember.equals(selectedChamp)) {
 	                        inParty = true;
 	                        break;
@@ -406,10 +406,10 @@ import Champions.Champion;
 	        leftArrowSelected = false;
 	        rightArrowSelected = false;
 	        
-	        // Find first champion with an X button (first non-null champion)
+	        // Find first champion with an X button (first non-null champion in useChamps)
 	        selectedXButton = 0;
-	        for (int i = 0; i < gp.player.getParty().length; i++) {
-	            if (gp.player.getParty()[i] != null) {
+	        for (int i = 0; i < gp.player.getUseChamps().length; i++) {
+	            if (gp.player.getUseChamps()[i] != null) {
 	                selectedXButton = i;
 	                break;
 	            }
@@ -432,9 +432,9 @@ import Champions.Champion;
 	    public void navigateXButtonUp() {
 	        if (!xButtonMode) return;
 	        
-	        // Find previous champion slot with a champion
+	        // Find previous champion slot with a champion in useChamps
 	        for (int i = selectedXButton - 1; i >= 0; i--) {
-	            if (gp.player.getParty()[i] != null) {
+	            if (gp.player.getUseChamps()[i] != null) {
 	                selectedXButton = i;
 	                gp.playSE(9);
 	                return;
@@ -442,8 +442,8 @@ import Champions.Champion;
 	        }
 	        
 	        // Wrap to last champion if no previous found
-	        for (int i = gp.player.getParty().length - 1; i > selectedXButton; i--) {
-	            if (gp.player.getParty()[i] != null) {
+	        for (int i = gp.player.getUseChamps().length - 1; i > selectedXButton; i--) {
+	            if (gp.player.getUseChamps()[i] != null) {
 	                selectedXButton = i;
 	                gp.playSE(9);
 	                return;
@@ -454,9 +454,9 @@ import Champions.Champion;
 	    public void navigateXButtonDown() {
 	        if (!xButtonMode) return;
 	        
-	        // Find next champion slot with a champion
-	        for (int i = selectedXButton + 1; i < gp.player.getParty().length; i++) {
-	            if (gp.player.getParty()[i] != null) {
+	        // Find next champion slot with a champion in useChamps
+	        for (int i = selectedXButton + 1; i < gp.player.getUseChamps().length; i++) {
+	            if (gp.player.getUseChamps()[i] != null) {
 	                selectedXButton = i;
 	                gp.playSE(9);
 	                return;
@@ -465,7 +465,7 @@ import Champions.Champion;
 	        
 	        // Wrap to first champion if no next found
 	        for (int i = 0; i < selectedXButton; i++) {
-	            if (gp.player.getParty()[i] != null) {
+	            if (gp.player.getUseChamps()[i] != null) {
 	                selectedXButton = i;
 	                gp.playSE(9);
 	                return;
@@ -478,11 +478,11 @@ import Champions.Champion;
 	        if (!xButtonMode) return;
 	        if (getChampionsInPartyCount() <= 1) return; // Can't remove if only one champion
 	        
-	        Champion removedChampion = gp.player.getParty()[selectedXButton];
+	        Champion removedChampion = gp.player.getUseChamps()[selectedXButton];
 	        if (removedChampion != null) {
-	            gp.player.getParty()[selectedXButton] = null;
-	            removedChampion.setCurrentAssignedRole(null);
-	            System.out.println(removedChampion.getName() + " has been removed from the party.");
+	            // Remove from useChamps and sync to myTeam
+	            gp.player.setUseChampByIndex(selectedXButton, null);
+	            System.out.println(removedChampion.getName() + " has been removed from the " + gp.player.getRoleName(selectedXButton) + " role.");
 	            
 	            // If no more multiple champions, exit X button mode
 	            if (getChampionsInPartyCount() <= 1) {
@@ -490,8 +490,8 @@ import Champions.Champion;
 	            } else {
 	                // Find next valid X button position
 	                boolean foundNext = false;
-	                for (int i = selectedXButton; i < gp.player.getParty().length; i++) {
-	                    if (gp.player.getParty()[i] != null) {
+	                for (int i = selectedXButton; i < gp.player.getUseChamps().length; i++) {
+	                    if (gp.player.getUseChamps()[i] != null) {
 	                        selectedXButton = i;
 	                        foundNext = true;
 	                        break;
@@ -500,7 +500,7 @@ import Champions.Champion;
 	                if (!foundNext) {
 	                    // Look backwards
 	                    for (int i = selectedXButton - 1; i >= 0; i--) {
-	                        if (gp.player.getParty()[i] != null) {
+	                        if (gp.player.getUseChamps()[i] != null) {
 	                            selectedXButton = i;
 	                            break;
 	                        }
@@ -590,17 +590,12 @@ import Champions.Champion;
 	        g2.setColor(Color.LIGHT_GRAY);
 	        g2.fillRect(0, 0, leftPanelWidth, gp.screenHeight);
 
-	        // Roles for the team slots
-	        String[] roles = { "Top", "Mid", "Jgl", "Adc", "Supp" };
+	        // Roles for the team slots - matches useChamps array indices
+	        String[] roles = { "Top", "Jgl", "Mid", "Adc", "Supp" }; // Updated order to match useChamps
 	        int slotHeight = gp.screenHeight / 5;
 
-	        // Count the number of champions in the party
-	        int championsInParty = 0;
-	        for (Champion champion : gp.player.getParty()) {
-	            if (champion != null) {
-	                championsInParty++;
-	            }
-	        }
+	        // Count the number of champions in useChamps
+	        int championsInParty = getChampionsInPartyCount();
 
 	        for (int i = 0; i < 5; i++) {
 	            int slotY = i * slotHeight;
@@ -617,8 +612,8 @@ import Champions.Champion;
 	            g2.setFont(new Font("Arial", Font.BOLD, 12));
 	            g2.drawString(roleText, 20, slotY + 30); // Position the text inside the background
 
-	            // Draw the champion image
-	            Champion champion = gp.player.getParty()[i];
+	            // Draw the champion image from useChamps array
+	            Champion champion = gp.player.getUseChamps()[i];
 	            if (champion != null) {
 	                BufferedImage champImage = loadChampionImage(champion.getImageName());
 	                if (champImage != null) {
@@ -790,9 +785,9 @@ import Champions.Champion;
 	            int xOffset = rightPanelX + col * cellWidth;
 	            int yOffset = filterHeight + row * cellHeight;
 
-	            // Check if champion is already in the party
+	            // Check if champion is already in useChamps
 	            boolean inParty = false;
-	            for (Champion partyMember : gp.player.getParty()) {
+	            for (Champion partyMember : gp.player.getUseChamps()) {
 	                if (partyMember != null && partyMember.equals(champion)) {
 	                    inParty = true;
 	                    break;
@@ -967,29 +962,24 @@ import Champions.Champion;
 	        int arrowYOffset = filterHeight + (gp.screenHeight - filterHeight) / 2 - arrowSize / 2;
 	        int slotHeight = gp.screenHeight / 5;
 
-	        // Count the number of champions in the party
-	        int championsInParty = 0;
-	        for (Champion champion : gp.player.getParty()) {
-	            if (champion != null) {
-	                championsInParty++;
-	            }
-	        }
+	        // Count the number of champions in useChamps
+	        int championsInParty = getChampionsInPartyCount();
 
-	        // Check for clicks on the "X" button in the party slots if there is more than one champion
+	        // Check for clicks on the "X" button in the useChamps slots if there is more than one champion
 	        if (championsInParty > 1) {
-	            for (int i = 0; i < gp.player.getParty().length; i++) {
+	            for (int i = 0; i < gp.player.getUseChamps().length; i++) {
 	                int xButtonSize = 20;
 	                int xButtonX = 10 + leftPanelWidth - 30; // Position it near the right edge of the slot
 	                int xButtonY = i * slotHeight + 20; // Position it near the top of the slot
 
 	                if (mouseX >= xButtonX && mouseX <= xButtonX + xButtonSize &&
 	                    mouseY >= xButtonY && mouseY <= xButtonY + xButtonSize) {
-	                    Champion removedChampion = gp.player.getParty()[i];
-	                    gp.player.getParty()[i] = null; // Remove the champion from the party
-
+	                    Champion removedChampion = gp.player.getUseChamps()[i];
+	                    
 	                    if (removedChampion != null) {
-	                        removedChampion.setCurrentAssignedRole(null); // Clear their assigned role
-	                        System.out.println(removedChampion.getName() + " has been removed from the party.");
+	                        // Remove using the new system
+	                        gp.player.setUseChampByIndex(i, null);
+	                        System.out.println(removedChampion.getName() + " has been removed from the " + gp.player.getRoleName(i) + " role.");
 	                    }
 
 	                    gp.repaint();
@@ -1118,16 +1108,16 @@ import Champions.Champion;
 	            int xOffset = rightPanelX + arrowPadding + arrowSize + col * cellWidth;
 	            int yOffset = filterHeight + row * cellHeight;
 
-	            // Check if champion is already in the party
+	            // Check if champion is already in useChamps
 	            boolean inParty = false;
-	            for (Champion partyMember : gp.player.getParty()) {
+	            for (Champion partyMember : gp.player.getUseChamps()) {
 	                if (partyMember != null && partyMember.equals(filteredChampions.get(i))) {
 	                    inParty = true;
 	                    break;
 	                }
 	            }
 
-	            // Skip clicking on champions already in the party
+	            // Skip clicking on champions already in useChamps
 	            if (inParty) continue;
 
 	            if (mouseX >= xOffset + 10 && mouseX <= xOffset + cellWidth - 10 &&
@@ -1145,37 +1135,9 @@ import Champions.Champion;
 
 
 	    private void promptAddToParty(Champion selectedChampion, String role) {
-	        for (int i = 0; i < gp.player.getParty().length; i++) {
-	            // Identify the required role for the current slot
-	            String requiredRole = switch (i) {
-	                case 0 -> "Top";
-	                case 1 -> "Mid";
-	                case 2 -> "Jgl";
-	                case 3 -> "Adc";
-	                case 4 -> "Supp";
-	                default -> null;
-	            };
-
-	            // Check if the role matches
-	            if (requiredRole.equalsIgnoreCase(role)) {
-	                // Replace any existing champion in this role
-	                Champion currentChampion = gp.player.getParty()[i];
-	                if (currentChampion != null) {
-	                    currentChampion.setCurrentAssignedRole(null); // Clear their assigned role
-	                    System.out.println(currentChampion.getName() + " was removed from the " + requiredRole + " role.");
-	                }
-
-	                // Assign the new champion and set their current assigned role
-	                selectedChampion.setCurrentAssignedRole(requiredRole);
-	                gp.player.getParty()[i] = selectedChampion;
-	                System.out.println(selectedChampion.getName() + " was added to the " + requiredRole + " role.");
-	                gp.repaint();
-	                return;
-	            }
-	        }
-
-	        // If no suitable slot was found (this should not happen in a valid setup)
-	        System.out.println("No available slot for role: " + role);
+	        // Use the new dual system - assign to useChamps by role
+	        gp.player.setUseChampByRole(role, selectedChampion);
+	        gp.repaint();
 	    }
 	
 	

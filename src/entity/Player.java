@@ -40,8 +40,13 @@ public class Player extends Entity {
     
     WildChampionSpawner spawner;
     
-    private Champion[] party = new Champion[5]; // Fixed-size array
+    private Champion[] party = new Champion[5]; // Fixed-size array - DEPRECATED, use useChamps and myTeam instead
     private List<Boolean> ownedChampions=new ArrayList<>();; // List to track ownership
+    
+    // NEW SINGLE LIST + ORDER SYSTEM
+    private Champion[] champions = new Champion[5]; // Fixed roles: [Top, Jgl, Mid, Adc, Supp] - champions by role
+    private int[] battleOrder = {0, 1, 2, 3, 4};   // Order indices: determines battle sequence (e.g., [4,0,3,1,2] = [Supp,Top,Adc,Jgl,Mid])
+    private String[] roleNames = {"Top", "Jgl", "Mid", "Adc", "Supp"}; // Role names for champions array
 
 
 
@@ -177,14 +182,255 @@ public class Player extends Entity {
     }
     
     public void initializeParty() {
-        // Add placeholder champions to the first slots; other slots remain null
+        // DEPRECATED - keeping for compatibility
         party[0] = gp.champList.get(numchamp);
         party[1] = gp.champList.get(1);
-        // Other slots are null by default 
+        
+        // NEW DUAL SYSTEM INITIALIZATION
+        initializeDualTeamSystem();
+    }
+    
+    public void initializeDualTeamSystem() {
+        // Initialize champions with starting champions
+        champions[0] = gp.champList.get(0);  // Top
+        champions[1] = gp.champList.get(1);  // Jgl  
+        // Other slots remain null initially
+        
+        // Battle order starts as default: [0,1,2,3,4] = [Top,Jgl,Mid,Adc,Supp]
+        battleOrder = new int[]{0, 1, 2, 3, 4};
+        
+        System.out.println("Initialized team system:");
+        printBattleOrder();
     }
     
     public Champion[] getParty() {
-        return party;
+        return party; // DEPRECATED - use getMyTeam() for battle, getUseChamps() for selection
+    }
+    
+    // ============== NEW SINGLE LIST + ORDER SYSTEM METHODS ==============
+    
+    /**
+     * Get the champions array (fixed roles for champion selection)
+     * [0]=Top, [1]=Jgl, [2]=Mid, [3]=Adc, [4]=Supp
+     */
+    public Champion[] getChampions() {
+        return champions;
+    }
+    
+    /**
+     * Get champions in battle order (ordered by battleOrder array)
+     * Returns champions according to battleOrder indices
+     */
+    public Champion[] getBattleOrderedTeam() {
+        Champion[] orderedTeam = new Champion[5];
+        for (int i = 0; i < battleOrder.length && i < orderedTeam.length; i++) {
+            int champIndex = battleOrder[i];
+            if (champIndex >= 0 && champIndex < champions.length) {
+                orderedTeam[i] = champions[champIndex];
+            }
+        }
+        return orderedTeam;
+    }
+    
+    /**
+     * Get the battle order array
+     */
+    public int[] getBattleOrder() {
+        return battleOrder;
+    }
+    
+    /**
+     * Get role name for champions array index
+     */
+    public String getRoleName(int index) {
+        if (index >= 0 && index < roleNames.length) {
+            return roleNames[index];
+        }
+        return "Unknown";
+    }
+    
+    /**
+     * Set a champion by role
+     */
+    public void setChampionByRole(String role, Champion champion) {
+        int roleIndex = getRoleIndex(role);
+        if (roleIndex != -1) {
+            setChampionByIndex(roleIndex, champion);
+        }
+    }
+    
+    /**
+     * Set a champion by index in the champions array
+     */
+    public void setChampionByIndex(int index, Champion champion) {
+        if (index >= 0 && index < champions.length) {
+            // Clear old champion's assigned role
+            if (champions[index] != null) {
+                champions[index].setCurrentAssignedRole(null);
+            }
+            
+            // Set new champion and their role
+            champions[index] = champion;
+            if (champion != null) {
+                champion.setCurrentAssignedRole(roleNames[index]);
+                System.out.println(champion.getName() + " assigned to " + roleNames[index] + " role");
+            }
+        }
+    }
+    
+    /**
+     * Get role index from role name
+     */
+    private int getRoleIndex(String role) {
+        for (int i = 0; i < roleNames.length; i++) {
+            if (roleNames[i].equalsIgnoreCase(role)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    /**
+     * Swap two positions in the battle order array
+     */
+    public void swapBattleOrderPositions(int pos1, int pos2) {
+        if (pos1 >= 0 && pos1 < battleOrder.length && pos2 >= 0 && pos2 < battleOrder.length) {
+            // Swap the indices in battle order
+            int temp = battleOrder[pos1];
+            battleOrder[pos1] = battleOrder[pos2];
+            battleOrder[pos2] = temp;
+            
+            System.out.println("Swapped battle positions " + (pos1+1) + " and " + (pos2+1));
+            printBattleOrder();
+        }
+    }
+    
+    /**
+     * Move a battle position to a new location in the order
+     */
+    public void moveBattleOrderPosition(int fromPos, int toPos) {
+        if (fromPos < 0 || fromPos >= battleOrder.length || toPos < 0 || toPos >= battleOrder.length) return;
+        
+        // Store the champion index we're moving
+        int movingChampIndex = battleOrder[fromPos];
+        
+        // Shift array to make room
+        if (fromPos < toPos) {
+            // Moving right - shift left
+            for (int i = fromPos; i < toPos; i++) {
+                battleOrder[i] = battleOrder[i + 1];
+            }
+        } else {
+            // Moving left - shift right  
+            for (int i = fromPos; i > toPos; i--) {
+                battleOrder[i] = battleOrder[i - 1];
+            }
+        }
+        
+        // Place champion index in new position
+        battleOrder[toPos] = movingChampIndex;
+        
+        System.out.println("Moved battle position " + (fromPos + 1) + " to position " + (toPos + 1));
+        printBattleOrder();
+    }
+    
+    /**
+     * Helper method to print current battle order for debugging
+     */
+    public void printBattleOrder() {
+        System.out.println("=== BATTLE ORDER DEBUG ===");
+        System.out.print("Champions Array: [");
+        for (int i = 0; i < champions.length; i++) {
+            if (champions[i] != null) {
+                System.out.print(champions[i].getName() + "(" + roleNames[i] + ")");
+            } else {
+                System.out.print("null");
+            }
+            if (i < champions.length - 1) System.out.print(", ");
+        }
+        System.out.println("]");
+        
+        System.out.print("Battle Order Indices: [");
+        for (int i = 0; i < battleOrder.length; i++) {
+            System.out.print(battleOrder[i]);
+            if (i < battleOrder.length - 1) System.out.print(", ");
+        }
+        System.out.println("]");
+        
+        System.out.print("Resulting Battle Team: [");
+        Champion[] ordered = getBattleOrderedTeam();
+        for (int i = 0; i < ordered.length; i++) {
+            if (ordered[i] != null) {
+                System.out.print("Pos" + (i+1) + ":" + ordered[i].getName() + "(" + roleNames[battleOrder[i]] + ")");
+            } else {
+                System.out.print("Pos" + (i+1) + ":Empty");
+            }
+            if (i < ordered.length - 1) System.out.print(", ");
+        }
+        System.out.println("]");
+        System.out.println("========================");
+    }
+    
+    // ============== LEGACY COMPATIBILITY METHODS ==============
+    
+    /**
+     * Get the useChamps array (compatibility method)
+     * @deprecated Use getChampions() instead
+     */
+    public Champion[] getUseChamps() {
+        return getChampions();
+    }
+    
+    /**
+     * Get the myTeam array (compatibility method)
+     * @deprecated Use getBattleOrderedTeam() instead
+     */
+    public Champion[] getMyTeam() {
+        return getBattleOrderedTeam();
+    }
+    
+    /**
+     * Set champion by index (compatibility method)
+     * @deprecated Use setChampionByIndex() instead
+     */
+    public void setUseChampByIndex(int index, Champion champion) {
+        setChampionByIndex(index, champion);
+    }
+    
+    /**
+     * Set champion by role (compatibility method)
+     * @deprecated Use setChampionByRole() instead
+     */
+    public void setUseChampByRole(String role, Champion champion) {
+        setChampionByRole(role, champion);
+    }
+    
+    /**
+     * Swap positions (compatibility method - now swaps battle order)
+     * @deprecated Use swapBattleOrderPositions() instead
+     */
+    public void swapMyTeamPositions(int pos1, int pos2) {
+        swapBattleOrderPositions(pos1, pos2);
+    }
+    
+    /**
+     * Move champion position (compatibility method)
+     * @deprecated Use moveBattleOrderPosition() instead
+     */
+    public void moveChampionInMyTeam(Champion champion, int newPosition) {
+        // Find current position in battle order
+        Champion[] orderedTeam = getBattleOrderedTeam();
+        int currentPos = -1;
+        for (int i = 0; i < orderedTeam.length; i++) {
+            if (orderedTeam[i] != null && orderedTeam[i].equals(champion)) {
+                currentPos = i;
+                break;
+            }
+        }
+        
+        if (currentPos != -1) {
+            moveBattleOrderPosition(currentPos, newPosition);
+        }
     }
     public boolean isChampionOwned(Champion champion) {
         int index = gp.champList.indexOf(champion);
@@ -192,8 +438,9 @@ public class Player extends Entity {
     }
 
     public Champion getFirstChampion() {
-        // Return the first non-null champion or null if all slots are empty
-        for (Champion champion : party) {
+        // Return the first non-null champion from battle-ordered team
+        Champion[] battleTeam = getBattleOrderedTeam();
+        for (Champion champion : battleTeam) {
             if (champion != null) {
                 return champion;
             }

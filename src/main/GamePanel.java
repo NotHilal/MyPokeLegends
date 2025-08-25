@@ -93,6 +93,7 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int dexState = 8; // New state for the Dex
 	public final int roleTeamState = 9; // New role-based team overview
 	public final int championDetailsState = 10; // New individual champion details
+	public final int teamOrderState = 11; // New team order management state
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -106,6 +107,7 @@ public class GamePanel extends JPanel implements Runnable{
 	public Dex dex; // Declare Dex
 	public RoleTeamPage roleTeamPage; // New role-based team page
 	public ChampionDetailsPage championDetailsPage; // New champion details page
+	public TeamOrderPage teamOrderPage; // New team order management page
 	
 	
 	public GamePanel() {
@@ -118,6 +120,7 @@ public class GamePanel extends JPanel implements Runnable{
 		this.dex = new Dex(this);
 		this.roleTeamPage = new RoleTeamPage(this);
 		this.championDetailsPage = new ChampionDetailsPage(this);
+		this.teamOrderPage = new TeamOrderPage(this);
 
 	    // Add mouse listener for detecting clicks
 	    this.addMouseListener(new MouseAdapter() {
@@ -131,6 +134,9 @@ public class GamePanel extends JPanel implements Runnable{
 	            }
 	            if (gameState == roleTeamState) {
 	                roleTeamPage.handleMouseClick(e.getX(), e.getY());
+	            }
+	            if (gameState == teamOrderState) {
+	                teamOrderPage.handleMouseClick(e.getX(), e.getY());
 	            }
 	        }
 	    });
@@ -225,6 +231,11 @@ public class GamePanel extends JPanel implements Runnable{
 	    if (gameState == championDetailsState) {
 	        // Handle input for champion details page
 	        championDetailsPage.handleInput();
+	    }
+	    
+	    if (gameState == teamOrderState) {
+	        // Handle input for team order page
+	        teamOrderPage.handleInput();
 	    }
 
 	    if (gameState == transitionState) {
@@ -330,6 +341,10 @@ public class GamePanel extends JPanel implements Runnable{
 	        // This replicates the combat behavior where background is drawn first
 	        roleTeamPage.draw(g2);
 	        championDetailsPage.draw(g2);
+	    }
+	    
+	    else if (gameState == teamOrderState) {
+	        teamOrderPage.draw(g2);
 	    }
 	    
 	    else {
@@ -442,6 +457,24 @@ public class GamePanel extends JPanel implements Runnable{
 		roleTeamPage.resetJustEntered();
 		
 		gameState = roleTeamState; // Switch to role team overview
+	}
+	
+	public void openTeamOrder() {
+		ui.currentDialog="Action done!\nYou openned the Battle Order menu!";
+		
+		// Reset all key states to prevent accidental navigation
+		keyH.interctPressed = false;
+		keyH.upPressed = false;
+		keyH.downPressed = false;
+		keyH.gPressed = false;
+		keyH.tabPressed = false;
+		
+		// Initialize the team order page
+		if (teamOrderPage != null) {
+			teamOrderPage.onPageOpened();
+		}
+		
+		gameState = teamOrderState; // Switch to team order management
 	}
 	public void openBag() {
 		gameState = dialogState;
