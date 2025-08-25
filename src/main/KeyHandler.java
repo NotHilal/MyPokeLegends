@@ -352,15 +352,34 @@ public class KeyHandler implements KeyListener{
 		                }
 		            }
 		        }
+		    } else if (gp.battleManager.getBattleState() == BattleState.TEAM_SWAP) {
+		        // Team swap navigation - up/down to navigate through available champions
+		        if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
+		            gp.battleManager.handleBattleAction(-1); // Up arrow
+		            gp.playSE(9);
+		        }
+		        if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
+		            gp.battleManager.handleBattleAction(-2); // Down arrow
+		            gp.playSE(9);
+		        }
 		    }
 		    
 		    if (code == KeyEvent.VK_ENTER) {
 		    	 gp.playSE(11);
-		    	 gp.battleManager.handleBattleAction(gp.ui.battleNum);
+		    	 if (gp.battleManager.getBattleState() == BattleState.TEAM_SWAP) {
+		    		 gp.battleManager.handleBattleAction(0); // 0 = select champion
+		    	 } else {
+		    		 gp.battleManager.handleBattleAction(gp.ui.battleNum);
+		    	 }
 		    }
 		    
-		    // Allow back navigation in move selection
+		    // Allow back navigation in move selection and team swap
 		    if (code == KeyEvent.VK_ESCAPE && gp.battleManager.getBattleState() == BattleState.MOVE_SELECTION) {
+		        gp.battleManager.returnToMainMenu();
+		        gp.ui.battleNum = 0; // Reset to Fight option
+		        gp.playSE(9);
+		    }
+		    if (code == KeyEvent.VK_ESCAPE && gp.battleManager.getBattleState() == BattleState.TEAM_SWAP) {
 		        gp.battleManager.returnToMainMenu();
 		        gp.ui.battleNum = 0; // Reset to Fight option
 		        gp.playSE(9);

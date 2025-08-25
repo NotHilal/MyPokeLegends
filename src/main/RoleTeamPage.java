@@ -723,45 +723,146 @@ public class RoleTeamPage {
     }
     
     private void drawRoleChampionContent(Graphics2D g2, Champion champion, int roleIndex, int x, int y, int width, int height) {
-        // Draw champion image with rounded border
+        // Draw champion image with enhanced styling
         BufferedImage champImage = loadChampionImage(champion.getImageName());
         if (champImage != null) {
-            int imageSize = 70; // Reduced from 100 to 70
-            int imageX = x + 25;
-            int imageY = y + 40; // Adjusted positioning for smaller image
+            int imageSize = 80; // Slightly larger for better visibility
+            int imageX = x + 20;
+            int imageY = y + 35;
+            
+            // Image shadow
+            g2.setColor(new Color(0, 0, 0, 40));
+            g2.fillOval(imageX + 2, imageY + 2, imageSize, imageSize);
             
             // Create circular mask for champion image
             g2.setClip(new java.awt.geom.Ellipse2D.Double(imageX, imageY, imageSize, imageSize));
             g2.drawImage(champImage, imageX, imageY, imageSize, imageSize, null);
             g2.setClip(null);
             
-            // Draw image border
-            g2.setColor(new Color(100, 120, 150));
-            g2.setStroke(new BasicStroke(2f));
+            // Enhanced image border with gradient effect
+            g2.setColor(new Color(255, 215, 0)); // Gold border
+            g2.setStroke(new BasicStroke(3f));
             g2.drawOval(imageX, imageY, imageSize, imageSize);
+            
+            // Inner border for depth
+            g2.setColor(new Color(70, 130, 190));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawOval(imageX + 2, imageY + 2, imageSize - 4, imageSize - 4);
         }
         
-        // Draw champion info with modern typography
-        int infoX = x + 110; // Adjusted for smaller image
-        int infoY = y + 50;
+        // Draw level badge over the image
+        int badgeSize = 24;
+        int badgeX = x + 85; // Top right of image
+        int badgeY = y + 30;
         
-        // Champion name
-        g2.setColor(new Color(30, 45, 80));
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 20)); // Increased from 18
+        // Level badge background
+        g2.setColor(new Color(100, 180, 100));
+        g2.fillRoundRect(badgeX, badgeY, badgeSize, badgeSize, 8, 8);
+        g2.setColor(new Color(70, 140, 70));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawRoundRect(badgeX, badgeY, badgeSize, badgeSize, 8, 8);
+        
+        // Level text
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        String levelText = String.valueOf(champion.getLevel());
+        FontMetrics fm = g2.getFontMetrics();
+        int levelWidth = fm.stringWidth(levelText);
+        g2.drawString(levelText, badgeX + (badgeSize - levelWidth) / 2, badgeY + 16);
+        
+        // Champion info area
+        int infoX = x + 115;
+        int infoY = y + 45;
+        
+        // Champion name with shadow
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        g2.drawString(champion.getName(), infoX + 1, infoY + 1);
+        
+        g2.setColor(new Color(25, 35, 65));
         g2.drawString(champion.getName(), infoX, infoY);
         
-        // Champion stats
-        g2.setColor(new Color(60, 80, 120));
-        g2.setFont(new Font("Segoe UI", Font.PLAIN, 15)); // Increased from 13
-        g2.drawString("Level " + champion.getLevel(), infoX, infoY + 25); // Increased spacing
-        g2.drawString("HP: " + champion.getCurrentHp() + "/" + champion.getMaxHp(), infoX, infoY + 45);
+        // Beautiful HP Bar with enhanced styling
+        int hpBarY = infoY + 15;
+        int hpBarWidth = (width - (infoX - x)) / 2; // Make it half width
+        int hpBarHeight = 16; // Slightly taller for better visibility
         
-        // AD/AP with color coding
-        g2.setColor(new Color(180, 50, 50)); // Red for AD
-        g2.drawString("AD: " + champion.getEffectiveAD(), infoX, infoY + 65); // Increased spacing
+        // HP bar outer shadow
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.fillRoundRect(infoX + 2, hpBarY + 2, hpBarWidth, hpBarHeight, 8, 8);
         
-        g2.setColor(new Color(50, 100, 180)); // Blue for AP
-        g2.drawString("AP: " + champion.getEffectiveAP(), infoX + 100, infoY + 65); // More spacing between AD and AP
+        // HP bar background with subtle gradient
+        GradientPaint bgGradient = new GradientPaint(
+            infoX, hpBarY, new Color(25, 25, 25),
+            infoX, hpBarY + hpBarHeight, new Color(45, 45, 45)
+        );
+        g2.setPaint(bgGradient);
+        g2.fillRoundRect(infoX, hpBarY, hpBarWidth, hpBarHeight, 8, 8);
+        
+        // HP bar fill with beautiful gradient
+        float hpPercentage = (float) champion.getCurrentHp() / champion.getMaxHp();
+        Color hpColor1, hpColor2, hpGlow;
+        if (hpPercentage > 0.6f) {
+            hpColor1 = new Color(120, 255, 120); // Bright green
+            hpColor2 = new Color(60, 200, 60);   // Dark green
+            hpGlow = new Color(200, 255, 200, 80);
+        } else if (hpPercentage > 0.3f) {
+            hpColor1 = new Color(255, 235, 120); // Bright yellow
+            hpColor2 = new Color(220, 180, 60);  // Orange yellow
+            hpGlow = new Color(255, 255, 200, 80);
+        } else {
+            hpColor1 = new Color(255, 140, 140); // Bright red
+            hpColor2 = new Color(200, 80, 80);   // Dark red
+            hpGlow = new Color(255, 200, 200, 80);
+        }
+        
+        int fillWidth = (int)(hpBarWidth * hpPercentage);
+        if (fillWidth > 0) {
+            // Main HP gradient
+            GradientPaint hpGradient = new GradientPaint(
+                infoX, hpBarY, hpColor1,
+                infoX, hpBarY + hpBarHeight, hpColor2
+            );
+            g2.setPaint(hpGradient);
+            g2.fillRoundRect(infoX, hpBarY, fillWidth, hpBarHeight, 8, 8);
+            
+            // Inner glow effect
+            g2.setColor(hpGlow);
+            g2.fillRoundRect(infoX + 1, hpBarY + 1, Math.max(0, fillWidth - 2), Math.max(0, hpBarHeight - 2), 7, 7);
+            
+            // Highlight on top
+            g2.setColor(new Color(255, 255, 255, 40));
+            g2.fillRoundRect(infoX + 1, hpBarY + 1, Math.max(0, fillWidth - 2), hpBarHeight / 3, 7, 7);
+        }
+        
+        // HP bar premium border
+        g2.setColor(new Color(200, 200, 200, 180));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(infoX, hpBarY, hpBarWidth, hpBarHeight, 8, 8);
+        
+        // Inner border for depth
+        g2.setColor(new Color(255, 255, 255, 60));
+        g2.setStroke(new BasicStroke(0.5f));
+        g2.drawRoundRect(infoX + 1, hpBarY + 1, hpBarWidth - 2, hpBarHeight - 2, 7, 7);
+        
+        // Pretty HP text with shadow and better styling
+        g2.setColor(new Color(0, 0, 0, 80)); // Shadow
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        String hpText = champion.getCurrentHp() + "/" + champion.getMaxHp();
+        g2.drawString(hpText, infoX + hpBarWidth + 11, hpBarY + 10);
+        
+        // Main HP text with color coding
+        if (hpPercentage > 0.6f) {
+            g2.setColor(new Color(60, 140, 60)); // Green for healthy
+        } else if (hpPercentage > 0.3f) {
+            g2.setColor(new Color(180, 140, 60)); // Orange for damaged
+        } else {
+            g2.setColor(new Color(180, 60, 60)); // Red for critical
+        }
+        g2.drawString(hpText, infoX + hpBarWidth + 10, hpBarY + 9);
+        
+        // XP bar display in a prettier spot (right side)
+        drawXPBar(g2, champion, infoX + hpBarWidth + 80, hpBarY - 5, 120);
     }
     
     private void drawEmptySlotContent(Graphics2D g2, int x, int y, int width, int height) {
@@ -957,6 +1058,122 @@ public class RoleTeamPage {
             int[] xPoints = {centerX, centerX - 5, centerX + 5};
             int[] yPoints = {centerY + 3, centerY - 3, centerY - 3};
             g2.fillPolygon(xPoints, yPoints, 3);
+        }
+    }
+    
+    private void drawStatMiniPanel(Graphics2D g2, String text, int x, int y, int width, int height, Color bgColor, Color borderColor) {
+        // Panel background with gradient
+        GradientPaint panelGradient = new GradientPaint(
+            x, y, bgColor,
+            x, y + height, new Color(bgColor.getRed() - 20, bgColor.getGreen() - 20, bgColor.getBlue() - 20)
+        );
+        g2.setPaint(panelGradient);
+        g2.fillRoundRect(x, y, width, height, 6, 6);
+        
+        // Panel border
+        g2.setColor(borderColor);
+        g2.setStroke(new BasicStroke(1f));
+        g2.drawRoundRect(x, y, width, height, 6, 6);
+        
+        // Text
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        FontMetrics fm = g2.getFontMetrics();
+        int textWidth = fm.stringWidth(text);
+        g2.drawString(text, x + (width - textWidth) / 2, y + 12);
+    }
+    
+    private void drawXPBar(Graphics2D g2, Champion champion, int x, int y, int width) {
+        // Premium XP bar with stunning visual effects
+        int xpBarHeight = 16;
+        int xpBarY = y + 10;
+        
+        // Get XP values using the correct Champion methods
+        int currentXP = champion.getExp();
+        int maxXP = champion.getExpToNextLevel();
+        float xpPercentage = maxXP > 0 ? (float) currentXP / maxXP : 0f;
+        
+        // XP bar outer shadow for depth
+        g2.setColor(new Color(0, 0, 0, 70));
+        g2.fillRoundRect(x + 3, xpBarY + 3, width, xpBarHeight, 8, 8);
+        
+        // XP bar background with rich gradient
+        GradientPaint bgGradient = new GradientPaint(
+            x, xpBarY, new Color(20, 20, 30),
+            x, xpBarY + xpBarHeight, new Color(40, 40, 50)
+        );
+        g2.setPaint(bgGradient);
+        g2.fillRoundRect(x, xpBarY, width, xpBarHeight, 8, 8);
+        
+        // XP bar fill with stunning golden gradient
+        if (xpPercentage > 0) {
+            int fillWidth = (int)(width * xpPercentage);
+            
+            // Multi-layer XP gradient for premium look
+            GradientPaint xpGradient = new GradientPaint(
+                x, xpBarY, new Color(255, 240, 120), // Bright gold
+                x, xpBarY + xpBarHeight, new Color(200, 140, 40) // Deep gold
+            );
+            g2.setPaint(xpGradient);
+            g2.fillRoundRect(x, xpBarY, fillWidth, xpBarHeight, 8, 8);
+            
+            // Golden inner glow effect
+            g2.setColor(new Color(255, 255, 180, 100));
+            g2.fillRoundRect(x + 1, xpBarY + 1, Math.max(0, fillWidth - 2), Math.max(0, xpBarHeight - 2), 7, 7);
+            
+            // Shine highlight on top third
+            g2.setColor(new Color(255, 255, 255, 60));
+            g2.fillRoundRect(x + 1, xpBarY + 1, Math.max(0, fillWidth - 2), xpBarHeight / 3, 7, 7);
+            
+            // Subtle sparkle effect (small bright spots)
+            if (fillWidth > 10) {
+                g2.setColor(new Color(255, 255, 255, 120));
+                for (int i = 0; i < Math.min(3, fillWidth / 20); i++) {
+                    int sparkleX = x + (int)(fillWidth * (0.2 + i * 0.3));
+                    g2.fillOval(sparkleX, xpBarY + 2, 2, 2);
+                }
+            }
+        }
+        
+        // Premium XP bar border with golden accent
+        g2.setColor(new Color(220, 180, 80, 200));
+        g2.setStroke(new BasicStroke(1.8f));
+        g2.drawRoundRect(x, xpBarY, width, xpBarHeight, 8, 8);
+        
+        // Inner highlight border
+        g2.setColor(new Color(255, 255, 255, 80));
+        g2.setStroke(new BasicStroke(0.8f));
+        g2.drawRoundRect(x + 1, xpBarY + 1, width - 2, xpBarHeight - 2, 7, 7);
+        
+        // XP label with shadow
+        g2.setColor(new Color(0, 0, 0, 80)); // Shadow
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        g2.drawString("XP", x + 1, y + 8);
+        
+        g2.setColor(new Color(255, 215, 0)); // Gold text
+        g2.drawString("XP", x, y + 7);
+        
+        // XP text with values
+        String xpText = currentXP + "/" + maxXP;
+        FontMetrics fm = g2.getFontMetrics();
+        int textWidth = fm.stringWidth(xpText);
+        
+        // Center the text in the XP bar
+        g2.setColor(new Color(0, 0, 0, 120)); // Shadow
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        g2.drawString(xpText, x + (width - textWidth) / 2 + 1, xpBarY + 10);
+        
+        g2.setColor(new Color(255, 255, 255)); // White text
+        g2.drawString(xpText, x + (width - textWidth) / 2, xpBarY + 9);
+        
+        // Progress percentage as small text below
+        if (maxXP > 0) {
+            String percentText = String.format("%.0f%%", xpPercentage * 100);
+            g2.setColor(new Color(180, 180, 180));
+            g2.setFont(new Font("Segoe UI", Font.PLAIN, 8));
+            fm = g2.getFontMetrics();
+            int percentWidth = fm.stringWidth(percentText);
+            g2.drawString(percentText, x + (width - percentWidth) / 2, xpBarY + xpBarHeight + 12);
         }
     }
 }

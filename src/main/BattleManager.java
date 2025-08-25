@@ -47,6 +47,7 @@ public class BattleManager {
     private BattleState battleState;
     private boolean playerTurn;
     private int selectedMoveIndex = 0;
+    private int selectedTeamMemberIndex = 0; // For team swap selection
     private Random random = new Random();
     
     // Scrollable text system with colors
@@ -103,6 +104,7 @@ public class BattleManager {
     public enum BattleState {
         MAIN_MENU,     // Fight/Items/Party/Run selection
         MOVE_SELECTION, // Selecting which move to use
+        TEAM_SWAP,     // Selecting which champion to swap to
         EXECUTING,     // Executing moves and showing results
         BATTLE_END     // Battle finished
     }
@@ -334,6 +336,9 @@ public class BattleManager {
                 break;
             case MOVE_SELECTION:
                 drawMoveSelection(g2);
+                break;
+            case TEAM_SWAP:
+                drawTeamSwapSelection(g2);
                 break;
             case EXECUTING:
             case BATTLE_END:
@@ -985,6 +990,9 @@ public class BattleManager {
             case MOVE_SELECTION:
                 handleMoveSelection(actionIndex);
                 break;
+            case TEAM_SWAP:
+                handleTeamSwapSelection(actionIndex);
+                break;
         }
     }
     
@@ -1000,8 +1008,31 @@ public class BattleManager {
                 messageTimer = 60;
             }
             case 2 -> {
-                addBattleMessage("No other champions available!");
-                messageTimer = 60;
+                // Check if there are other available team members
+                Champion[] battleTeam = gp.player.getBattleOrderedTeam();
+                boolean hasOtherChampions = false;
+                for (Champion champ : battleTeam) {
+                    if (champ != null && champ != playerChampion && champ.getCurrentHp() > 0) {
+                        hasOtherChampions = true;
+                        break;
+                    }
+                }
+                
+                if (hasOtherChampions) {
+                    battleState = BattleState.TEAM_SWAP;
+                    selectedTeamMemberIndex = 0;
+                    // Find first available champion for selection
+                    for (int i = 0; i < battleTeam.length; i++) {
+                        if (battleTeam[i] != null && battleTeam[i] != playerChampion && battleTeam[i].getCurrentHp() > 0) {
+                            selectedTeamMemberIndex = i;
+                            break;
+                        }
+                    }
+                    addBattleMessage("Choose a champion to swap to:");
+                } else {
+                    addBattleMessage("No other champions available!");
+                    messageTimer = 60;
+                }
             }
             case 3 -> {
                 if (attemptRun()) {
@@ -1047,6 +1078,58 @@ public class BattleManager {
                 executePlayerMove(selectedMove);
             }
         }
+    }
+    
+    private void handleTeamSwapSelection(int actionIndex) {
+        Champion[] battleTeam = gp.player.getBattleOrderedTeam();
+        java.util.List<Champion> availableChampions = new java.util.ArrayList<>();
+        
+        // Collect available champions (alive and not current)
+        for (Champion champ : battleTeam) {
+            if (champ != null && champ != playerChampion && champ.getCurrentHp() > 0) {
+                availableChampions.add(champ);
+            }
+        }
+        
+        if (availableChampions.isEmpty()) {
+            addBattleMessage("No champions available to swap to!");
+            battleState = BattleState.MAIN_MENU;
+            return;
+        }
+        
+        // Navigation through available champions
+        if (actionIndex == -1) { // Up arrow - previous champion
+            selectedTeamMemberIndex--;
+            if (selectedTeamMemberIndex < 0) {
+                selectedTeamMemberIndex = availableChampions.size() - 1;
+            }
+        } else if (actionIndex == -2) { // Down arrow - next champion
+            selectedTeamMemberIndex++;
+            if (selectedTeamMemberIndex >= availableChampions.size()) {
+                selectedTeamMemberIndex = 0;
+            }
+        } else if (actionIndex == 0) { // Select champion
+            if (selectedTeamMemberIndex >= 0 && selectedTeamMemberIndex < availableChampions.size()) {
+                Champion newChampion = availableChampions.get(selectedTeamMemberIndex);
+                swapToChampion(newChampion);
+            }
+        } else if (actionIndex == 1) { // Back to main menu
+            battleState = BattleState.MAIN_MENU;
+            gp.ui.battleNum = 0;
+        }
+    }
+    
+    private void swapToChampion(Champion newChampion) {
+        Champion oldChampion = playerChampion;
+        playerChampion = newChampion;
+        
+        addBattleMessage(oldChampion.getName() + " was swapped out!");
+        addBattleMessage("Go, " + newChampion.getName() + "!");
+        
+        // Swapping counts as the player's turn
+        playerTurn = false;
+        battleState = BattleState.EXECUTING;
+        messageTimer = 120; // Longer timer for swap messages
     }
     
     // Auto Attack execution
@@ -3407,6 +3490,224 @@ public class BattleManager {
         String instructions = "SPACE: Switch Tab  |  ESC: Close";
         int instructionsWidth = g2.getFontMetrics().stringWidth(instructions);
         g2.drawString(instructions, x + (width - instructionsWidth) / 2, y + height - 22);
+    }
+
+    private void drawTeamSwapSelection(Graphics2D g2) {
+        Champion[] battleTeam = gp.player.getBattleOrderedTeam();
+        java.util.List<Champion> availableChampions = new java.util.ArrayList<>();
+        
+        // Collect available champions (alive and not current)
+        for (Champion champ : battleTeam) {
+            if (champ != null && champ != playerChampion && champ.getCurrentHp() > 0) {
+                availableChampions.add(champ);
+            }
+        }
+        
+        if (availableChampions.isEmpty()) {
+            return;
+        }
+        
+        // Draw Pokemon-style team swap interface
+        int panelWidth = 500;
+        int panelHeight = 350;
+        int panelX = (gp.screenWidth - panelWidth) / 2;
+        int panelY = (gp.screenHeight - panelHeight) / 2;
+        
+        // Panel shadow
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.fillRoundRect(panelX + 5, panelY + 5, panelWidth, panelHeight, 25, 25);
+        
+        // Background gradient
+        java.awt.GradientPaint panelGradient = new java.awt.GradientPaint(
+            panelX, panelY, new Color(40, 60, 100),
+            panelX, panelY + panelHeight, new Color(20, 30, 50)
+        );
+        g2.setPaint(panelGradient);
+        g2.fillRoundRect(panelX, panelY, panelWidth, panelHeight, 25, 25);
+        
+        // Panel border with glow
+        g2.setColor(new Color(100, 180, 255));
+        g2.setStroke(new BasicStroke(3f));
+        g2.drawRoundRect(panelX, panelY, panelWidth, panelHeight, 25, 25);
+        
+        // Inner highlight
+        g2.setColor(new Color(255, 255, 255, 60));
+        g2.setStroke(new BasicStroke(1f));
+        g2.drawRoundRect(panelX + 3, panelY + 3, panelWidth - 6, panelHeight - 6, 22, 22);
+        
+        // Title with shadow effect
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        g2.setColor(new Color(0, 0, 0, 100));
+        String title = "Choose Your Champion";
+        int titleWidth = g2.getFontMetrics().stringWidth(title);
+        g2.drawString(title, panelX + (panelWidth - titleWidth) / 2 + 1, panelY + 41);
+        
+        g2.setColor(new Color(255, 240, 100));
+        g2.drawString(title, panelX + (panelWidth - titleWidth) / 2, panelY + 40);
+        
+        // Champions list with Pokemon card style
+        int startY = panelY + 80;
+        int itemHeight = 55;
+        int cardWidth = panelWidth - 40;
+        
+        for (int i = 0; i < availableChampions.size(); i++) {
+            Champion champ = availableChampions.get(i);
+            int itemY = startY + i * itemHeight;
+            boolean isSelected = (i == selectedTeamMemberIndex);
+            
+            // Card background
+            java.awt.geom.RoundRectangle2D card = new java.awt.geom.RoundRectangle2D.Double(
+                panelX + 20, itemY - 5, cardWidth, itemHeight - 8, 15, 15);
+            
+            // Card shadow
+            g2.setColor(new Color(0, 0, 0, 60));
+            g2.fill(new java.awt.geom.RoundRectangle2D.Double(
+                panelX + 22, itemY - 3, cardWidth, itemHeight - 8, 15, 15));
+            
+            // Card gradient background
+            Color cardColor1, cardColor2, borderColor;
+            if (isSelected) {
+                cardColor1 = new Color(255, 240, 100);
+                cardColor2 = new Color(255, 215, 0);
+                borderColor = new Color(255, 255, 255);
+            } else {
+                cardColor1 = new Color(80, 120, 180);
+                cardColor2 = new Color(60, 90, 140);
+                borderColor = new Color(120, 160, 220);
+            }
+            
+            java.awt.GradientPaint cardGradient = new java.awt.GradientPaint(
+                panelX + 20, itemY - 5, cardColor1,
+                panelX + 20, itemY + itemHeight - 13, cardColor2
+            );
+            g2.setPaint(cardGradient);
+            g2.fill(card);
+            
+            // Card border
+            g2.setColor(borderColor);
+            g2.setStroke(new BasicStroke(isSelected ? 3f : 2f));
+            g2.draw(card);
+            
+            // Draw small champion image
+            try {
+                java.awt.image.BufferedImage champImage = javax.imageio.ImageIO.read(getClass().getResourceAsStream("/championsImg/" + champ.getImageName() + ".png"));
+                if (champImage != null) {
+                    int imageSize = 40;
+                    int imageX = panelX + 30;
+                    int imageY = itemY + (itemHeight - 8 - imageSize) / 2;
+                    
+                    // Image shadow
+                    g2.setColor(new Color(0, 0, 0, 40));
+                    g2.fillRoundRect(imageX + 1, imageY + 1, imageSize, imageSize, 8, 8);
+                    
+                    // Create rounded rectangle mask for champion image
+                    java.awt.geom.RoundRectangle2D imageMask = new java.awt.geom.RoundRectangle2D.Double(imageX, imageY, imageSize, imageSize, 8, 8);
+                    g2.setClip(imageMask);
+                    g2.drawImage(champImage, imageX, imageY, imageSize, imageSize, null);
+                    g2.setClip(null);
+                    
+                    // Image border
+                    g2.setColor(isSelected ? new Color(255, 255, 255) : new Color(200, 200, 200));
+                    g2.setStroke(new java.awt.BasicStroke(2f));
+                    g2.drawRoundRect(imageX, imageY, imageSize, imageSize, 8, 8);
+                }
+            } catch (Exception e) {
+                // Image loading failed, continue without image
+            }
+            
+            // Champion name with shadow (moved right for image space)
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
+            g2.setColor(new Color(0, 0, 0, 80));
+            g2.drawString(champ.getName(), panelX + 85 + 1, itemY + 21);
+            
+            g2.setColor(isSelected ? new Color(25, 35, 65) : Color.WHITE);
+            g2.drawString(champ.getName(), panelX + 85, itemY + 20);
+            
+            // Level badge
+            int badgeX = panelX + cardWidth - 60;
+            int badgeY = itemY + 5;
+            g2.setColor(new Color(100, 200, 100));
+            g2.fillRoundRect(badgeX, badgeY, 40, 18, 9, 9);
+            g2.setColor(new Color(60, 140, 60));
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRoundRect(badgeX, badgeY, 40, 18, 9, 9);
+            
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            String levelText = "LV" + champ.getLevel();
+            int levelWidth = g2.getFontMetrics().stringWidth(levelText);
+            g2.drawString(levelText, badgeX + (40 - levelWidth) / 2, badgeY + 13);
+            
+            // Enhanced HP bar (adjusted for image space)
+            int hpBarWidth = 130;
+            int hpBarHeight = 12;
+            int hpBarX = panelX + 85;
+            int hpBarY = itemY + 25;
+            
+            // HP bar shadow
+            g2.setColor(new Color(0, 0, 0, 40));
+            g2.fillRoundRect(hpBarX + 1, hpBarY + 1, hpBarWidth, hpBarHeight, 6, 6);
+            
+            // HP background
+            g2.setColor(new Color(40, 40, 40));
+            g2.fillRoundRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight, 6, 6);
+            
+            // HP fill with gradient
+            float hpPercentage = (float) champ.getCurrentHp() / champ.getMaxHp();
+            Color hpColor1, hpColor2;
+            if (hpPercentage > 0.6f) {
+                hpColor1 = new Color(100, 220, 100);
+                hpColor2 = new Color(60, 160, 60);
+            } else if (hpPercentage > 0.3f) {
+                hpColor1 = new Color(255, 220, 100);
+                hpColor2 = new Color(200, 160, 60);
+            } else {
+                hpColor1 = new Color(255, 120, 120);
+                hpColor2 = new Color(200, 80, 80);
+            }
+            
+            java.awt.GradientPaint hpGradient = new java.awt.GradientPaint(
+                hpBarX, hpBarY, hpColor1,
+                hpBarX, hpBarY + hpBarHeight, hpColor2
+            );
+            g2.setPaint(hpGradient);
+            int fillWidth = (int)(hpBarWidth * hpPercentage);
+            g2.fillRoundRect(hpBarX, hpBarY, fillWidth, hpBarHeight, 6, 6);
+            
+            // HP border
+            g2.setColor(new Color(255, 255, 255, 100));
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRoundRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight, 6, 6);
+            
+            // HP text with shadow
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            String hpText = champ.getCurrentHp() + "/" + champ.getMaxHp();
+            int hpTextWidth = g2.getFontMetrics().stringWidth(hpText);
+            int hpTextX = hpBarX + (hpBarWidth - hpTextWidth) / 2;
+            
+            g2.setColor(new Color(0, 0, 0, 150));
+            g2.drawString(hpText, hpTextX + 1, hpBarY + hpBarHeight - 2);
+            g2.setColor(Color.WHITE);
+            g2.drawString(hpText, hpTextX, hpBarY + hpBarHeight - 3);
+        }
+        
+        // Instructions panel
+        int instrPanelY = panelY + panelHeight - 50;
+        g2.setColor(new Color(20, 30, 50, 150));
+        g2.fillRoundRect(panelX + 15, instrPanelY, panelWidth - 30, 35, 12, 12);
+        
+        g2.setColor(new Color(100, 180, 255, 80));
+        g2.setStroke(new BasicStroke(1f));
+        g2.drawRoundRect(panelX + 15, instrPanelY, panelWidth - 30, 35, 12, 12);
+        
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        g2.setColor(new Color(0, 0, 0, 80));
+        String instructions = "↑↓ Navigate  •  ENTER Select  •  ESC Back";
+        int instrWidth = g2.getFontMetrics().stringWidth(instructions);
+        g2.drawString(instructions, panelX + (panelWidth - instrWidth) / 2 + 1, instrPanelY + 22);
+        
+        g2.setColor(new Color(200, 220, 255));
+        g2.drawString(instructions, panelX + (panelWidth - instrWidth) / 2, instrPanelY + 21);
     }
 
     private void endBattle() {
