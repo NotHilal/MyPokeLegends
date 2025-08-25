@@ -425,11 +425,11 @@ public class ChampionDetailsPage {
         drawInfoCard(g2, "Region", champion.getRegion(), x + 10, currentY, width - 20);
         currentY += 30;
         
-        String roleText = champion.getRole();
+        String roleText = champion.getCurrentAssignedRole() != null ? champion.getCurrentAssignedRole() : champion.getRole();
         if (champion.getRole2() != null && !champion.getRole2().equals("None")) {
             roleText += " / " + champion.getRole2();
         }
-        drawInfoCard(g2, "Role", roleText, x + 10, currentY, width - 20);
+        drawInfoCard(g2, "Role", roleText + " (Assigned: " + (champion.getCurrentAssignedRole() != null ? champion.getCurrentAssignedRole() : "None") + ")", x + 10, currentY, width - 20);
         currentY += 30;
         
         drawInfoCard(g2, "Class", champion.getChampionClass().toString(), x + 10, currentY, width - 20);

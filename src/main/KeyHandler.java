@@ -466,7 +466,7 @@ public class KeyHandler implements KeyListener{
 					}
 					if(code == KeyEvent.VK_A) {
 						if(gp.championMenu != null) {
-							gp.championMenu.navigateLeft();
+							gp.championMenu.handleAKey();
 						}
 					}
 					if(code == KeyEvent.VK_D) {

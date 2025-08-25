@@ -28,15 +28,76 @@ public class RoleTeamPage {
     }
     
     private void initializeSelectedChampion() {
-        // Find the first champion slot that has a champion
-        for (int i = 0; i < 5; i++) {
-            if (getRoleChampion(i) != null) {
-                selectedChampionIndex = i;
-                return;
+        // Find the first champion slot that has a champion in the compacted view
+        java.util.List<Champion> compactedChampions = getCompactedChampions();
+        if (!compactedChampions.isEmpty()) {
+            selectedChampionIndex = 0; // Always start with first in compacted view
+        } else {
+            selectedChampionIndex = 0;
+        }
+    }
+    
+    /**
+     * Returns a compacted list of champions (no null/empty slots) for navigation
+     */
+    private java.util.List<Champion> getCompactedChampions() {
+        java.util.List<Champion> compacted = new java.util.ArrayList<>();
+        for (Champion champion : gamePanel.player.getParty()) {
+            if (champion != null) {
+                compacted.add(champion);
             }
         }
-        // If no champions, default to 0
-        selectedChampionIndex = 0;
+        return compacted;
+    }
+    
+    /**
+     * Gets the champion at the specified compacted index
+     */
+    private Champion getCompactedChampion(int compactedIndex) {
+        java.util.List<Champion> compacted = getCompactedChampions();
+        if (compactedIndex >= 0 && compactedIndex < compacted.size()) {
+            return compacted.get(compactedIndex);
+        }
+        return null;
+    }
+    
+    /**
+     * Converts a compacted index to the original party index
+     */
+    private int getPartyIndexFromCompacted(int compactedIndex) {
+        java.util.List<Champion> compacted = getCompactedChampions();
+        if (compactedIndex < 0 || compactedIndex >= compacted.size()) {
+            return -1;
+        }
+        
+        Champion targetChampion = compacted.get(compactedIndex);
+        Champion[] party = gamePanel.player.getParty();
+        
+        // Find this champion in the original party array
+        for (int i = 0; i < party.length; i++) {
+            if (party[i] == targetChampion) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    /**
+     * Converts a role index to the compacted index (for navigation)
+     */
+    private int getCompactedIndexFromRole(int roleIndex) {
+        Champion targetChampion = getRoleChampion(roleIndex);
+        if (targetChampion == null) {
+            return -1;
+        }
+        
+        java.util.List<Champion> compacted = getCompactedChampions();
+        for (int i = 0; i < compacted.size(); i++) {
+            if (compacted.get(i) == targetChampion) {
+                return i;
+            }
+        }
+        return -1;
     }
     
     private void preloadImages() {
@@ -145,26 +206,26 @@ public class RoleTeamPage {
     private void handleChampionNavigation() {
         // Navigation with W/S keys for champions
         if (gamePanel.keyH.upPressed) {
-            // Move up to previous champion, skip empty slots
-            int originalIndex = selectedChampionIndex;
-            do {
+            // Navigate in compacted view (no empty slots)
+            java.util.List<Champion> compacted = getCompactedChampions();
+            if (!compacted.isEmpty()) {
                 selectedChampionIndex--;
                 if (selectedChampionIndex < 0) {
-                    selectedChampionIndex = 4; // Wrap around to bottom
+                    selectedChampionIndex = compacted.size() - 1; // Wrap to last champion
                 }
-            } while (selectedChampionIndex != originalIndex && getSelectedChampion() == null);
+            }
             gamePanel.keyH.upPressed = false;
         }
         
         if (gamePanel.keyH.downPressed) {
-            // Move down to next champion, skip empty slots
-            int originalIndex = selectedChampionIndex;
-            do {
+            // Navigate in compacted view (no empty slots)
+            java.util.List<Champion> compacted = getCompactedChampions();
+            if (!compacted.isEmpty()) {
                 selectedChampionIndex++;
-                if (selectedChampionIndex > 4) {
-                    selectedChampionIndex = 0; // Wrap around to top
+                if (selectedChampionIndex >= compacted.size()) {
+                    selectedChampionIndex = 0; // Wrap to first champion
                 }
-            } while (selectedChampionIndex != originalIndex && getSelectedChampion() == null);
+            }
             gamePanel.keyH.downPressed = false;
         }
         
@@ -299,36 +360,36 @@ public class RoleTeamPage {
                 int championIndex = selectedArrow.championIndex;
                 boolean isUpArrow = selectedArrow.isUpArrow;
                 
+                java.util.List<Champion> compacted = getCompactedChampions();
+                
                 if (isUpArrow && championIndex > 0) {
-                    // Check if there's a champion to swap with above
-                    Champion targetChampion = getRoleChampion(championIndex - 1);
-                    if (targetChampion != null) {
-                        // Move champion up (swap with champion above)
-                        swapChampions(championIndex, championIndex - 1);
+                    // Swap with champion above in compacted view
+                    int partyIndex1 = getPartyIndexFromCompacted(championIndex);
+                    int partyIndex2 = getPartyIndexFromCompacted(championIndex - 1);
+                    
+                    if (partyIndex1 != -1 && partyIndex2 != -1) {
+                        swapChampions(partyIndex1, partyIndex2);
+                        
                         // Update selectedChampionIndex to follow the moved champion
-                        if (selectedChampionIndex == championIndex) {
-                            selectedChampionIndex = championIndex - 1;
-                        } else if (selectedChampionIndex == championIndex - 1) {
-                            selectedChampionIndex = championIndex;
-                        }
-                        System.out.println("Moved champion up from index " + championIndex + " to " + (championIndex - 1));
+                        selectedChampionIndex = championIndex - 1;
+                        
+                        System.out.println("Moved champion up from compacted index " + championIndex + " to " + (championIndex - 1));
                         
                         // Stay in arrow mode and update the arrow selection to follow the moved champion
                         updateArrowSelectionAfterMove(championIndex, championIndex - 1, isUpArrow);
                     }
-                } else if (!isUpArrow && championIndex < 4) {
-                    // Check if there's a champion to swap with below
-                    Champion targetChampion = getRoleChampion(championIndex + 1);
-                    if (targetChampion != null) {
-                        // Move champion down (swap with champion below)
-                        swapChampions(championIndex, championIndex + 1);
+                } else if (!isUpArrow && championIndex < compacted.size() - 1) {
+                    // Swap with champion below in compacted view
+                    int partyIndex1 = getPartyIndexFromCompacted(championIndex);
+                    int partyIndex2 = getPartyIndexFromCompacted(championIndex + 1);
+                    
+                    if (partyIndex1 != -1 && partyIndex2 != -1) {
+                        swapChampions(partyIndex1, partyIndex2);
+                        
                         // Update selectedChampionIndex to follow the moved champion
-                        if (selectedChampionIndex == championIndex) {
-                            selectedChampionIndex = championIndex + 1;
-                        } else if (selectedChampionIndex == championIndex + 1) {
-                            selectedChampionIndex = championIndex;
-                        }
-                        System.out.println("Moved champion down from index " + championIndex + " to " + (championIndex + 1));
+                        selectedChampionIndex = championIndex + 1;
+                        
+                        System.out.println("Moved champion down from compacted index " + championIndex + " to " + (championIndex + 1));
                         
                         // Stay in arrow mode and update the arrow selection to follow the moved champion
                         updateArrowSelectionAfterMove(championIndex, championIndex + 1, isUpArrow);
@@ -352,7 +413,7 @@ public class RoleTeamPage {
     }
     
     public Champion getSelectedChampion() {
-        return getRoleChampion(selectedChampionIndex);
+        return getCompactedChampion(selectedChampionIndex);
     }
     
     public void resetJustEntered() {
@@ -370,21 +431,19 @@ public class RoleTeamPage {
         }
     }
     
-    // Get list of all available arrows
+    // Get list of all available arrows for compacted view
     private java.util.List<Arrow> getAvailableArrows() {
         java.util.List<Arrow> arrows = new java.util.ArrayList<>();
+        java.util.List<Champion> compacted = getCompactedChampions();
         
-        for (int i = 0; i < 5; i++) {
-            Champion champion = getRoleChampion(i);
-            if (champion != null) {
-                // Add up arrow if there's a champion above to swap with
-                if (i > 0 && getRoleChampion(i - 1) != null) {
-                    arrows.add(new Arrow(i, true));
-                }
-                // Add down arrow if there's a champion below to swap with
-                if (i < 4 && getRoleChampion(i + 1) != null) {
-                    arrows.add(new Arrow(i, false));
-                }
+        for (int i = 0; i < compacted.size(); i++) {
+            // Add up arrow if there's a champion above to swap with
+            if (i > 0) {
+                arrows.add(new Arrow(i, true));
+            }
+            // Add down arrow if there's a champion below to swap with  
+            if (i < compacted.size() - 1) {
+                arrows.add(new Arrow(i, false));
             }
         }
         
@@ -447,6 +506,7 @@ public class RoleTeamPage {
         // No mouse interaction - use keyboard navigation (A/D to access arrows, Enter to apply)
     }
     
+    
     private void swapChampions(int fromIndex, int toIndex) {
         Champion[] party = gamePanel.player.getParty();
         
@@ -486,18 +546,50 @@ public class RoleTeamPage {
         int slotWidth = leftPanelWidth - 100; // Less space reserved for arrows to make boxes bigger
         int startY = 80;
         
-        for (int i = 0; i < 5; i++) {
-            int slotY = startY + i * (slotHeight + 5); // Even tighter spacing for bigger boxes
+        // Get compacted champions and create display order (filled slots first, then empty)
+        java.util.List<Champion> compactedChampions = getCompactedChampions();
+        java.util.List<Integer> displayOrder = new java.util.ArrayList<>();
+        
+        // First, add all filled slots (in compacted order)
+        for (Champion champion : compactedChampions) {
+            // Find the role index for this champion
+            Champion[] party = gamePanel.player.getParty();
+            for (int roleIndex = 0; roleIndex < party.length; roleIndex++) {
+                if (party[roleIndex] == champion) {
+                    displayOrder.add(roleIndex);
+                    break;
+                }
+            }
+        }
+        
+        // Then add empty slots
+        for (int roleIndex = 0; roleIndex < 5; roleIndex++) {
+            if (getRoleChampion(roleIndex) == null) {
+                displayOrder.add(roleIndex);
+            }
+        }
+        
+        // Draw slots in the new order (filled first, empty at bottom)
+        for (int displayIndex = 0; displayIndex < 5; displayIndex++) {
+            int roleIndex = displayOrder.get(displayIndex);
+            int slotY = startY + displayIndex * (slotHeight + 5);
             
-            // Draw modern champion slot (smaller)
-            drawModernChampionSlot(g2, i, 30, slotY, slotWidth, slotHeight);
+            // Draw the slot
+            drawModernRoleSlot(g2, roleIndex, displayIndex, 30, slotY, slotWidth, slotHeight);
             
-            // Draw external arrow buttons
-            drawExternalArrowButtons(g2, i, 30 + slotWidth + 10, slotY, slotHeight);
+            // Draw external arrow buttons only for champions that exist
+            Champion champion = getRoleChampion(roleIndex);
+            if (champion != null) {
+                // Find this champion's compacted index for arrow navigation
+                int compactedIndex = getCompactedIndexFromRole(roleIndex);
+                if (compactedIndex != -1) {
+                    drawExternalArrowButtons(g2, compactedIndex, 30 + slotWidth + 10, slotY, slotHeight);
+                }
+            }
         }
     }
     
-    private void drawModernChampionSlot(Graphics2D g2, int roleIndex, int x, int y, int width, int height) {
+    private void drawModernRoleSlot(Graphics2D g2, int roleIndex, int displayIndex, int x, int y, int width, int height) {
         Champion champion = getRoleChampion(roleIndex);
         
         // Create slot with rounded corners
@@ -506,13 +598,16 @@ public class RoleTeamPage {
         // Slot background with gradient based on selection
         Color bgColor1, bgColor2, borderColor;
         
-        // Highlight the champion that has the selected arrow (in arrow mode) or the selected champion (in normal mode)
-        boolean isHighlighted;
-        if (arrowModeActive) {
-            Arrow currentlySelectedArrow = getCurrentlySelectedArrow();
-            isHighlighted = currentlySelectedArrow != null && currentlySelectedArrow.championIndex == roleIndex;
-        } else {
-            isHighlighted = roleIndex == selectedChampionIndex;
+        // Check if this role slot contains the currently selected champion (in compacted navigation)
+        boolean isHighlighted = false;
+        if (champion != null) {
+            int compactedIndex = getCompactedIndexFromRole(roleIndex);
+            if (arrowModeActive) {
+                Arrow currentlySelectedArrow = getCurrentlySelectedArrow();
+                isHighlighted = currentlySelectedArrow != null && currentlySelectedArrow.championIndex == compactedIndex;
+            } else {
+                isHighlighted = compactedIndex == selectedChampionIndex;
+            }
         }
         
         if (isHighlighted) {
@@ -532,37 +627,34 @@ public class RoleTeamPage {
             borderColor = new Color(180, 180, 180);
         }
         
-        // Draw slot shadow
-        g2.setColor(new Color(0, 0, 0, 20));
-        g2.fillRoundRect(x + 3, y + 3, width, height, 15, 15);
-        
-        // Draw slot background
+        // Draw slot background with gradient
         GradientPaint slotGradient = new GradientPaint(x, y, bgColor1, x, y + height, bgColor2);
         g2.setPaint(slotGradient);
         g2.fill(slot);
         
-        // Draw slot border
+        // Draw border
         g2.setColor(borderColor);
         g2.setStroke(new BasicStroke(2f));
         g2.draw(slot);
         
-        // Draw role badge - use champion's actual role if available, otherwise position-based role
+        // Draw role badge - use champion's assigned role if available, otherwise position-based role
         String displayRole = roleNames[roleIndex]; // Default to position-based role
         boolean usingChampionRole = false;
-        if (champion != null && champion.getRole() != null && !champion.getRole().trim().isEmpty()) {
-            displayRole = champion.getRole().toUpperCase(); // Use champion's actual role, uppercase for consistency
+        if (champion != null && champion.getCurrentAssignedRole() != null && !champion.getCurrentAssignedRole().trim().isEmpty()) {
+            displayRole = champion.getCurrentAssignedRole().toUpperCase(); // Use champion's assigned role, uppercase for consistency
             usingChampionRole = true;
         }
         drawModernRoleBadge(g2, displayRole, x + 15, y + 10, usingChampionRole);
         
         if (champion != null) {
-            // Draw champion content
-            drawChampionContent(g2, champion, roleIndex, x, y, width, height);
+            // Draw champion content using role index
+            drawRoleChampionContent(g2, champion, roleIndex, x, y, width, height);
         } else {
             // Draw empty slot content
             drawEmptySlotContent(g2, x, y, width, height);
         }
     }
+    
     
     private void drawModernRoleBadge(Graphics2D g2, String roleText, int x, int y, boolean isChampionRole) {
         // Role badge background with rounded corners - different color if using champion's actual role
@@ -591,7 +683,7 @@ public class RoleTeamPage {
         g2.drawString(roleText, x + (70 - textWidth) / 2, y + 17);
     }
     
-    private void drawChampionContent(Graphics2D g2, Champion champion, int roleIndex, int x, int y, int width, int height) {
+    private void drawRoleChampionContent(Graphics2D g2, Champion champion, int roleIndex, int x, int y, int width, int height) {
         // Draw champion image with rounded border
         BufferedImage champImage = loadChampionImage(champion.getImageName());
         if (champImage != null) {
@@ -753,8 +845,8 @@ public class RoleTeamPage {
         g2.drawString(description, x + keyWidth + 10, y);
     }
     
-    private void drawExternalArrowButtons(Graphics2D g2, int roleIndex, int x, int y, int slotHeight) {
-        Champion champion = getRoleChampion(roleIndex);
+    private void drawExternalArrowButtons(Graphics2D g2, int compactedIndex, int x, int y, int slotHeight) {
+        Champion champion = getCompactedChampion(compactedIndex);
         if (champion == null) return; // No arrows for empty slots
         
         int arrowSize = 20; // Slightly larger arrows
@@ -765,16 +857,18 @@ public class RoleTeamPage {
         // Highlight arrows when in arrow mode
         Arrow currentlySelectedArrow = arrowModeActive ? getCurrentlySelectedArrow() : null;
         
-        // Debug output
-        if (currentlySelectedArrow != null && currentlySelectedArrow.championIndex == roleIndex) {
-            System.out.println("Drawing highlighted arrows for champion at index " + roleIndex + 
-                " (up=" + currentlySelectedArrow.isUpArrow + ")");
-        }
+        java.util.List<Champion> compacted = getCompactedChampions();
         
-        // Draw up arrow (if not first position and there's a champion above to swap with)
-        if (roleIndex > 0 && getRoleChampion(roleIndex - 1) != null) {
+        // Debug output (removed to reduce console spam)
+        // if (currentlySelectedArrow != null && currentlySelectedArrow.championIndex == compactedIndex) {
+        //     System.out.println("Drawing highlighted arrows for champion at compacted index " + compactedIndex + 
+        //         " (up=" + currentlySelectedArrow.isUpArrow + ")");
+        // }
+        
+        // Draw up arrow (if not first position in compacted view)
+        if (compactedIndex > 0) {
             boolean isThisUpArrowSelected = currentlySelectedArrow != null && 
-                currentlySelectedArrow.championIndex == roleIndex && currentlySelectedArrow.isUpArrow;
+                currentlySelectedArrow.championIndex == compactedIndex && currentlySelectedArrow.isUpArrow;
             
             Color bgColor = isThisUpArrowSelected ? 
                 new Color(255, 215, 0) : new Color(120, 160, 220); // Gold if selected, blue otherwise
@@ -784,10 +878,10 @@ public class RoleTeamPage {
             drawExternalArrowButton(g2, x, upArrowY, arrowSize, true, bgColor, borderColor);
         }
         
-        // Draw down arrow (if not last position and there's a champion below to swap with)
-        if (roleIndex < 4 && getRoleChampion(roleIndex + 1) != null) {
+        // Draw down arrow (if not last position in compacted view)
+        if (compactedIndex < compacted.size() - 1) {
             boolean isThisDownArrowSelected = currentlySelectedArrow != null && 
-                currentlySelectedArrow.championIndex == roleIndex && !currentlySelectedArrow.isUpArrow;
+                currentlySelectedArrow.championIndex == compactedIndex && !currentlySelectedArrow.isUpArrow;
             
             Color bgColor = isThisDownArrowSelected ? 
                 new Color(255, 215, 0) : new Color(120, 160, 220); // Gold if selected, blue otherwise

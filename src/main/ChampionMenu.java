@@ -35,9 +35,29 @@ import Champions.Champion;
 	    private boolean leftArrowSelected = false;  // Is left arrow selected
 	    private boolean rightArrowSelected = false; // Is right arrow selected
 	    
+	    // X button navigation states
+	    private boolean xButtonMode = false;        // Are we in X button navigation mode
+	    private int selectedXButton = 0;            // Currently selected X button (0-4 for the 5 slots)
+	    
 	    // Helper method to check if any arrow is selected
 	    private boolean isAnyArrowSelected() {
 	        return leftArrowSelected || rightArrowSelected;
+	    }
+	    
+	    // Helper method to check if X button mode is active
+	    private boolean isInXButtonMode() {
+	        return xButtonMode;
+	    }
+	    
+	    // Helper method to get count of champions in party
+	    private int getChampionsInPartyCount() {
+	        int count = 0;
+	        for (Champion champion : gp.player.getParty()) {
+	            if (champion != null) {
+	                count++;
+	            }
+	        }
+	        return count;
 	    }
 	    
 	    // Helper method to reset grid selection to first available champion
@@ -97,11 +117,15 @@ import Champions.Champion;
 	        // Reset arrow selection
 	        leftArrowSelected = false;
 	        rightArrowSelected = false;
+	        // Reset X button mode
+	        xButtonMode = false;
+	        selectedXButton = 0;
 	    }
 	    
 	    // Disable keyboard mode (when using mouse)
 	    public void disableKeyboardMode() {
 	        keyboardMode = false;
+	        xButtonMode = false;
 	    }
 	    
 	    // Method to call when menu is opened to ensure first champion is highlighted
@@ -114,6 +138,12 @@ import Champions.Champion;
 	    public void navigateUp() {
 	        if (!keyboardMode) enableKeyboardMode();
 	        if (showPopup) return; // Don't navigate grid while popup is open
+	        
+	        // Handle X button mode
+	        if (xButtonMode) {
+	            navigateXButtonUp();
+	            return;
+	        }
 	        
 	        // Handle arrow to grid transitions with specific positions
 	        if (leftArrowSelected) {
@@ -136,6 +166,12 @@ import Champions.Champion;
 	    public void navigateDown() {
 	        if (!keyboardMode) enableKeyboardMode();
 	        if (showPopup) return; // Don't navigate grid while popup is open
+	        
+	        // Handle X button mode
+	        if (xButtonMode) {
+	            navigateXButtonDown();
+	            return;
+	        }
 	        
 	        // Handle arrow to grid transitions with specific positions
 	        if (leftArrowSelected) {
@@ -164,13 +200,15 @@ import Champions.Champion;
 	                selectedPopupButton = 0; // Select first role button
 	                gp.playSE(9);
 	            }
+	        } else if (xButtonMode) {
+	            // Exit X button mode
+	            exitXButtonMode();
 	        } else {
 	            // Check if we're at the left edge of grid and can select left arrow
 	            if (selectedGridCol == 0 && !leftArrowSelected && !rightArrowSelected) {
-	                if (currentPage > 0) { // Left arrow is available
-	                    leftArrowSelected = true;
-	                    gp.playSE(9);
-	                }
+	                // Left arrow is always available (wrapping)
+	                leftArrowSelected = true;
+	                gp.playSE(9);
 	            }
 	            // If right arrow is selected, go to middle-right position (1,2)
 	            else if (rightArrowSelected) {
@@ -194,6 +232,11 @@ import Champions.Champion;
 	                selectedPopupButton = 1; // Select second role button
 	                gp.playSE(9);
 	            }
+	        } else if (xButtonMode) {
+	            // Exit X button mode and go to top-left champion of current page
+	            xButtonMode = false;
+	            setGridPosition(0, 0); // Top-left position
+	            gp.playSE(9);
 	        } else {
 	            // Check if we're at the right edge of grid and can select right arrow
 	            int championsOnPage = getChampionsOnCurrentPage();
@@ -203,10 +246,9 @@ import Champions.Champion;
 	                (currentIndex + 1 >= championsOnPage);
 	            
 	            if (atRightEdge && !leftArrowSelected && !rightArrowSelected) {
-	                if ((currentPage + 1) * championsPerPage < applyFilters().size()) { // Right arrow is available
-	                    rightArrowSelected = true;
-	                    gp.playSE(9);
-	                }
+	                // Right arrow is always available (wrapping)
+	                rightArrowSelected = true;
+	                gp.playSE(9);
 	            }
 	            // If left arrow is selected, go to middle-left position (1,0)
 	            else if (leftArrowSelected) {
@@ -231,19 +273,34 @@ import Champions.Champion;
 	    public void navigatePageLeft() {
 	        if (currentPage > 0) {
 	            currentPage--;
-	            // Reset grid selection to first champion on new page
-	            resetToFirstChampion();
-	            gp.playSE(9);
+	        } else {
+	            // Wrap to last page
+	            currentPage = getMaxPage();
 	        }
+	        // Reset grid selection to first champion on new page
+	        resetToFirstChampion();
+	        gp.playSE(9);
 	    }
 	    
 	    public void navigatePageRight() {
-	        if ((currentPage + 1) * championsPerPage < applyFilters().size()) {
+	        if (currentPage < getMaxPage()) {
 	            currentPage++;
-	            // Reset grid selection to first champion on new page
-	            resetToFirstChampion();
-	            gp.playSE(9);
+	        } else {
+	            // Wrap to first page
+	            currentPage = 0;
 	        }
+	        // Reset grid selection to first champion on new page
+	        resetToFirstChampion();
+	        gp.playSE(9);
+	    }
+	    
+	    // Helper method to calculate maximum page index
+	    private int getMaxPage() {
+	        List<Champion> filteredChampions = applyFilters();
+	        if (filteredChampions.size() == 0) {
+	            return 0;
+	        }
+	        return (filteredChampions.size() - 1) / championsPerPage;
 	    }
 	    
 	    public void selectCurrent() {
@@ -254,30 +311,17 @@ import Champions.Champion;
 	            if (selectedChampion != null) {
 	                handlePopupSelection();
 	            }
+	        } else if (xButtonMode) {
+	            // Handle X button selection (remove champion)
+	            removeSelectedChampion();
 	        } else if (leftArrowSelected) {
 	            // Handle left arrow selection (go to previous page)
 	            navigatePageLeft();
-	            // Keep arrow selected after page change
-	            // Check if we can still go left, otherwise switch to right arrow or grid
-	            if (currentPage == 0) {
-	                leftArrowSelected = false;
-	                // If right arrow is available, select it, otherwise go back to grid
-	                if ((currentPage + 1) * championsPerPage < applyFilters().size()) {
-	                    rightArrowSelected = true;
-	                }
-	            }
+	            // Keep left arrow selected after page change (wrapping navigation)
 	        } else if (rightArrowSelected) {
 	            // Handle right arrow selection (go to next page)
 	            navigatePageRight();
-	            // Keep arrow selected after page change
-	            // Check if we can still go right, otherwise switch to left arrow or grid
-	            if ((currentPage + 1) * championsPerPage >= applyFilters().size()) {
-	                rightArrowSelected = false;
-	                // If left arrow is available, select it, otherwise go back to grid
-	                if (currentPage > 0) {
-	                    leftArrowSelected = true;
-	                }
-	            }
+	            // Keep right arrow selected after page change (wrapping navigation)
 	        } else {
 	            // Handle grid selection
 	            int championIndex = getSelectedChampionIndex();
@@ -312,6 +356,161 @@ import Champions.Champion;
 	    
 	    public void returnToMenu() {
 	        gp.gameState = gp.pauseState;
+	    }
+	    
+	    // Handle A key press - specific behavior based on current position
+	    public void handleAKey() {
+	        if (!keyboardMode) enableKeyboardMode();
+	        if (showPopup) {
+	            // Navigate popup buttons
+	            if (selectedChampion != null && !isRoleSelectionSingleButton()) {
+	                selectedPopupButton = 0; // Select first role button
+	                gp.playSE(9);
+	            }
+	        } else if (xButtonMode) {
+	            // In X mode: do nothing
+	            return;
+	        } else if (leftArrowSelected) {
+	            // On left arrow: enter X button mode if possible
+	            if (getChampionsInPartyCount() > 1) {
+	                enterXButtonMode();
+	            }
+	        } else if (rightArrowSelected) {
+	            // On right arrow: go to champion grid position (1,2) - middle right
+	            rightArrowSelected = false;
+	            setGridPosition(1, 2);
+	            gp.playSE(9);
+	        } else {
+	            // Not on arrows: normal left navigation
+	            navigateLeft();
+	        }
+	    }
+	    
+	    // Check if conditions are met to enter X button mode
+	    private boolean shouldEnterXButtonMode() {
+	        // Can enter X button mode if:
+	        // 1. On any arrow (left or right), and
+	        // 2. Have multiple champions in party
+	        return (leftArrowSelected || rightArrowSelected) && getChampionsInPartyCount() > 1;
+	    }
+	    
+	    // Enter X button mode - can be triggered when on arrows or on first page
+	    public void enterXButtonMode() {
+	        if (!keyboardMode) enableKeyboardMode();
+	        
+	        // Can only enter X button mode if there are multiple champions
+	        if (getChampionsInPartyCount() <= 1) return;
+	        
+	        // Enter X button mode
+	        xButtonMode = true;
+	        leftArrowSelected = false;
+	        rightArrowSelected = false;
+	        
+	        // Find first champion with an X button (first non-null champion)
+	        selectedXButton = 0;
+	        for (int i = 0; i < gp.player.getParty().length; i++) {
+	            if (gp.player.getParty()[i] != null) {
+	                selectedXButton = i;
+	                break;
+	            }
+	        }
+	        
+	        gp.playSE(9);
+	    }
+	    
+	    // Exit X button mode
+	    public void exitXButtonMode() {
+	        if (xButtonMode) {
+	            xButtonMode = false;
+	            // Return to grid navigation
+	            resetToFirstChampion();
+	            gp.playSE(9);
+	        }
+	    }
+	    
+	    // Navigate X buttons up/down
+	    public void navigateXButtonUp() {
+	        if (!xButtonMode) return;
+	        
+	        // Find previous champion slot with a champion
+	        for (int i = selectedXButton - 1; i >= 0; i--) {
+	            if (gp.player.getParty()[i] != null) {
+	                selectedXButton = i;
+	                gp.playSE(9);
+	                return;
+	            }
+	        }
+	        
+	        // Wrap to last champion if no previous found
+	        for (int i = gp.player.getParty().length - 1; i > selectedXButton; i--) {
+	            if (gp.player.getParty()[i] != null) {
+	                selectedXButton = i;
+	                gp.playSE(9);
+	                return;
+	            }
+	        }
+	    }
+	    
+	    public void navigateXButtonDown() {
+	        if (!xButtonMode) return;
+	        
+	        // Find next champion slot with a champion
+	        for (int i = selectedXButton + 1; i < gp.player.getParty().length; i++) {
+	            if (gp.player.getParty()[i] != null) {
+	                selectedXButton = i;
+	                gp.playSE(9);
+	                return;
+	            }
+	        }
+	        
+	        // Wrap to first champion if no next found
+	        for (int i = 0; i < selectedXButton; i++) {
+	            if (gp.player.getParty()[i] != null) {
+	                selectedXButton = i;
+	                gp.playSE(9);
+	                return;
+	            }
+	        }
+	    }
+	    
+	    // Remove selected champion via X button
+	    public void removeSelectedChampion() {
+	        if (!xButtonMode) return;
+	        if (getChampionsInPartyCount() <= 1) return; // Can't remove if only one champion
+	        
+	        Champion removedChampion = gp.player.getParty()[selectedXButton];
+	        if (removedChampion != null) {
+	            gp.player.getParty()[selectedXButton] = null;
+	            removedChampion.setCurrentAssignedRole(null);
+	            System.out.println(removedChampion.getName() + " has been removed from the party.");
+	            
+	            // If no more multiple champions, exit X button mode
+	            if (getChampionsInPartyCount() <= 1) {
+	                exitXButtonMode();
+	            } else {
+	                // Find next valid X button position
+	                boolean foundNext = false;
+	                for (int i = selectedXButton; i < gp.player.getParty().length; i++) {
+	                    if (gp.player.getParty()[i] != null) {
+	                        selectedXButton = i;
+	                        foundNext = true;
+	                        break;
+	                    }
+	                }
+	                if (!foundNext) {
+	                    // Look backwards
+	                    for (int i = selectedXButton - 1; i >= 0; i--) {
+	                        if (gp.player.getParty()[i] != null) {
+	                            selectedXButton = i;
+	                            break;
+	                        }
+	                    }
+	                }
+	            }
+	            
+	            gp.repaint();
+	            gp.playSE(11);
+	        }
 	    }
 	    
 	    // Helper methods
@@ -435,8 +634,22 @@ import Champions.Champion;
 	                    int xButtonSize = 20;
 	                    int xButtonX = 10 + leftPanelWidth - 30; // Position it near the right edge
 	                    int xButtonY = slotY + 20; // Position it near the top of the slot
-	                    g2.setColor(Color.WHITE);
+	                    
+	                    // Highlight X button if it's selected in X button mode
+	                    boolean isSelectedXButton = xButtonMode && selectedXButton == i;
+	                    Color buttonColor = isSelectedXButton ? new Color(0, 150, 255) : Color.WHITE;
+	                    
+	                    g2.setColor(buttonColor);
 	                    g2.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+	                    
+	                    // Draw border for keyboard selection
+	                    if (isSelectedXButton) {
+	                        g2.setColor(Color.WHITE);
+	                        g2.setStroke(new BasicStroke(2));
+	                        g2.drawRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+	                        g2.setStroke(new BasicStroke(1)); // Reset stroke
+	                    }
+	                    
 	                    g2.setColor(Color.BLACK);
 	                    g2.drawString("X", xButtonX + 6, xButtonY + 15); // Center the "X" inside the button
 	                }
@@ -502,54 +715,50 @@ import Champions.Champion;
 	        int arrowSize = 50;
 	        int arrowYOffset = filterHeight + (gp.screenHeight - filterHeight) / 2 - arrowSize / 2;
 	
-	        // Left arrow (only draw if there's a previous page)
-	        if (currentPage > 0) {
-	            // Highlight left arrow if selected
-	            Color leftArrowColor = keyboardMode && leftArrowSelected ? 
-	                new Color(0, 150, 255) : Color.LIGHT_GRAY;
-	            g2.setColor(leftArrowColor);
-	            g2.fillPolygon(
+	        // Left arrow (always visible - wraps to last page)
+	        // Highlight left arrow if selected
+	        Color leftArrowColor = keyboardMode && leftArrowSelected ? 
+	            new Color(0, 150, 255) : Color.LIGHT_GRAY;
+	        g2.setColor(leftArrowColor);
+	        g2.fillPolygon(
+	            new int[] { rightPanelX + arrowPadding, rightPanelX + arrowPadding + arrowSize, rightPanelX + arrowPadding + arrowSize },
+	            new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
+	            3
+	        );
+	        
+	        // Draw border for keyboard selection
+	        if (keyboardMode && leftArrowSelected) {
+	            g2.setColor(Color.WHITE);
+	            g2.setStroke(new BasicStroke(3));
+	            g2.drawPolygon(
 	                new int[] { rightPanelX + arrowPadding, rightPanelX + arrowPadding + arrowSize, rightPanelX + arrowPadding + arrowSize },
 	                new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
 	                3
 	            );
-	            
-	            // Draw border for keyboard selection
-	            if (keyboardMode && leftArrowSelected) {
-	                g2.setColor(Color.WHITE);
-	                g2.setStroke(new BasicStroke(3));
-	                g2.drawPolygon(
-	                    new int[] { rightPanelX + arrowPadding, rightPanelX + arrowPadding + arrowSize, rightPanelX + arrowPadding + arrowSize },
-	                    new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
-	                    3
-	                );
-	                g2.setStroke(new BasicStroke(1)); // Reset stroke
-	            }
+	            g2.setStroke(new BasicStroke(1)); // Reset stroke
 	        }
 	
-	        // Right arrow (only draw if there's a next page)
-	        if ((currentPage + 1) * championsPerPage < applyFilters().size()) {
-	            // Highlight right arrow if selected
-	            Color rightArrowColor = keyboardMode && rightArrowSelected ? 
-	                new Color(0, 150, 255) : Color.LIGHT_GRAY;
-	            g2.setColor(rightArrowColor);
-	            g2.fillPolygon(
+	        // Right arrow (always visible - wraps to first page)
+	        // Highlight right arrow if selected
+	        Color rightArrowColor = keyboardMode && rightArrowSelected ? 
+	            new Color(0, 150, 255) : Color.LIGHT_GRAY;
+	        g2.setColor(rightArrowColor);
+	        g2.fillPolygon(
+	            new int[] { rightPanelX + rightPanelWidth - arrowPadding, rightPanelX + rightPanelWidth - arrowPadding - arrowSize, rightPanelX + rightPanelWidth - arrowPadding - arrowSize },
+	            new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
+	            3
+	        );
+	        
+	        // Draw border for keyboard selection
+	        if (keyboardMode && rightArrowSelected) {
+	            g2.setColor(Color.WHITE);
+	            g2.setStroke(new BasicStroke(3));
+	            g2.drawPolygon(
 	                new int[] { rightPanelX + rightPanelWidth - arrowPadding, rightPanelX + rightPanelWidth - arrowPadding - arrowSize, rightPanelX + rightPanelWidth - arrowPadding - arrowSize },
 	                new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
 	                3
 	            );
-	            
-	            // Draw border for keyboard selection
-	            if (keyboardMode && rightArrowSelected) {
-	                g2.setColor(Color.WHITE);
-	                g2.setStroke(new BasicStroke(3));
-	                g2.drawPolygon(
-	                    new int[] { rightPanelX + rightPanelWidth - arrowPadding, rightPanelX + rightPanelWidth - arrowPadding - arrowSize, rightPanelX + rightPanelWidth - arrowPadding - arrowSize },
-	                    new int[] { arrowYOffset + arrowSize / 2, arrowYOffset, arrowYOffset + arrowSize },
-	                    3
-	                );
-	                g2.setStroke(new BasicStroke(1)); // Reset stroke
-	            }
+	            g2.setStroke(new BasicStroke(1)); // Reset stroke
 	        }
 	
 	        // Apply filters and draw the grid
@@ -590,13 +799,13 @@ import Champions.Champion;
 	                }
 	            }
 
-	            // Enable hover effect only if the popup is **closed**
-	            boolean isHovered = !showPopup && !inParty &&
+	            // Enable hover effect only if popup is closed and not in X button mode
+	            boolean isHovered = !showPopup && !xButtonMode && !inParty &&
 	                    mousePoint.x >= xOffset + 10 && mousePoint.x <= xOffset + cellWidth - 10 &&
 	                    mousePoint.y >= yOffset + 10 && mousePoint.y <= yOffset + cellHeight - 10;
 
-	            // Check if this cell is selected via keyboard (but not when arrow is selected)
-	            boolean isKeyboardSelected = keyboardMode && !showPopup && !isAnyArrowSelected() &&
+	            // Check if this cell is selected via keyboard (but not when arrow or X button is selected)
+	            boolean isKeyboardSelected = keyboardMode && !showPopup && !isAnyArrowSelected() && !xButtonMode &&
 	                    selectedGridRow == row && selectedGridCol == col;
 
 	            // Draw the cell background with keyboard selection priority
@@ -779,6 +988,7 @@ import Champions.Champion;
 	                    gp.player.getParty()[i] = null; // Remove the champion from the party
 
 	                    if (removedChampion != null) {
+	                        removedChampion.setCurrentAssignedRole(null); // Clear their assigned role
 	                        System.out.println(removedChampion.getName() + " has been removed from the party.");
 	                    }
 
@@ -862,19 +1072,18 @@ import Champions.Champion;
 	            return;
 	        }
 
-	        // Handle left arrow click
+	        // Handle left arrow click (always available - wrapping)
 	        if (mouseX >= rightPanelX + arrowPadding && mouseX <= rightPanelX + arrowPadding + arrowSize &&
-	            mouseY >= arrowYOffset && mouseY <= arrowYOffset + arrowSize && currentPage > 0) {
-	            currentPage--; // Go to the previous page
+	            mouseY >= arrowYOffset && mouseY <= arrowYOffset + arrowSize) {
+	            navigatePageLeft(); // Use wrapping navigation
 	            gp.repaint();
 	            return;
 	        }
 
-	        // Handle right arrow click
+	        // Handle right arrow click (always available - wrapping)
 	        if (mouseX >= rightPanelX + rightPanelWidth - arrowPadding - arrowSize && mouseX <= rightPanelX + rightPanelWidth - arrowPadding &&
-	            mouseY >= arrowYOffset && mouseY <= arrowYOffset + arrowSize &&
-	            (currentPage + 1) * championsPerPage < applyFilters().size()) {
-	            currentPage++; // Go to the next page
+	            mouseY >= arrowYOffset && mouseY <= arrowYOffset + arrowSize) {
+	            navigatePageRight(); // Use wrapping navigation
 	            gp.repaint();
 	            return;
 	        }
@@ -946,23 +1155,25 @@ import Champions.Champion;
 	                case 4 -> "Supp";
 	                default -> null;
 	            };
-	
+
 	            // Check if the role matches
 	            if (requiredRole.equalsIgnoreCase(role)) {
 	                // Replace any existing champion in this role
 	                Champion currentChampion = gp.player.getParty()[i];
 	                if (currentChampion != null) {
+	                    currentChampion.setCurrentAssignedRole(null); // Clear their assigned role
 	                    System.out.println(currentChampion.getName() + " was removed from the " + requiredRole + " role.");
 	                }
-	
-	                // Assign the new champion
+
+	                // Assign the new champion and set their current assigned role
+	                selectedChampion.setCurrentAssignedRole(requiredRole);
 	                gp.player.getParty()[i] = selectedChampion;
 	                System.out.println(selectedChampion.getName() + " was added to the " + requiredRole + " role.");
 	                gp.repaint();
 	                return;
 	            }
 	        }
-	
+
 	        // If no suitable slot was found (this should not happen in a valid setup)
 	        System.out.println("No available slot for role: " + role);
 	    }

@@ -9,6 +9,7 @@ public class Champion {
     private String region;
     private String role;
     private String role2;// Optional, can be null
+    private String currentAssignedRole; // The role this champion is currently assigned to in the party
     private int level;
     private int exp;
     private ChampionClass championClass;
@@ -822,6 +823,14 @@ public class Champion {
 	public String getRole2() {
 		
 		return role2;
+	}
+	
+	public String getCurrentAssignedRole() {
+		return currentAssignedRole;
+	}
+	
+	public void setCurrentAssignedRole(String currentAssignedRole) {
+		this.currentAssignedRole = currentAssignedRole;
 	}
 	
 	// ==================== ABILITY UPGRADE SYSTEM ====================
