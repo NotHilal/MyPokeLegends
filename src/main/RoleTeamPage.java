@@ -16,9 +16,12 @@ public class RoleTeamPage {
     private final Map<String, BufferedImage> imageCache = new HashMap<>(); // Cache for champion images
     private boolean justEntered = true; // Flag to prevent immediate champion details opening
     
-    // Arrow navigation
+    // Navigation modes
     private boolean arrowModeActive = false; // Whether we're navigating arrows for the selected champion
     private int selectedArrowIndex = 0; // Index in the list of all available arrows
+    private boolean itemModeActive = false; // Whether we're navigating items for the selected champion
+    private int selectedItemSlot = 0; // Currently selected item slot (0-2)
+    private boolean showItemPopup = false; // Whether to show the "coming soon" popup
     
     public RoleTeamPage(GamePanel gamePanel) {
         this.gamePanel = gamePanel;
@@ -128,6 +131,11 @@ public class RoleTeamPage {
         
         // Draw modern instructions panel
         drawModernInstructionsPanel(g2);
+        
+        // Draw item popup if showing
+        if (showItemPopup) {
+            ItemComingSoonPopup.draw(g2, gamePanel.screenWidth, gamePanel.screenHeight);
+        }
     }
     
     private void drawModernBackground(Graphics2D g2) {
@@ -201,12 +209,73 @@ public class RoleTeamPage {
             return; // Skip this frame to prevent immediate actions
         }
         
+        // Handle popup first (blocks other input)
+        if (showItemPopup) {
+            handleItemPopupInput();
+            return; // Block other input when popup is open
+        }
+        
         if (arrowModeActive) {
             // Arrow navigation mode
             handleArrowNavigation();
+        } else if (itemModeActive) {
+            // Item navigation mode
+            handleItemNavigation();
         } else {
             // Regular champion navigation mode
             handleChampionNavigation();
+        }
+        
+        // Handle ENTER key based on current mode (after navigation handling)
+        if (gamePanel.keyH.interctPressed) {
+            if (itemModeActive) {
+                // In item mode - open item popup
+                System.out.println("DEBUG: ENTER pressed in item mode! selectedItemSlot=" + selectedItemSlot);
+                Champion champion = getSelectedChampion();
+                if (champion != null) {
+                    System.out.println("Opening item management for slot " + (selectedItemSlot + 1) + " for champion " + champion.getName());
+                    showItemPopup = true;
+                } else {
+                    System.out.println("DEBUG: No champion selected, cannot open item popup");
+                }
+            } else if (!arrowModeActive) {
+                // In champion mode - view champion details
+                Champion champion = getSelectedChampion();
+                if (champion != null) {
+                    gamePanel.championDetailsPage.setSelectedChampion(champion);
+                    gamePanel.gameState = gamePanel.championDetailsState;
+                } else {
+                    System.out.println("No champion in slot " + selectedChampionIndex);
+                }
+            }
+            // Arrow mode ENTER is handled in handleArrowNavigation()
+            gamePanel.keyH.interctPressed = false;
+        }
+        
+        // Handle ESC key for general navigation (if no popup is open)
+        if (gamePanel.keyH.escPressed && !showItemPopup) {
+            // Exit modes or go back to play state
+            if (itemModeActive || arrowModeActive) {
+                // Exit navigation modes
+                itemModeActive = false;
+                arrowModeActive = false;
+                selectedItemSlot = 0;
+                System.out.println("ESC: Exited navigation mode, back to champion selection");
+            } else {
+                // Exit to play state
+                gamePanel.gameState = gamePanel.playState;
+                System.out.println("ESC: Exited role team page, back to game");
+            }
+            gamePanel.keyH.escPressed = false;
+        }
+    }
+    
+    private void handleItemPopupInput() {
+        // Handle ESC key to close popup
+        if (gamePanel.keyH.escPressed) {
+            showItemPopup = false;
+            System.out.println("Closed item management popup");
+            gamePanel.keyH.escPressed = false;
         }
     }
     
@@ -236,46 +305,16 @@ public class RoleTeamPage {
             gamePanel.keyH.downPressed = false;
         }
         
-        // D to enter arrow mode with navigation across all arrows
+        // D to enter item mode
         if (gamePanel.keyH.rightPressed) {
+            System.out.println("DEBUG: D key pressed in champion mode!");
             Champion champion = getSelectedChampion();
             if (champion != null) {
-                java.util.List<Arrow> availableArrows = getAvailableArrows();
-                if (!availableArrows.isEmpty()) {
-                    arrowModeActive = true;
-                    
-                    // Find the first arrow for the currently selected champion
-                    selectedArrowIndex = 0;
-                    for (int i = 0; i < availableArrows.size(); i++) {
-                        if (availableArrows.get(i).championIndex == selectedChampionIndex) {
-                            selectedArrowIndex = i;
-                            break;
-                        }
-                    }
-                    
-                    Arrow selectedArrow = getCurrentlySelectedArrow();
-                    if (selectedArrow != null) {
-                        System.out.println("Entered arrow mode - selected " + 
-                            (selectedArrow.isUpArrow ? "UP" : "DOWN") + 
-                            " arrow for champion at index " + selectedArrow.championIndex);
-                    }
-                } else {
-                    System.out.println("No arrows available for navigation");
-                }
+                itemModeActive = true;
+                selectedItemSlot = 0;
+                System.out.println("Entered item mode - selected item slot " + selectedItemSlot);
             }
             gamePanel.keyH.rightPressed = false;
-        }
-        
-        // Enter to view champion details
-        if (gamePanel.keyH.interctPressed) {
-            Champion champion = getSelectedChampion();
-            if (champion != null) {
-                gamePanel.championDetailsPage.setSelectedChampion(champion);
-                gamePanel.gameState = gamePanel.championDetailsState;
-            } else {
-                System.out.println("No champion in slot " + selectedChampionIndex); // Debug
-            }
-            gamePanel.keyH.interctPressed = false;
         }
         
         // G to open champion selection
@@ -289,46 +328,141 @@ public class RoleTeamPage {
         }
     }
     
-    private void handleArrowNavigation() {
-        java.util.List<Arrow> availableArrows = getAvailableArrows();
-        
-        if (availableArrows.isEmpty()) {
-            arrowModeActive = false;
-            return;
-        }
-        
-        // W/S to navigate between all available arrows
+    private void handleItemNavigation() {
+        // W/S to navigate between champions while in item mode
         if (gamePanel.keyH.upPressed) {
-            selectedArrowIndex--;
-            if (selectedArrowIndex < 0) {
-                selectedArrowIndex = availableArrows.size() - 1; // Wrap around to last arrow
-            }
-            
-            Arrow selectedArrow = getCurrentlySelectedArrow();
-            if (selectedArrow != null) {
-                System.out.println("Navigated to " + 
-                    (selectedArrow.isUpArrow ? "UP" : "DOWN") + 
-                    " arrow for champion at index " + selectedArrow.championIndex);
+            java.util.List<Champion> compacted = getCompactedChampions();
+            if (!compacted.isEmpty()) {
+                selectedChampionIndex--;
+                if (selectedChampionIndex < 0) {
+                    selectedChampionIndex = compacted.size() - 1;
+                }
+                // Keep same item slot selected
+                System.out.println("Item mode: navigated to champion " + selectedChampionIndex + ", item slot " + selectedItemSlot);
             }
             gamePanel.keyH.upPressed = false;
         }
         
         if (gamePanel.keyH.downPressed) {
-            selectedArrowIndex++;
-            if (selectedArrowIndex >= availableArrows.size()) {
-                selectedArrowIndex = 0; // Wrap around to first arrow
-            }
-            
-            Arrow selectedArrow = getCurrentlySelectedArrow();
-            if (selectedArrow != null) {
-                System.out.println("Navigated to " + 
-                    (selectedArrow.isUpArrow ? "UP" : "DOWN") + 
-                    " arrow for champion at index " + selectedArrow.championIndex);
+            java.util.List<Champion> compacted = getCompactedChampions();
+            if (!compacted.isEmpty()) {
+                selectedChampionIndex++;
+                if (selectedChampionIndex >= compacted.size()) {
+                    selectedChampionIndex = 0;
+                }
+                // Keep same item slot selected
+                System.out.println("Item mode: navigated to champion " + selectedChampionIndex + ", item slot " + selectedItemSlot);
             }
             gamePanel.keyH.downPressed = false;
         }
         
-        // A to exit arrow mode and go back to champion selection
+        // A to go to previous item or exit to champion mode
+        if (gamePanel.keyH.leftPressed) {
+            if (selectedItemSlot == 0) {
+                // From item 1, go back to champion mode
+                itemModeActive = false;
+                selectedItemSlot = 0;
+                System.out.println("Exited item mode, back to champion selection for champion at index " + selectedChampionIndex);
+            } else {
+                // From item 2 or 3, go to previous item
+                selectedItemSlot--;
+                System.out.println("Navigated backwards to item slot " + selectedItemSlot);
+            }
+            gamePanel.keyH.leftPressed = false;
+        }
+        
+        // D to advance through item slots or go to arrows
+        if (gamePanel.keyH.rightPressed) {
+            System.out.println("DEBUG: D key pressed in item mode! selectedItemSlot=" + selectedItemSlot);
+            if (selectedItemSlot == 2) {
+                // From item slot 3, go to arrow mode
+                java.util.List<Arrow> availableArrows = getAvailableArrows();
+                itemModeActive = false;
+                arrowModeActive = true;
+                
+                if (!availableArrows.isEmpty()) {
+                    selectedArrowIndex = 0;
+                    for (int i = 0; i < availableArrows.size(); i++) {
+                        if (availableArrows.get(i).championIndex == selectedChampionIndex) {
+                            selectedArrowIndex = i;
+                            break;
+                        }
+                    }
+                    Arrow selectedArrow = getCurrentlySelectedArrow();
+                    if (selectedArrow != null) {
+                        System.out.println("Entered arrow mode - selected " + 
+                            (selectedArrow.isUpArrow ? "UP" : "DOWN") + 
+                            " arrow for champion at index " + selectedArrow.championIndex);
+                    }
+                } else {
+                    selectedArrowIndex = 0;
+                    System.out.println("Entered arrow mode - no arrows available");
+                }
+            } else {
+                // Navigate to next item slot
+                selectedItemSlot++;
+                System.out.println("Navigated to item slot " + selectedItemSlot);
+            }
+            gamePanel.keyH.rightPressed = false;
+        }
+        
+        // G to open champion selection (works in item mode too)
+        if (gamePanel.keyH.gPressed) {
+            itemModeActive = false;
+            selectedItemSlot = 0;
+            gamePanel.gameState = gamePanel.championMenuState;
+            gamePanel.keyH.gPressed = false;
+            if (gamePanel.championMenu != null) {
+                gamePanel.championMenu.onMenuOpened();
+            }
+        }
+    }
+    
+    private void handleArrowNavigation() {
+        java.util.List<Arrow> availableArrows = getAvailableArrows();
+        
+        // Don't exit arrow mode even if no arrows available - let user navigate
+        
+        // W/S to navigate between all available arrows (or just show "no arrows" if none)
+        if (gamePanel.keyH.upPressed) {
+            if (!availableArrows.isEmpty()) {
+                selectedArrowIndex--;
+                if (selectedArrowIndex < 0) {
+                    selectedArrowIndex = availableArrows.size() - 1; // Wrap around to last arrow
+                }
+                
+                Arrow selectedArrow = getCurrentlySelectedArrow();
+                if (selectedArrow != null) {
+                    System.out.println("Navigated to " + 
+                        (selectedArrow.isUpArrow ? "UP" : "DOWN") + 
+                        " arrow for champion at index " + selectedArrow.championIndex);
+                }
+            } else {
+                System.out.println("No arrows available for this champion");
+            }
+            gamePanel.keyH.upPressed = false;
+        }
+        
+        if (gamePanel.keyH.downPressed) {
+            if (!availableArrows.isEmpty()) {
+                selectedArrowIndex++;
+                if (selectedArrowIndex >= availableArrows.size()) {
+                    selectedArrowIndex = 0; // Wrap around to first arrow
+                }
+                
+                Arrow selectedArrow = getCurrentlySelectedArrow();
+                if (selectedArrow != null) {
+                    System.out.println("Navigated to " + 
+                        (selectedArrow.isUpArrow ? "UP" : "DOWN") + 
+                        " arrow for champion at index " + selectedArrow.championIndex);
+                }
+            } else {
+                System.out.println("No arrows available for this champion");
+            }
+            gamePanel.keyH.downPressed = false;
+        }
+        
+        // A to exit arrow mode and go back to champion mode
         if (gamePanel.keyH.leftPressed) {
             // Before exiting, set selectedChampionIndex to match the champion with the selected arrow
             Arrow currentlySelectedArrow = getCurrentlySelectedArrow();
@@ -336,7 +470,8 @@ public class RoleTeamPage {
                 selectedChampionIndex = currentlySelectedArrow.championIndex;
             }
             arrowModeActive = false;
-            System.out.println("Exited arrow mode, champion selection now at index " + selectedChampionIndex); // Debug
+            // Go directly to champion mode, not item mode
+            System.out.println("Exited arrow mode, back to champion selection for champion at index " + selectedChampionIndex);
             gamePanel.keyH.leftPressed = false;
         }
         
@@ -357,7 +492,16 @@ public class RoleTeamPage {
             if (gamePanel.championMenu != null) {
                 gamePanel.championMenu.onMenuOpened();
             }
-            System.out.println("Opened champion menu from " + (arrowModeActive ? "arrow" : "champion selection") + " mode");
+            System.out.println("Opened champion menu from arrow mode");
+        }
+        
+        // D to continue navigation cycle - wrap back to first item slot
+        if (gamePanel.keyH.rightPressed) {
+            arrowModeActive = false;
+            itemModeActive = true;
+            selectedItemSlot = 0; // Wrap back to first item slot
+            System.out.println("Arrow mode: wrapped back to item slot 0 for champion at index " + selectedChampionIndex);
+            gamePanel.keyH.rightPressed = false;
         }
         
         // Enter to apply the selected arrow action (move champion up or down)
@@ -861,8 +1005,12 @@ public class RoleTeamPage {
         }
         g2.drawString(hpText, infoX + hpBarWidth + 10, hpBarY + 9);
         
-        // XP bar display in a prettier spot (right side)
-        drawXPBar(g2, champion, infoX + hpBarWidth + 80, hpBarY - 5, 120);
+        // XP bar display under HP bar
+        int xpBarY = hpBarY + hpBarHeight + 8;
+        drawXPBar(g2, champion, infoX, xpBarY, hpBarWidth + 80);
+        
+        // Items display in the space where XP bar used to be
+        drawItemSlotsInChampionSlot(g2, champion, infoX + hpBarWidth + 90, hpBarY - 5);
     }
     
     private void drawEmptySlotContent(Graphics2D g2, int x, int y, int width, int height) {
@@ -924,7 +1072,22 @@ public class RoleTeamPage {
             y += lineHeight;
             drawInstruction(g2, "ENTER", "Move Champion", rightPanelX + 20, y, Color.WHITE, new Color(100, 255, 100));
             y += lineHeight;
+            drawInstruction(g2, "D", "Back to Items", rightPanelX + 20, y, Color.WHITE, new Color(255, 255, 100));
+            y += lineHeight;
             drawInstruction(g2, "A", "Back to Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 100, 100));
+            y += lineHeight;
+            drawInstruction(g2, "G", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
+        } else if (itemModeActive) {
+            // Item mode controls
+            drawInstruction(g2, "W/S", "Select Champion", rightPanelX + 20, y, Color.WHITE, new Color(100, 180, 255));
+            y += lineHeight;
+            String dText = (selectedItemSlot < 2) ? "Next Item" : "To Arrows";
+            drawInstruction(g2, "D", dText, rightPanelX + 20, y, Color.WHITE, new Color(255, 255, 100));
+            y += lineHeight;
+            drawInstruction(g2, "ENTER", "Manage Item", rightPanelX + 20, y, Color.WHITE, new Color(100, 255, 100));
+            y += lineHeight;
+            String aText = (selectedItemSlot == 0) ? "Back to Champions" : "Previous Item";
+            drawInstruction(g2, "A", aText, rightPanelX + 20, y, Color.WHITE, new Color(255, 100, 100));
             y += lineHeight;
             drawInstruction(g2, "G", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
         } else {
@@ -933,7 +1096,7 @@ public class RoleTeamPage {
             y += lineHeight;
             drawInstruction(g2, "ENTER", "View Details", rightPanelX + 20, y, Color.WHITE, new Color(100, 255, 100));
             y += lineHeight;
-            drawInstruction(g2, "D", "Enter Arrow Mode", rightPanelX + 20, y, Color.WHITE, new Color(255, 255, 100));
+            drawInstruction(g2, "D", "Enter Item Mode", rightPanelX + 20, y, Color.WHITE, new Color(255, 255, 100));
             y += lineHeight;
             drawInstruction(g2, "G", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
             y += lineHeight;
@@ -1175,5 +1338,141 @@ public class RoleTeamPage {
             int percentWidth = fm.stringWidth(percentText);
             g2.drawString(percentText, x + (width - percentWidth) / 2, xpBarY + xpBarHeight + 12);
         }
+    }
+    
+    private void drawItemSlotsInChampionSlot(Graphics2D g2, Champion champion, int x, int y) {
+        // Draw 3 item slots horizontally, exactly like in ChampionDetailsPage
+        int slotSize = 45; // Slightly smaller than the 60px in ChampionDetailsPage to fit better
+        int slotSpacing = 8;
+        int totalSlotsWidth = (slotSize * 3) + (slotSpacing * 2);
+        int startX = x;
+        int slotsY = y + 15;
+        
+        // Check if we're in item mode and this champion is selected
+        boolean isThisChampionSelected = false;
+        if (itemModeActive && champion != null) {
+            Champion selectedChamp = getSelectedChampion();
+            isThisChampionSelected = (selectedChamp == champion);
+        }
+        
+        for (int i = 0; i < 3; i++) {
+            int slotX = startX + (i * (slotSize + slotSpacing));
+            drawItemSlotInChampionSlot(g2, champion, i, slotX, slotsY, slotSize, isThisChampionSelected);
+        }
+    }
+    
+    private void drawItemSlotInChampionSlot(Graphics2D g2, Champion champion, int slotIndex, int x, int y, int size, boolean championSelected) {
+        // Determine if this slot is selected (only if this champion is selected and we're in item mode)
+        boolean isSlotSelected = championSelected && itemModeActive && (slotIndex == selectedItemSlot);
+        
+        // Slot background - golden highlight if selected, normal if not
+        Color slotColor = isSlotSelected ? 
+            new Color(255, 215, 0, 150) : new Color(200, 200, 200, 100);
+        g2.setColor(slotColor);
+        g2.fillRoundRect(x, y, size, size, 8, 8);
+        
+        // Slot border - golden border if selected, normal if not
+        Color borderColor = isSlotSelected ? 
+            new Color(255, 215, 0, 255) : new Color(150, 150, 150, 150);
+        g2.setColor(borderColor);
+        g2.setStroke(new BasicStroke(isSlotSelected ? 3 : 2));
+        g2.drawRoundRect(x, y, size, size, 8, 8);
+        
+        // TODO: Draw actual item if champion has items
+        // For now, show empty slot
+        g2.setColor(new Color(100, 100, 100, 150));
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        String slotText = String.valueOf(slotIndex + 1);
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = x + (size - fm.stringWidth(slotText)) / 2;
+        int textY = y + size / 2 + fm.getAscent() / 2 - 5;
+        g2.drawString(slotText, textX, textY);
+        
+        // Empty indicator
+        g2.setFont(new Font("Segoe UI", Font.PLAIN, 7));
+        g2.setColor(new Color(120, 120, 120, 130));
+        String emptyText = "Empty";
+        int emptyX = x + (size - g2.getFontMetrics().stringWidth(emptyText)) / 2;
+        g2.drawString(emptyText, emptyX, textY + 12);
+    }
+}
+
+// Popup class for "Item coming soon" message  
+class ItemComingSoonPopup {
+    public static void draw(Graphics2D g2, int screenWidth, int screenHeight) {
+        // Semi-transparent overlay with slight blur effect
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.fillRect(0, 0, screenWidth, screenHeight);
+        
+        // Popup dimensions - slightly larger for "coming soon" message
+        int popupWidth = 280;
+        int popupHeight = 140;
+        int popupX = (screenWidth - popupWidth) / 2;
+        int popupY = (screenHeight - popupHeight) / 2;
+        
+        // Drop shadow for depth
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.fillRoundRect(popupX + 4, popupY + 4, popupWidth, popupHeight, 20, 20);
+        
+        // Main popup background with gradient
+        java.awt.GradientPaint popupGradient = new java.awt.GradientPaint(
+            popupX, popupY, new Color(245, 248, 252),
+            popupX, popupY + popupHeight, new Color(225, 235, 250)
+        );
+        g2.setPaint(popupGradient);
+        g2.fillRoundRect(popupX, popupY, popupWidth, popupHeight, 18, 18);
+        
+        // Popup border with subtle gradient
+        java.awt.GradientPaint borderGradient = new java.awt.GradientPaint(
+            popupX, popupY, new Color(100, 140, 200),
+            popupX + popupWidth, popupY + popupHeight, new Color(140, 170, 220)
+        );
+        g2.setPaint(borderGradient);
+        g2.setStroke(new BasicStroke(3));
+        g2.drawRoundRect(popupX, popupY, popupWidth, popupHeight, 18, 18);
+        
+        // Inner highlight for premium look
+        g2.setColor(new Color(255, 255, 255, 100));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawRoundRect(popupX + 2, popupY + 2, popupWidth - 4, popupHeight - 4, 16, 16);
+        
+        // Title with shadow effect
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        g2.setColor(new Color(0, 0, 0, 80));
+        String title = "ITEM MANAGEMENT";
+        FontMetrics fm = g2.getFontMetrics();
+        int titleX = popupX + (popupWidth - fm.stringWidth(title)) / 2;
+        g2.drawString(title, titleX + 2, popupY + 37);
+        
+        // Main title
+        g2.setColor(new Color(45, 75, 130));
+        g2.drawString(title, titleX, popupY + 35);
+        
+        // Coming soon message with special styling
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        g2.setColor(new Color(255, 140, 40));
+        String message = "🔧 Coming Soon!";
+        FontMetrics msgFm = g2.getFontMetrics();
+        int messageX = popupX + (popupWidth - msgFm.stringWidth(message)) / 2;
+        g2.drawString(message, messageX, popupY + 70);
+        
+        // Description
+        g2.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        g2.setColor(new Color(80, 100, 140));
+        String desc = "Item system will be available in a future update";
+        FontMetrics descFm = g2.getFontMetrics();
+        int descX = popupX + (popupWidth - descFm.stringWidth(desc)) / 2;
+        g2.drawString(desc, descX, popupY + 95);
+        
+        // Instructions with key highlight
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        g2.setColor(new Color(255, 180, 100));
+        g2.fillRoundRect(popupX + popupWidth/2 - 25, popupY + 110, 20, 16, 4, 4);
+        
+        g2.setColor(new Color(60, 40, 0));
+        g2.drawString("ESC", popupX + popupWidth/2 - 22, popupY + 121);
+        
+        g2.setColor(new Color(100, 120, 160));
+        g2.drawString("Press          to close", popupX + popupWidth/2 - 50, popupY + 121);
     }
 }

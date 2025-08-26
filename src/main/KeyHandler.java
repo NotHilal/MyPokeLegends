@@ -8,7 +8,7 @@ public class KeyHandler implements KeyListener{
 
 	public boolean upPressed, downPressed, leftPressed, rightPressed,f2Pressed, f3Pressed, interctPressed, enterPressed;
 	public boolean num1Pressed = false, num2Pressed = false, num3Pressed = false, num4Pressed = false;
-	public boolean gPressed = false, tabPressed = false;
+	public boolean gPressed = false, tabPressed = false, escPressed = false;
 	GamePanel gp;
 	// DEBUG 
 	public boolean checkDrawTime=false;
@@ -511,7 +511,7 @@ public class KeyHandler implements KeyListener{
 		// Role Team STATE
 		else if(gp.gameState==gp.roleTeamState) {
 			if(code ==KeyEvent.VK_ESCAPE) {
-				gp.gameState = gp.playState;
+				escPressed = true;
 			}
 			if(code ==KeyEvent.VK_G) {
 				gPressed = true;
