@@ -26,7 +26,6 @@ public class RoleTeamPage {
     public RoleTeamPage(GamePanel gamePanel) {
         this.gamePanel = gamePanel;
         preloadImages();
-        // Initialize to first available champion
         initializeSelectedChampion();
     }
     
@@ -310,9 +309,37 @@ public class RoleTeamPage {
             System.out.println("DEBUG: D key pressed in champion mode!");
             Champion champion = getSelectedChampion();
             if (champion != null) {
-                itemModeActive = true;
-                selectedItemSlot = 0;
-                System.out.println("Entered item mode - selected item slot " + selectedItemSlot);
+                // Find the first unlocked slot to start with
+                int firstUnlockedSlot = findFirstUnlockedSlot(champion);
+                if (firstUnlockedSlot != -1) {
+                    itemModeActive = true;
+                    selectedItemSlot = firstUnlockedSlot;
+                    System.out.println("Entered item mode - selected item slot " + selectedItemSlot);
+                } else {
+                    // No unlocked slots, go directly to arrow mode
+                    System.out.println("No unlocked item slots, going directly to arrow mode");
+                    itemModeActive = false;
+                    arrowModeActive = true;
+                    selectedArrowIndex = 0;
+                    
+                    java.util.List<Arrow> availableArrows = getAvailableArrows();
+                    if (!availableArrows.isEmpty()) {
+                        for (int i = 0; i < availableArrows.size(); i++) {
+                            if (availableArrows.get(i).championIndex == selectedChampionIndex) {
+                                selectedArrowIndex = i;
+                                break;
+                            }
+                        }
+                        Arrow selectedArrow = getCurrentlySelectedArrow();
+                        if (selectedArrow != null) {
+                            System.out.println("Entered arrow mode - selected " + 
+                                (selectedArrow.isUpArrow ? "UP" : "DOWN") + 
+                                " arrow for champion at index " + selectedArrow.championIndex);
+                        }
+                    } else {
+                        System.out.println("Entered arrow mode - no arrows available");
+                    }
+                }
             }
             gamePanel.keyH.rightPressed = false;
         }
@@ -358,24 +385,38 @@ public class RoleTeamPage {
         
         // A to go to previous item or exit to champion mode
         if (gamePanel.keyH.leftPressed) {
-            if (selectedItemSlot == 0) {
-                // From item 1, go back to champion mode
+            Champion champion = getSelectedChampion();
+            
+            // Find the previous unlocked slot or exit to champion mode
+            int prevSlot = findPreviousUnlockedSlot(champion, selectedItemSlot);
+            
+            if (prevSlot != -1) {
+                // Found previous unlocked slot
+                selectedItemSlot = prevSlot;
+                System.out.println("Navigated backwards to item slot " + selectedItemSlot);
+            } else {
+                // No more unlocked slots behind us, exit to champion mode
                 itemModeActive = false;
                 selectedItemSlot = 0;
                 System.out.println("Exited item mode, back to champion selection for champion at index " + selectedChampionIndex);
-            } else {
-                // From item 2 or 3, go to previous item
-                selectedItemSlot--;
-                System.out.println("Navigated backwards to item slot " + selectedItemSlot);
             }
             gamePanel.keyH.leftPressed = false;
         }
         
         // D to advance through item slots or go to arrows
         if (gamePanel.keyH.rightPressed) {
+            Champion champion = getSelectedChampion();
             System.out.println("DEBUG: D key pressed in item mode! selectedItemSlot=" + selectedItemSlot);
-            if (selectedItemSlot == 2) {
-                // From item slot 3, go to arrow mode
+            
+            // Find the next unlocked slot or go to arrows
+            int nextSlot = findNextUnlockedSlot(champion, selectedItemSlot);
+            
+            if (nextSlot != -1) {
+                // Found next unlocked slot
+                selectedItemSlot = nextSlot;
+                System.out.println("Navigated to item slot " + selectedItemSlot);
+            } else {
+                // No more unlocked slots, go to arrow mode
                 java.util.List<Arrow> availableArrows = getAvailableArrows();
                 itemModeActive = false;
                 arrowModeActive = true;
@@ -398,10 +439,6 @@ public class RoleTeamPage {
                     selectedArrowIndex = 0;
                     System.out.println("Entered arrow mode - no arrows available");
                 }
-            } else {
-                // Navigate to next item slot
-                selectedItemSlot++;
-                System.out.println("Navigated to item slot " + selectedItemSlot);
             }
             gamePanel.keyH.rightPressed = false;
         }
@@ -1009,8 +1046,8 @@ public class RoleTeamPage {
         int xpBarY = hpBarY + hpBarHeight + 8;
         drawXPBar(g2, champion, infoX, xpBarY, hpBarWidth + 80);
         
-        // Items display in the space where XP bar used to be
-        drawItemSlotsInChampionSlot(g2, champion, infoX + hpBarWidth + 90, hpBarY - 5);
+        // Items display in the space where XP bar used to be (moved 25px higher)
+        drawItemSlotsInChampionSlot(g2, champion, infoX + hpBarWidth + 90, hpBarY - 30);
     }
     
     private void drawEmptySlotContent(Graphics2D g2, int x, int y, int width, int height) {
@@ -1154,22 +1191,31 @@ public class RoleTeamPage {
         
         int arrowSize = 20; // Slightly larger arrows
         int centerY = y + slotHeight / 2;
-        int upArrowY = centerY - arrowSize - 5;
-        int downArrowY = centerY + 5;
         
         // Highlight arrows when in arrow mode
         Arrow currentlySelectedArrow = arrowModeActive ? getCurrentlySelectedArrow() : null;
         
         java.util.List<Champion> compacted = getCompactedChampions();
         
-        // Debug output (removed to reduce console spam)
-        // if (currentlySelectedArrow != null && currentlySelectedArrow.championIndex == compactedIndex) {
-        //     System.out.println("Drawing highlighted arrows for champion at compacted index " + compactedIndex + 
-        //         " (up=" + currentlySelectedArrow.isUpArrow + ")");
-        // }
+        // Check how many arrows this champion can have
+        boolean canGoUp = compactedIndex > 0;
+        boolean canGoDown = compactedIndex < compacted.size() - 1;
+        boolean hasOnlyOneArrow = (canGoUp && !canGoDown) || (!canGoUp && canGoDown);
+        
+        // Calculate arrow positions based on how many arrows there are
+        int upArrowY, downArrowY;
+        if (hasOnlyOneArrow) {
+            // Center the single arrow
+            upArrowY = centerY - arrowSize / 2;
+            downArrowY = centerY - arrowSize / 2;
+        } else {
+            // Keep dual arrows in their original positions
+            upArrowY = centerY - arrowSize - 5;
+            downArrowY = centerY + 5;
+        }
         
         // Draw up arrow (if not first position in compacted view)
-        if (compactedIndex > 0) {
+        if (canGoUp) {
             boolean isThisUpArrowSelected = currentlySelectedArrow != null && 
                 currentlySelectedArrow.championIndex == compactedIndex && currentlySelectedArrow.isUpArrow;
             
@@ -1182,7 +1228,7 @@ public class RoleTeamPage {
         }
         
         // Draw down arrow (if not last position in compacted view)
-        if (compactedIndex < compacted.size() - 1) {
+        if (canGoDown) {
             boolean isThisDownArrowSelected = currentlySelectedArrow != null && 
                 currentlySelectedArrow.championIndex == compactedIndex && !currentlySelectedArrow.isUpArrow;
             
@@ -1362,38 +1408,156 @@ public class RoleTeamPage {
     }
     
     private void drawItemSlotInChampionSlot(Graphics2D g2, Champion champion, int slotIndex, int x, int y, int size, boolean championSelected) {
-        // Determine if this slot is selected (only if this champion is selected and we're in item mode)
-        boolean isSlotSelected = championSelected && itemModeActive && (slotIndex == selectedItemSlot);
+        // Check if this slot is unlocked based on champion level
+        boolean isSlotUnlocked = isItemSlotUnlocked(champion, slotIndex);
         
-        // Slot background - golden highlight if selected, normal if not
-        Color slotColor = isSlotSelected ? 
-            new Color(255, 215, 0, 150) : new Color(200, 200, 200, 100);
-        g2.setColor(slotColor);
+        // Determine if this slot is selected (only if unlocked, champion is selected and we're in item mode)
+        boolean isSlotSelected = championSelected && itemModeActive && (slotIndex == selectedItemSlot) && isSlotUnlocked;
+        
+        if (isSlotUnlocked) {
+            // UNLOCKED SLOT - normal appearance
+            // Slot background - golden highlight if selected, normal if not
+            Color slotColor = isSlotSelected ? 
+                new Color(255, 215, 0, 150) : new Color(200, 200, 200, 100);
+            g2.setColor(slotColor);
+            g2.fillRoundRect(x, y, size, size, 8, 8);
+            
+            // Slot border - golden border if selected, normal if not
+            Color borderColor = isSlotSelected ? 
+                new Color(255, 215, 0, 255) : new Color(150, 150, 150, 150);
+            g2.setColor(borderColor);
+            g2.setStroke(new BasicStroke(isSlotSelected ? 3 : 2));
+            g2.drawRoundRect(x, y, size, size, 8, 8);
+            
+            // TODO: Draw actual item if champion has items
+            // For now, show empty slot
+            g2.setColor(new Color(100, 100, 100, 150));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+            String slotText = String.valueOf(slotIndex + 1);
+            FontMetrics fm = g2.getFontMetrics();
+            int textX = x + (size - fm.stringWidth(slotText)) / 2;
+            int textY = y + size / 2 + fm.getAscent() / 2 - 5;
+            g2.drawString(slotText, textX, textY);
+            
+            // Empty indicator
+            g2.setFont(new Font("Segoe UI", Font.PLAIN, 7));
+            g2.setColor(new Color(120, 120, 120, 130));
+            String emptyText = "Empty";
+            int emptyX = x + (size - g2.getFontMetrics().stringWidth(emptyText)) / 2;
+            g2.drawString(emptyText, emptyX, textY + 12);
+        } else {
+            // LOCKED SLOT - dark appearance with chains and lock
+            drawLockedItemSlot(g2, champion, slotIndex, x, y, size);
+        }
+    }
+    
+    private boolean isItemSlotUnlocked(Champion champion, int slotIndex) {
+        if (champion == null) return false;
+        
+        int level = champion.getLevel();
+        switch (slotIndex) {
+            case 0: return level >= 5;   // First slot unlocks at level 5
+            case 1: return level >= 15;  // Second slot unlocks at level 15  
+            case 2: return level >= 25;  // Third slot unlocks at level 25
+            default: return false;
+        }
+    }
+    
+    private int getRequiredLevelForSlot(int slotIndex) {
+        switch (slotIndex) {
+            case 0: return 5;
+            case 1: return 15;
+            case 2: return 25;
+            default: return 999;
+        }
+    }
+    
+    private void drawLockedItemSlot(Graphics2D g2, Champion champion, int slotIndex, int x, int y, int size) {
+        // Dark locked background
+        g2.setColor(new Color(60, 60, 60, 180));
         g2.fillRoundRect(x, y, size, size, 8, 8);
         
-        // Slot border - golden border if selected, normal if not
-        Color borderColor = isSlotSelected ? 
-            new Color(255, 215, 0, 255) : new Color(150, 150, 150, 150);
-        g2.setColor(borderColor);
-        g2.setStroke(new BasicStroke(isSlotSelected ? 3 : 2));
+        // Dark border
+        g2.setColor(new Color(100, 100, 100, 200));
+        g2.setStroke(new BasicStroke(2));
         g2.drawRoundRect(x, y, size, size, 8, 8);
         
-        // TODO: Draw actual item if champion has items
-        // For now, show empty slot
-        g2.setColor(new Color(100, 100, 100, 150));
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        String slotText = String.valueOf(slotIndex + 1);
-        FontMetrics fm = g2.getFontMetrics();
-        int textX = x + (size - fm.stringWidth(slotText)) / 2;
-        int textY = y + size / 2 + fm.getAscent() / 2 - 5;
-        g2.drawString(slotText, textX, textY);
+        // Draw chains (X pattern)
+        g2.setColor(new Color(140, 140, 140));
+        g2.setStroke(new BasicStroke(2.5f));
         
-        // Empty indicator
-        g2.setFont(new Font("Segoe UI", Font.PLAIN, 7));
-        g2.setColor(new Color(120, 120, 120, 130));
-        String emptyText = "Empty";
-        int emptyX = x + (size - g2.getFontMetrics().stringWidth(emptyText)) / 2;
-        g2.drawString(emptyText, emptyX, textY + 12);
+        // Chain links - diagonal crosses
+        int chainPadding = 8;
+        g2.drawLine(x + chainPadding, y + chainPadding, x + size - chainPadding, y + size - chainPadding);
+        g2.drawLine(x + chainPadding, y + size - chainPadding, x + size - chainPadding, y + chainPadding);
+        
+        // Chain link details (small rectangles along the chains)
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.setColor(new Color(120, 120, 120));
+        int linkSize = 4;
+        for (int i = 1; i < 4; i++) {
+            int linkX = x + chainPadding + (i * (size - 2 * chainPadding) / 4);
+            int linkY = y + chainPadding + (i * (size - 2 * chainPadding) / 4);
+            g2.fillRect(linkX - linkSize/2, linkY - linkSize/2, linkSize, linkSize);
+            
+            int linkX2 = x + chainPadding + (i * (size - 2 * chainPadding) / 4);
+            int linkY2 = y + size - chainPadding - (i * (size - 2 * chainPadding) / 4);
+            g2.fillRect(linkX2 - linkSize/2, linkY2 - linkSize/2, linkSize, linkSize);
+        }
+        
+        // Lock icon in the center
+        int lockSize = 14;
+        int lockX = x + size/2 - lockSize/2;
+        int lockY = y + size/2 - lockSize/2;
+        
+        // Lock body
+        g2.setColor(new Color(180, 160, 120));
+        g2.fillRoundRect(lockX + 2, lockY + 6, lockSize - 4, lockSize - 6, 3, 3);
+        
+        // Lock shackle (the curved top part)
+        g2.setColor(new Color(160, 140, 100));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawArc(lockX + 3, lockY, lockSize - 6, lockSize - 4, 0, 180);
+        
+        // Lock keyhole
+        g2.setColor(new Color(80, 70, 50));
+        g2.fillOval(lockX + lockSize/2 - 1, lockY + 8, 2, 2);
+        g2.fillRect(lockX + lockSize/2 - 1, lockY + 10, 2, 3);
+        
+        // Required level text
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 8));
+        g2.setColor(new Color(200, 180, 140));
+        String levelText = "Lv." + getRequiredLevelForSlot(slotIndex);
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = x + (size - fm.stringWidth(levelText)) / 2;
+        g2.drawString(levelText, textX, y + size - 3);
+    }
+    
+    private int findFirstUnlockedSlot(Champion champion) {
+        for (int i = 0; i < 3; i++) {
+            if (isItemSlotUnlocked(champion, i)) {
+                return i;
+            }
+        }
+        return -1; // No unlocked slots
+    }
+    
+    private int findNextUnlockedSlot(Champion champion, int currentSlot) {
+        for (int i = currentSlot + 1; i < 3; i++) {
+            if (isItemSlotUnlocked(champion, i)) {
+                return i;
+            }
+        }
+        return -1; // No more unlocked slots
+    }
+    
+    private int findPreviousUnlockedSlot(Champion champion, int currentSlot) {
+        for (int i = currentSlot - 1; i >= 0; i--) {
+            if (isItemSlotUnlocked(champion, i)) {
+                return i;
+            }
+        }
+        return -1; // No more unlocked slots behind
     }
 }
 
