@@ -6,7 +6,8 @@
       "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(java:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(move:*)"
     ],
     "deny": [],
     "ask": []

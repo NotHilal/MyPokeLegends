@@ -462,6 +462,45 @@ public class KeyHandler implements KeyListener{
 			}
 		}
 
+		// Bag STATE
+		else if(gp.gameState==gp.bagState) {
+			if(code == KeyEvent.VK_ESCAPE) {
+				// Return to pause menu
+				if(gp.bag != null) {
+					gp.bag.closeBag();
+				} else {
+					gp.gameState = gp.pauseState;
+				}
+			}
+			// WASD navigation for bag
+			if(code == KeyEvent.VK_W) {
+				if(gp.bag != null) {
+					gp.bag.navigateUp();
+				}
+			}
+			if(code == KeyEvent.VK_S) {
+				if(gp.bag != null) {
+					gp.bag.navigateDown();
+				}
+			}
+			if(code == KeyEvent.VK_A) {
+				if(gp.bag != null) {
+					gp.bag.navigateLeft();
+				}
+			}
+			if(code == KeyEvent.VK_D) {
+				if(gp.bag != null) {
+					gp.bag.navigateRight();
+				}
+			}
+			// Enter to use item
+			if(code == KeyEvent.VK_ENTER) {
+				if(gp.bag != null) {
+					gp.bag.selectCurrentItem();
+				}
+			}
+		}
+
 		// Champions STATE
 				else if(gp.gameState==gp.championMenuState) {
 					if(code ==KeyEvent.VK_ESCAPE) {

@@ -1,6 +1,7 @@
 package Champions;
 import java.awt.image.BufferedImage;
 import java.util.List;
+import item.Item;
 
 public class Champion {
 
@@ -1331,6 +1332,34 @@ public class Champion {
         return Math.min(100, Math.max(0, baseLifesteal));
     }
     
+    /**
+     * Get critical damage multiplier (default 2.0, enhanced by items)
+     */
+    public double getCritDamageMultiplier() {
+        double baseCritDamage = 2.0; // Base crit = 200% damage
+        
+        // Apply Infinity Edge passive
+        if (hasItem("Infinity Edge")) {
+            baseCritDamage = 2.35; // IE makes crits deal 235% damage instead of 200%
+        }
+        
+        return baseCritDamage;
+    }
+    
+    /**
+     * Get healing multiplier (default 1.0, enhanced by items like Spirit Visage)
+     */
+    public double getHealingMultiplier() {
+        double baseHealingMultiplier = 1.0; // Base healing = 100%
+        
+        // Apply Spirit Visage passive
+        if (hasItem("Spirit Visage")) {
+            baseHealingMultiplier = 1.25; // +25% healing received
+        }
+        
+        return baseHealingMultiplier;
+    }
+    
     // Enhanced takeDamage method that accounts for shields and damage reduction
     public void takeDamage(int damage) {
         if (damage <= 0) return;
@@ -1456,6 +1485,12 @@ public class Champion {
     
     public int getTotalAP() {
         int itemAP = items.stream().mapToInt(Item::getBonusAP).sum();
+        
+        // Apply percentage bonuses ONLY to item AP
+        if (hasItem("Rabadon's Deathcap")) {
+            itemAP = (int)(itemAP * 1.35); // +35% item AP
+        }
+        
         return getEffectiveAP() + itemAP;
     }
     
@@ -1566,6 +1601,12 @@ public class Champion {
     public int getTotalMagicPen() {
         int itemMagicPen = items.stream().mapToInt(Item::getBonusMagicPen).sum();
         int levelMagicPen = getLevelBasedMagicPen();
+        
+        // Apply percentage bonuses ONLY to item magic pen
+        if (hasItem("Void Staff")) {
+            itemMagicPen = (int)(itemMagicPen * 1.40); // +40% item magic pen
+        }
+        
         return magicPenetration + itemMagicPen + levelMagicPen;
     }
     

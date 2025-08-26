@@ -94,6 +94,7 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int roleTeamState = 9; // New role-based team overview
 	public final int championDetailsState = 10; // New individual champion details
 	public final int teamOrderState = 11; // New team order management state
+	public final int bagState = 12; // New bag/inventory state
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -105,6 +106,7 @@ public class GamePanel extends JPanel implements Runnable{
 	public BattleManager battleManager;
 	
 	public Dex dex; // Declare Dex
+	public Bag bag; // Declare Bag
 	public RoleTeamPage roleTeamPage; // New role-based team page
 	public ChampionDetailsPage championDetailsPage; // New champion details page
 	public TeamOrderPage teamOrderPage; // New team order management page
@@ -118,6 +120,7 @@ public class GamePanel extends JPanel implements Runnable{
 		this.setFocusable(true);
 		this.championMenu = new ChampionMenu(this);
 		this.dex = new Dex(this);
+		this.bag = new Bag(this);
 		this.roleTeamPage = new RoleTeamPage(this);
 		this.championDetailsPage = new ChampionDetailsPage(this);
 		this.teamOrderPage = new TeamOrderPage(this);
@@ -332,6 +335,10 @@ public class GamePanel extends JPanel implements Runnable{
 	        dex.draw(g2);
 	    }
 	    
+	    else if (gameState == bagState) {
+	        bag.draw(g2);
+	    }
+	    
 	    else if (gameState == roleTeamState) {
 	        roleTeamPage.draw(g2);
 	    }
@@ -477,8 +484,11 @@ public class GamePanel extends JPanel implements Runnable{
 		gameState = teamOrderState; // Switch to team order management
 	}
 	public void openBag() {
-		gameState = dialogState;
-		ui.currentDialog="Action done!\nYou openned the Bag!";
+		gameState = bagState;
+		if (bag != null) {
+			// Reset bag navigation when opening
+			// The bag will handle its own state
+		}
 	}
 
 	public void openMap() {

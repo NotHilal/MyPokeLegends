@@ -1,4 +1,4 @@
-package Champions;
+package item;
 
 public class Item {
     

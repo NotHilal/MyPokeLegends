@@ -1533,6 +1533,7 @@ public class BattleManager {
             
             // Apply lifesteal if damage was dealt
             int healAmount = (damage * playerChampion.getLifesteal()) / 100;
+            healAmount = (int)(healAmount * playerChampion.getHealingMultiplier()); // Apply healing bonus
             if (healAmount > 0) {
                 int newHp = Math.min(playerChampion.getCurrentHp() + healAmount, playerChampion.getMaxHp());
                 playerChampion.setCurrentHp(newHp);
@@ -1711,6 +1712,7 @@ public class BattleManager {
                 
                 // Apply lifesteal for AI if damage was dealt
                 int healAmount = (damage * wildChampion.getLifesteal()) / 100;
+                healAmount = (int)(healAmount * wildChampion.getHealingMultiplier()); // Apply healing bonus
                 if (healAmount > 0) {
                     int newHp = Math.min(wildChampion.getCurrentHp() + healAmount, wildChampion.getMaxHp());
                     wildChampion.setCurrentHp(newHp);
@@ -1882,6 +1884,7 @@ public class BattleManager {
             case "Darkin Blade":
                 // Heal for percentage of damage dealt
                 int healAmount = (damageDealt * passive.getValue()) / 100;
+                healAmount = (int)(healAmount * champion.getHealingMultiplier()); // Apply healing bonus
                 int oldHp = champion.getCurrentHp();
                 int newHp = Math.min(oldHp + healAmount, champion.getMaxHp());
                 champion.setCurrentHp(newHp);
@@ -1947,6 +1950,7 @@ public class BattleManager {
             case "Essence Theft":
                 // Heal 10% HP and gain 6pp of last used ability
                 int healAmount = (champion.getMaxHp() * passive.getValue()) / 100;
+                healAmount = (int)(healAmount * champion.getHealingMultiplier()); // Apply healing bonus
                 int newHp = Math.min(champion.getCurrentHp() + healAmount, champion.getMaxHp());
                 champion.setCurrentHp(newHp);
                 message.append("\n").append(champion.getName()).append("'s ").append(passive.getName())
@@ -2230,7 +2234,7 @@ public class BattleManager {
         
         // Check for critical hit
         if (random.nextInt(100) < attacker.getCritChance()) {
-            baseDamage = (int) (baseDamage * 2.0); // 2x damage on crit
+            baseDamage = (int) (baseDamage * attacker.getCritDamageMultiplier()); // Use champion's crit multiplier
             isCrit = true;
         }
         
