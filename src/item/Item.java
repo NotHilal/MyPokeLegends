@@ -35,7 +35,8 @@ public class Item {
         MAGIC("Magic", 0x4169E1),
         DEFENSE("Defense", 0x8B4513),
         UTILITY("Utility", 0x32CD32),
-        BOOTS("Boots", 0x8A2BE2);
+        BOOTS("Boots", 0x8A2BE2),
+        CONSUMABLE("Consumable", 0xFF69B4);
         
         private final String displayName;
         private final int color;
