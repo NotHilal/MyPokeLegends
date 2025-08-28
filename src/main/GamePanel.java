@@ -95,6 +95,7 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int championDetailsState = 10; // New individual champion details
 	public final int teamOrderState = 11; // New team order management state
 	public final int bagState = 12; // New bag/inventory state
+	public final int shopState = 13; // New shop state
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -107,6 +108,7 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	public Dex dex; // Declare Dex
 	public Bag bag; // Declare Bag
+	public Shop shop; // Declare Shop
 	public RoleTeamPage roleTeamPage; // New role-based team page
 	public ChampionDetailsPage championDetailsPage; // New champion details page
 	public TeamOrderPage teamOrderPage; // New team order management page
@@ -121,6 +123,7 @@ public class GamePanel extends JPanel implements Runnable{
 		this.championMenu = new ChampionMenu(this);
 		this.dex = new Dex(this);
 		this.bag = new Bag(this);
+		this.shop = new Shop(this);
 		this.roleTeamPage = new RoleTeamPage(this);
 		this.championDetailsPage = new ChampionDetailsPage(this);
 		this.teamOrderPage = new TeamOrderPage(this);
@@ -240,6 +243,11 @@ public class GamePanel extends JPanel implements Runnable{
 	        // Handle input for team order page
 	        teamOrderPage.handleInput();
 	    }
+	    
+	    if (gameState == shopState) {
+	        // Handle input for shop
+	        shop.handleInput();
+	    }
 
 	    if (gameState == transitionState) {
 	        // Progress the timer
@@ -352,6 +360,10 @@ public class GamePanel extends JPanel implements Runnable{
 	    
 	    else if (gameState == teamOrderState) {
 	        teamOrderPage.draw(g2);
+	    }
+	    
+	    else if (gameState == shopState) {
+	        shop.draw(g2);
 	    }
 	    
 	    else {
@@ -488,6 +500,13 @@ public class GamePanel extends JPanel implements Runnable{
 		if (bag != null) {
 			// Reset bag navigation when opening
 			// The bag will handle its own state
+		}
+	}
+	
+	public void openShop() {
+		gameState = shopState;
+		if (shop != null) {
+			// Shop will handle its own state reset if needed
 		}
 	}
 

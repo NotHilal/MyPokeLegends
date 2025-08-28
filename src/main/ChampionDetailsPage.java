@@ -1477,39 +1477,78 @@ public class ChampionDetailsPage {
     }
 }
 
-// Small popup class for "No items yet" message
+// Modern popup class for "No items yet" message - matching the new design
 class ItemPopup {
     public static void draw(Graphics2D g2, int screenWidth, int screenHeight) {
-        // Semi-transparent overlay
-        g2.setColor(new Color(0, 0, 0, 150));
+        // Modern overlay with gradient
+        GradientPaint overlayGradient = new GradientPaint(
+            0, 0, new Color(15, 25, 45, 180),
+            screenWidth, screenHeight, new Color(25, 35, 55, 180)
+        );
+        g2.setPaint(overlayGradient);
         g2.fillRect(0, 0, screenWidth, screenHeight);
         
-        // Popup box
-        int popupWidth = 200;
-        int popupHeight = 100;
+        // Modern popup dimensions
+        int popupWidth = 320;
+        int popupHeight = 200;
         int popupX = (screenWidth - popupWidth) / 2;
         int popupY = (screenHeight - popupHeight) / 2;
         
-        g2.setColor(new Color(240, 240, 240));
-        g2.fillRoundRect(popupX, popupY, popupWidth, popupHeight, 15, 15);
+        // Professional shadow layers
+        for (int i = 0; i < 6; i++) {
+            int shadowAlpha = 25 - (i * 4);
+            g2.setColor(new Color(0, 0, 0, shadowAlpha));
+            g2.fillRoundRect(popupX + i, popupY + i, popupWidth, popupHeight, 25, 25);
+        }
         
-        g2.setColor(new Color(100, 100, 100));
-        g2.setStroke(new BasicStroke(2));
-        g2.drawRoundRect(popupX, popupY, popupWidth, popupHeight, 15, 15);
+        // Main background gradient
+        GradientPaint mainBg = new GradientPaint(
+            popupX, popupY, new Color(120, 160, 220),
+            popupX, popupY + popupHeight, new Color(90, 130, 190)
+        );
+        g2.setPaint(mainBg);
+        g2.fillRoundRect(popupX, popupY, popupWidth, popupHeight, 25, 25);
         
-        // Text
+        // Inner white content area
+        int innerMargin = 15;
+        int innerX = popupX + innerMargin;
+        int innerY = popupY + 50;
+        int innerWidth = popupWidth - (innerMargin * 2);
+        int innerHeight = popupHeight - 65;
+        
+        g2.setColor(new Color(255, 255, 255, 250));
+        g2.fillRoundRect(innerX, innerY, innerWidth, innerHeight, 15, 15);
+        
+        // Header with "Detail" title
         g2.setFont(new Font("Arial", Font.BOLD, 16));
-        g2.setColor(new Color(50, 50, 50));
-        String text = "No items yet!";
-        FontMetrics fm = g2.getFontMetrics();
-        int textX = popupX + (popupWidth - fm.stringWidth(text)) / 2;
-        g2.drawString(text, textX, popupY + 40);
+        g2.setColor(Color.WHITE);
+        String headerTitle = "Item Details";
+        FontMetrics headerFm = g2.getFontMetrics();
+        int headerWidth = headerFm.stringWidth(headerTitle);
+        g2.drawString(headerTitle, popupX + (popupWidth - headerWidth) / 2, popupY + 30);
         
-        // Instructions
-        g2.setFont(new Font("Arial", Font.PLAIN, 12));
-        g2.setColor(new Color(80, 80, 80));
+        // Main message
+        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        g2.setColor(new Color(45, 45, 45));
+        String text = "No items equipped yet!";
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = innerX + (innerWidth - fm.stringWidth(text)) / 2;
+        g2.drawString(text, textX, innerY + 50);
+        
+        // Subtitle
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        g2.setColor(new Color(100, 100, 100));
+        String subtitle = "Visit the shop to purchase items";
+        FontMetrics subFm = g2.getFontMetrics();
+        int subX = innerX + (innerWidth - subFm.stringWidth(subtitle)) / 2;
+        g2.drawString(subtitle, subX, innerY + 80);
+        
+        // Instructions at bottom
+        g2.setFont(new Font("Arial", Font.PLAIN, 11));
+        g2.setColor(new Color(120, 120, 120));
         String instruction = "Press ESC to close";
-        int instrX = popupX + (popupWidth - g2.getFontMetrics().stringWidth(instruction)) / 2;
-        g2.drawString(instruction, instrX, popupY + 70);
+        FontMetrics instrFm = g2.getFontMetrics();
+        int instrX = innerX + (innerWidth - instrFm.stringWidth(instruction)) / 2;
+        g2.drawString(instruction, instrX, innerY + innerHeight - 15);
     }
 }

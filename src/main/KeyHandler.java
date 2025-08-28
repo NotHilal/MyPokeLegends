@@ -206,6 +206,10 @@ public class KeyHandler implements KeyListener{
 			if (code == KeyEvent.VK_F2) {
 			    gp.showEventRect = !gp.showEventRect; // Toggle the boolean in GamePanel
 			}
+			if (code == KeyEvent.VK_B) {
+			    // Open shop with B key
+			    gp.gameState = gp.shopState;
+			}
 
 			
 			if (code == KeyEvent.VK_F9) {
@@ -220,6 +224,9 @@ public class KeyHandler implements KeyListener{
 	        }
 			if (code == KeyEvent.VK_ENTER) {
 				enterPressed=true;
+			}
+			if (code == KeyEvent.VK_ESCAPE) {
+				escPressed = true;
 			}
 		}
 		
@@ -254,6 +261,30 @@ public class KeyHandler implements KeyListener{
 		        gp.gameState=gp.playState;
 		    }
 		}
+		
+		// SHOP STATE
+		else if (gp.gameState == gp.shopState) {
+		    // WASD and arrow keys for navigation in shop
+		    if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
+		        upPressed = true;
+		    }
+		    if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
+		        downPressed = true;
+		    }
+		    if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT) {
+		        leftPressed = true;
+		    }
+		    if (code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT) {
+		        rightPressed = true;
+		    }
+		    if (code == KeyEvent.VK_ENTER) {
+		        enterPressed = true;
+		    }
+		    if (code == KeyEvent.VK_B || code == KeyEvent.VK_ESCAPE) {
+		        escPressed = true;
+		    }
+		}
+		
 		// BATTLE STATE
 		else if (gp.gameState == gp.battleState) {
 		    // Champion info popups - always handle these first

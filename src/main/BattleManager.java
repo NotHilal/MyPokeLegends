@@ -193,12 +193,16 @@ public class BattleManager {
                 int expGained = wildChampion.getLevel() * 5;
                 StatIncrease statIncrease = playerChampion.gainExp(expGained);
                 
+                // Award money for winning battle
+                gp.player.awardBattleMoney(wildChampion.getLevel(), false); // Wild battle, not trainer
+                
                 if (statIncrease != null) {
                     // Level up occurred - show stats display
                     addEnemyMessage("Wild " + wildChampion.getName() + " fainted!");
                     addBattleMessage("You won!", new Color(0, 255, 0)); // Green for victory
                     addPlayerMessage(playerChampion.getName() + " gained " + expGained + " XP!");
                     addPlayerMessage(playerChampion.getName() + " leveled up to level " + playerChampion.getLevel() + "!");
+                    addPlayerMessage("You received " + (wildChampion.getLevel() * 4) + " gold!");
                     if (killMessage.length() > 0) {
                         addBattleMessage(killMessage.toString());
                     }
@@ -209,6 +213,7 @@ public class BattleManager {
                     addEnemyMessage("Wild " + wildChampion.getName() + " fainted!");
                     addBattleMessage("You won!", new Color(0, 255, 0)); // Green for victory
                     addPlayerMessage(playerChampion.getName() + " gained " + expGained + " XP!");
+                    addPlayerMessage("You received " + (wildChampion.getLevel() * 4) + " gold!");
                     if (killMessage.length() > 0) {
                         addBattleMessage(killMessage.toString());
                     }

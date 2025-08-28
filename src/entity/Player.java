@@ -48,6 +48,9 @@ public class Player extends Entity {
     private int[] battleOrder = {0, 1, 2, 3, 4};   // Order indices: determines battle sequence (e.g., [4,0,3,1,2] = [Supp,Top,Adc,Jgl,Mid])
     private String[] roleNames = {"Top", "Jgl", "Mid", "Adc", "Supp"}; // Role names for champions array
 
+    // MONEY SYSTEM
+    private int money; // Player's current money/gold
+
 
 
     public Player(GamePanel gp, KeyHandler keyH) {
@@ -104,6 +107,9 @@ public class Player extends Entity {
         // PLAYER STATUS
         maxLife=6;
         life=maxLife;
+        
+        // MONEY SYSTEM - Start with 3000 gold
+        money = 3000;
     }
 
     public void getPlayerImage() {
@@ -767,8 +773,92 @@ public class Player extends Entity {
         }
     }
     
+    // ==================== MONEY SYSTEM METHODS ====================
     
+    /**
+     * Get the player's current money
+     * @return Current money amount
+     */
+    public int getMoney() {
+        return money;
+    }
     
-  
+    /**
+     * Set the player's money directly (for save/load or cheats)
+     * @param amount Amount to set
+     */
+    public void setMoney(int amount) {
+        this.money = Math.max(0, amount); // Prevent negative money
+    }
+    
+    /**
+     * Add money to player's total
+     * @param amount Amount to add
+     */
+    public void addMoney(int amount) {
+        if (amount > 0) {
+            this.money += amount;
+            System.out.println("Player earned " + amount + " gold! Total: " + this.money);
+        }
+    }
+    
+    /**
+     * Spend money from player's total
+     * @param amount Amount to spend
+     * @return true if player has enough money and transaction succeeded, false otherwise
+     */
+    public boolean spendMoney(int amount) {
+        if (amount <= 0) {
+            return false; // Invalid amount
+        }
+        
+        if (this.money >= amount) {
+            this.money -= amount;
+            System.out.println("Player spent " + amount + " gold! Remaining: " + this.money);
+            return true;
+        } else {
+            System.out.println("Not enough money! Need " + amount + " gold, but only have " + this.money);
+            return false;
+        }
+    }
+    
+    /**
+     * Check if player can afford a certain amount
+     * @param amount Amount to check
+     * @return true if player has enough money
+     */
+    public boolean canAfford(int amount) {
+        return this.money >= amount;
+    }
+    
+    /**
+     * Get formatted money string for display
+     * @return Money formatted with commas (e.g., "1,234")
+     */
+    public String getFormattedMoney() {
+        return String.format("%,d", money);
+    }
+    
+    /**
+     * Award money for winning battles
+     * @param enemyLevel Level of defeated enemy (affects payout)
+     * @param isTrainerBattle Whether it was a trainer battle (higher payout)
+     */
+    public void awardBattleMoney(int enemyLevel, boolean isTrainerBattle) {
+        int basePayout = enemyLevel * 4; // 4 gold per enemy level
+        if (isTrainerBattle) {
+            basePayout *= 4; // Trainer battles give 4x money
+        }
+        
+        addMoney(basePayout);
+    }
+    
+    /**
+     * Emergency money reset for debugging
+     */
+    public void resetMoneyForDebug() {
+        this.money = 9999;
+        System.out.println("DEBUG: Money reset to " + this.money);
+    }
 
 }

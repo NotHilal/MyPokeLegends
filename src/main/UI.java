@@ -125,7 +125,49 @@ public class UI {
 	}
 	
 	public void drawPlayerLife() {
-		// Hearts removed - no longer drawing player life hearts
+		// Draw money display in top-right corner
+		drawMoney();
+	}
+	
+	public void drawMoney() {
+		// Set up money display
+		g2.setFont(maruMonica);
+		g2.setFont(g2.getFont().deriveFont(Font.BOLD, 24F));
+		
+		// Get money text
+		String moneyText = "Gold: " + gp.player.getFormattedMoney();
+		
+		// Position in top-right corner
+		int textWidth = g2.getFontMetrics().stringWidth(moneyText);
+		int x = gp.screenWidth - textWidth - 20; // 20px from right edge
+		int y = 35; // 35px from top
+		
+		// Draw shadow for better readability
+		g2.setColor(Color.BLACK);
+		g2.drawString(moneyText, x + 2, y + 2);
+		
+		// Draw main text in gold color
+		g2.setColor(new Color(255, 215, 0)); // Gold color
+		g2.drawString(moneyText, x, y);
+		
+		// Draw coin icon if available
+		try {
+			// Optional: Add a small coin icon next to money
+			String coinText = "♦";
+			g2.setFont(g2.getFont().deriveFont(Font.BOLD, 20F));
+			int coinX = x - 25;
+			int coinY = y;
+			
+			// Draw coin shadow
+			g2.setColor(Color.BLACK);
+			g2.drawString(coinText, coinX + 1, coinY + 1);
+			
+			// Draw coin
+			g2.setColor(new Color(255, 215, 0));
+			g2.drawString(coinText, coinX, coinY);
+		} catch (Exception e) {
+			// If coin drawing fails, just show money without icon
+		}
 	}
 	
 	public void drawTitleScreen() {
