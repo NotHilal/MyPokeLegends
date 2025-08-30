@@ -396,18 +396,38 @@ public class KeyHandler implements KeyListener{
 		            gp.battleManager.handleBattleAction(-2); // Down arrow
 		            gp.playSE(9);
 		        }
+		    } else if (gp.battleManager.getBattleState() == BattleState.ITEM_SELECTION) {
+		        // Item selection navigation with W/S
+		        if (code == KeyEvent.VK_W) {
+		            gp.battleManager.handleBattleAction(-1); // W key - up navigation
+		            gp.playSE(9);
+		        }
+		        if (code == KeyEvent.VK_S) {
+		            gp.battleManager.handleBattleAction(-2); // S key - down navigation
+		            gp.playSE(9);
+		        }
+		        if (code == KeyEvent.VK_A) {
+		            gp.battleManager.handleBattleAction(-3); // A key - left (tab navigation)
+		            gp.playSE(9);
+		        }
+		        if (code == KeyEvent.VK_D) {
+		            gp.battleManager.handleBattleAction(-4); // D key - right (tab navigation)
+		            gp.playSE(9);
+		        }
 		    }
 		    
 		    if (code == KeyEvent.VK_ENTER) {
 		    	 gp.playSE(11);
 		    	 if (gp.battleManager.getBattleState() == BattleState.TEAM_SWAP) {
 		    		 gp.battleManager.handleBattleAction(0); // 0 = select champion
+		    	 } else if (gp.battleManager.getBattleState() == BattleState.ITEM_SELECTION) {
+		    		 gp.battleManager.handleBattleAction(0); // 0 = use item
 		    	 } else {
 		    		 gp.battleManager.handleBattleAction(gp.ui.battleNum);
 		    	 }
 		    }
 		    
-		    // Allow back navigation in move selection and team swap
+		    // Allow back navigation in move selection, team swap, and item selection
 		    if (code == KeyEvent.VK_ESCAPE && gp.battleManager.getBattleState() == BattleState.MOVE_SELECTION) {
 		        gp.battleManager.returnToMainMenu();
 		        gp.ui.battleNum = 0; // Reset to Fight option
@@ -416,6 +436,10 @@ public class KeyHandler implements KeyListener{
 		    if (code == KeyEvent.VK_ESCAPE && gp.battleManager.getBattleState() == BattleState.TEAM_SWAP) {
 		        gp.battleManager.returnToMainMenu();
 		        gp.ui.battleNum = 0; // Reset to Fight option
+		        gp.playSE(9);
+		    }
+		    if (code == KeyEvent.VK_ESCAPE && gp.battleManager.getBattleState() == BattleState.ITEM_SELECTION) {
+		        escPressed = true; // Set the flag for BattleManager to handle
 		        gp.playSE(9);
 		    }
 		}

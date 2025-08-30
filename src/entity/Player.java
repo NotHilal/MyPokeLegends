@@ -8,6 +8,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +56,7 @@ public class Player extends Entity {
     
     // INVENTORY SYSTEM
     private Map<String, Integer> inventory; // Central inventory (item name -> quantity)
+    private Map<String, Long> itemTimestamps; // Track when each item was first added (for chronological order)
 
 
 
@@ -118,6 +120,7 @@ public class Player extends Entity {
         
         // INVENTORY SYSTEM - Central inventory for items
         inventory = new HashMap<>();
+        itemTimestamps = new HashMap<>(); // Initialize timestamp tracking
         initializeStartingItems();
     }
 
@@ -856,9 +859,13 @@ public class Player extends Entity {
      * Initialize starting items for the player
      */
     private void initializeStartingItems() {
-        // Add some starting items for testing
+        // Add some starting items for testing with timestamps
+        long currentTime = System.currentTimeMillis();
         inventory.put("Potion", 3);
+        itemTimestamps.put("Potion", currentTime);
+        
         inventory.put("Poke Ball", 5);
+        itemTimestamps.put("Poke Ball", currentTime + 1); // Slightly later timestamp
     }
     
     /**
@@ -869,6 +876,12 @@ public class Player extends Entity {
     public void addToInventory(String itemName, int quantity) {
         if (quantity > 0) {
             int currentAmount = inventory.getOrDefault(itemName, 0);
+            
+            // If this is a new item, record the timestamp
+            if (currentAmount == 0) {
+                itemTimestamps.put(itemName, System.currentTimeMillis());
+            }
+            
             inventory.put(itemName, currentAmount + quantity);
             System.out.println("Added " + quantity + "x " + itemName + " to inventory. Total: " + (currentAmount + quantity));
         }
@@ -886,6 +899,7 @@ public class Player extends Entity {
             int newAmount = currentAmount - quantity;
             if (newAmount == 0) {
                 inventory.remove(itemName);
+                itemTimestamps.remove(itemName); // Remove timestamp when item is completely gone
             } else {
                 inventory.put(itemName, newAmount);
             }
@@ -926,6 +940,7 @@ public class Player extends Entity {
      */
     public void clearInventory() {
         inventory.clear();
+        itemTimestamps.clear(); // Clear timestamps too
         System.out.println("Player inventory cleared.");
     }
     
@@ -949,6 +964,24 @@ public class Player extends Entity {
     public void resetMoneyForDebug() {
         this.money = 9999;
         System.out.println("DEBUG: Money reset to " + this.money);
+    }
+    
+    /**
+     * Get inventory keys in chronological order (oldest added to newest)
+     * Orders items by actual timestamp when they were first added
+     * @return List of item names in chronological order
+     */
+    public List<String> getInventoryKeysInOrder() {
+        List<String> orderedKeys = new ArrayList<>(inventory.keySet());
+        
+        // Sort by timestamps (oldest first)
+        orderedKeys.sort((item1, item2) -> {
+            long timestamp1 = itemTimestamps.getOrDefault(item1, 0L);
+            long timestamp2 = itemTimestamps.getOrDefault(item2, 0L);
+            return Long.compare(timestamp1, timestamp2);
+        });
+        
+        return orderedKeys;
     }
 
 }

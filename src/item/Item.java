@@ -7,6 +7,8 @@ public class Item {
     private String description;
     private int cost;
     private ItemType type;
+    private ItemCategory category;
+    private String imageName; // Custom image name (without extension)
     
     // Stat Bonuses
     private int bonusHP;
@@ -50,11 +52,27 @@ public class Item {
         public int getColor() { return color; }
     }
     
-    public Item(String name, String description, int cost, ItemType type) {
+    public enum ItemCategory {
+        CONSUMABLE("consumables"),
+        LEGENDBALL("legendballs"), 
+        CHAMPIONITEM("items");
+        
+        private final String folderName;
+        
+        ItemCategory(String folderName) {
+            this.folderName = folderName;
+        }
+        
+        public String getFolderName() { return folderName; }
+    }
+    
+    public Item(String name, String description, int cost, ItemType type, ItemCategory category, String imageName) {
         this.name = name;
         this.description = description;
         this.cost = cost;
         this.type = type;
+        this.category = category;
+        this.imageName = imageName;
         
         // Initialize all bonuses to 0
         this.bonusHP = 0;
@@ -108,6 +126,8 @@ public class Item {
     public String getDescription() { return description; }
     public int getCost() { return cost; }
     public ItemType getType() { return type; }
+    public ItemCategory getCategory() { return category; }
+    public String getImageName() { return imageName; }
     
     public int getBonusHP() { return bonusHP; }
     public int getBonusAD() { return bonusAD; }

@@ -9,11 +9,16 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.GradientPaint;
 import java.awt.Graphics2D;
+import java.awt.RadialGradientPaint;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
@@ -48,6 +53,26 @@ public class BattleManager {
     private boolean playerTurn;
     private int selectedMoveIndex = 0;
     private int selectedTeamMemberIndex = 0; // For team swap selection
+    private int selectedItemIndex = 0; // For item selection
+    private String selectedItemCategory = "consumables"; // Track current item category
+    private boolean hoveringTabs = false; // Whether we're hovering over tabs
+    private boolean hoveringReturnArrow = false; // Whether we're hovering over return arrow
+    private int selectedTabIndex = 0; // 0 = consumables, 1 = legendballs
+    
+    // New navigation states
+    private ItemNavigationState itemNavState = ItemNavigationState.TAB_SELECTION;
+    private int currentPage = 0; // Current page in pagination
+    private static final int ITEMS_PER_PAGE = 4; // Max items per page
+    
+    // Image cache for item icons (same system as Bag.java)
+    private Map<String, BufferedImage> iconCache = new HashMap<>();
+    
+    // Navigation states for item selection
+    public enum ItemNavigationState {
+        TAB_SELECTION,    // Currently on tab names (can use A/D to switch tabs, W to go to return arrow)
+        RETURN_ARROW,     // Currently on return arrow
+        ITEM_LIST         // Currently navigating item list (can use A/D for pages, W/S for items)
+    }
     private Random random = new Random();
     
     // Scrollable text system with colors
@@ -105,6 +130,7 @@ public class BattleManager {
         MAIN_MENU,     // Fight/Items/Party/Run selection
         MOVE_SELECTION, // Selecting which move to use
         TEAM_SWAP,     // Selecting which champion to swap to
+        ITEM_SELECTION, // Selecting which item to use
         EXECUTING,     // Executing moves and showing results
         BATTLE_END     // Battle finished
     }
@@ -158,6 +184,15 @@ public class BattleManager {
     }
  
     public void update() {
+        // Handle ESC key for item selection
+        if (battleState == BattleState.ITEM_SELECTION && gp.keyH.escPressed) {
+            // Close bag and return to battle menu (same as ENTER on return arrow)
+            battleState = BattleState.MAIN_MENU;
+            gp.ui.battleNum = 0;
+            gp.keyH.escPressed = false; // Reset the key state
+            return;
+        }
+        
         if (messageTimer > 0) {
             messageTimer--;
         }
@@ -344,6 +379,9 @@ public class BattleManager {
                 break;
             case TEAM_SWAP:
                 drawTeamSwapSelection(g2);
+                break;
+            case ITEM_SELECTION:
+                drawItemSelection(g2);
                 break;
             case EXECUTING:
             case BATTLE_END:
@@ -998,6 +1036,9 @@ public class BattleManager {
             case TEAM_SWAP:
                 handleTeamSwapSelection(actionIndex);
                 break;
+            case ITEM_SELECTION:
+                handleItemSelection(actionIndex);
+                break;
         }
     }
     
@@ -1009,8 +1050,19 @@ public class BattleManager {
                 // Don't clear battle message when switching to move selection
             }
             case 1 -> {
-                addBattleMessage("No items available!");
-                messageTimer = 60;
+                // Check if player has any items
+                if (gp.player.getInventory().isEmpty()) {
+                    addBattleMessage("No items available!");
+                    messageTimer = 60;
+                } else {
+                    battleState = BattleState.ITEM_SELECTION;
+                    selectedItemIndex = 0;
+                    selectedItemCategory = "consumables"; // Start with consumables in battle
+                    selectedTabIndex = 0; // Start on consumables tab
+                    itemNavState = ItemNavigationState.TAB_SELECTION; // Start on tab selection
+                    currentPage = 0; // Reset to first page
+                    hoveringReturnArrow = false;
+                }
             }
             case 2 -> {
                 // Check if there are other available team members
@@ -1124,6 +1176,127 @@ public class BattleManager {
         }
     }
     
+    private void handleItemSelection(int actionIndex) {
+        // Get items for current category ordered by addition time (oldest first)
+        java.util.Map<String, Integer> inventory = gp.player.getInventory();
+        java.util.List<String> categoryItems = new java.util.ArrayList<>();
+        
+        // Get items in the order they were added (oldest to newest)
+        java.util.List<String> orderedItemNames = gp.player.getInventoryKeysInOrder();
+        
+        for (String itemName : orderedItemNames) {
+            if (inventory.get(itemName) > 0) {
+                if (selectedItemCategory.equals("consumables") && isConsumable(itemName)) {
+                    categoryItems.add(itemName);
+                } else if (selectedItemCategory.equals("legendballs") && isLegendBall(itemName)) {
+                    categoryItems.add(itemName);
+                }
+            }
+        }
+        
+        // Calculate pagination
+        int totalPages = categoryItems.isEmpty() ? 1 : (int) Math.ceil((double) categoryItems.size() / ITEMS_PER_PAGE);
+        int maxPage = Math.max(0, totalPages - 1);
+        
+        if (actionIndex == 0) { // ENTER pressed
+            if (itemNavState == ItemNavigationState.RETURN_ARROW) {
+                // Close bag and return to battle menu
+                battleState = BattleState.MAIN_MENU;
+                gp.ui.battleNum = 0;
+                return;
+            } else if (itemNavState == ItemNavigationState.ITEM_LIST && !categoryItems.isEmpty()) {
+                // Use the selected item
+                int absoluteIndex = currentPage * ITEMS_PER_PAGE + selectedItemIndex;
+                if (absoluteIndex < categoryItems.size()) {
+                    String selectedItem = categoryItems.get(absoluteIndex);
+                    useItem(selectedItem);
+                    return;
+                }
+            }
+            // If in TAB_SELECTION state, ENTER does nothing (need to navigate first)
+        }
+        
+        if (actionIndex == -1) { // W key - up navigation
+            switch (itemNavState) {
+                case TAB_SELECTION:
+                    // Move from tab to return arrow
+                    itemNavState = ItemNavigationState.RETURN_ARROW;
+                    break;
+                case RETURN_ARROW:
+                    // Already at top, do nothing
+                    break;
+                case ITEM_LIST:
+                    if (selectedItemIndex > 0) {
+                        // Move up in current page
+                        selectedItemIndex--;
+                    } else {
+                        // At top of current page, go back to tab selection
+                        itemNavState = ItemNavigationState.TAB_SELECTION;
+                        selectedItemIndex = 0;
+                    }
+                    break;
+            }
+        } else if (actionIndex == -2) { // S key - down navigation
+            switch (itemNavState) {
+                case TAB_SELECTION:
+                    // Move from tab to items (if available)
+                    if (!categoryItems.isEmpty()) {
+                        itemNavState = ItemNavigationState.ITEM_LIST;
+                        selectedItemIndex = 0;
+                        currentPage = 0;
+                    }
+                    break;
+                case RETURN_ARROW:
+                    // Move from return arrow to tab selection
+                    itemNavState = ItemNavigationState.TAB_SELECTION;
+                    break;
+                case ITEM_LIST:
+                    if (!categoryItems.isEmpty()) {
+                        int currentPageSize = Math.min(ITEMS_PER_PAGE, categoryItems.size() - (currentPage * ITEMS_PER_PAGE));
+                        if (selectedItemIndex < currentPageSize - 1) {
+                            // Move down in current page
+                            selectedItemIndex++;
+                        }
+                        // If at bottom, stay there (no wrapping)
+                    }
+                    break;
+            }
+        } else if (actionIndex == -3) { // A key - tab switching or page switching
+            if (itemNavState == ItemNavigationState.TAB_SELECTION) {
+                // Switch to consumables tab
+                selectedItemCategory = "consumables";
+                selectedTabIndex = 0;
+                currentPage = 0;
+                selectedItemIndex = 0;
+            } else if (itemNavState == ItemNavigationState.ITEM_LIST) {
+                // Previous page
+                if (currentPage > 0) {
+                    currentPage--;
+                    selectedItemIndex = 0; // Reset to first item on new page
+                }
+            }
+        } else if (actionIndex == -4) { // D key - tab switching or page switching
+            if (itemNavState == ItemNavigationState.TAB_SELECTION) {
+                // Switch to legendballs tab
+                selectedItemCategory = "legendballs";
+                selectedTabIndex = 1;
+                currentPage = 0;
+                selectedItemIndex = 0;
+            } else if (itemNavState == ItemNavigationState.ITEM_LIST) {
+                // Next page
+                if (currentPage < maxPage) {
+                    currentPage++;
+                    selectedItemIndex = 0; // Reset to first item on new page
+                }
+            }
+        }
+        
+        // Handle empty category message
+        if (categoryItems.isEmpty() && actionIndex == 0 && itemNavState == ItemNavigationState.ITEM_LIST) {
+            addBattleMessage("No " + selectedItemCategory + " available!");
+        }
+    }
+    
     private void swapToChampion(Champion newChampion) {
         Champion oldChampion = playerChampion;
         playerChampion = newChampion;
@@ -1135,6 +1308,226 @@ public class BattleManager {
         playerTurn = false;
         battleState = BattleState.EXECUTING;
         messageTimer = 120; // Longer timer for swap messages
+    }
+    
+    // Helper methods for item categorization
+    private boolean isConsumable(String itemName) {
+        return item.ItemManager.isConsumable(itemName);
+    }
+    
+    private boolean isLegendBall(String itemName) {
+        return item.ItemManager.isLegendBall(itemName);
+    }
+    
+    /**
+     * Load item icon using the new Item system with category-based folders and custom image names
+     */
+    private BufferedImage loadItemIcon(String itemName) {
+        // Get item info from ItemManager
+        item.ItemManager.initialize(); // Ensure ItemManager is initialized
+        item.Item.ItemCategory category = item.ItemManager.getItemCategory(itemName);
+        String imageName = item.ItemManager.getItemImageName(itemName);
+        
+        String cacheKey = itemName + "_" + category + "_" + imageName;
+        
+        if (iconCache.containsKey(cacheKey)) {
+            return iconCache.get(cacheKey);
+        }
+        
+        try {
+            // Use category to determine folder path
+            String folderPath = "/leagueItems/" + category.getFolderName() + "/";
+            
+            // Try .png first, then .jpg as fallback
+            String imagePath = folderPath + imageName + ".png";
+            BufferedImage image = null;
+            
+            try {
+                image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+            } catch (Exception e) {
+                // Try .jpg extension if .png fails
+                imagePath = folderPath + imageName + ".jpg";
+                image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+            }
+            
+            iconCache.put(cacheKey, image);
+            return image;
+        } catch (Exception e) {
+            System.err.println("Could not load icon for: " + itemName + " (category: " + category + ")");
+            
+            // Try to load imgnotfound.png as fallback
+            try {
+                BufferedImage fallbackImage = ImageIO.read(getClass().getResourceAsStream("/leagueItems/imgnotfound.png"));
+                if (fallbackImage != null) {
+                    iconCache.put(cacheKey, fallbackImage);
+                    return fallbackImage;
+                }
+            } catch (Exception fallbackException) {
+                System.err.println("Could not load fallback image: imgnotfound.png");
+            }
+            
+            // Return a placeholder colored square as last resort
+            return createPlaceholderIcon(category);
+        }
+    }
+    
+    /**
+     * Create a colored placeholder icon if image loading fails using new ItemCategory system
+     */
+    private BufferedImage createPlaceholderIcon(item.Item.ItemCategory category) {
+        BufferedImage placeholder = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = placeholder.createGraphics();
+        
+        // Different colors for different categories using enum
+        Color color = switch (category) {
+            case CONSUMABLE -> new Color(255, 100, 100); // Red for consumables
+            case LEGENDBALL -> new Color(255, 215, 0);   // Gold for legend balls
+            case CHAMPIONITEM -> new Color(100, 100, 255); // Blue for champion items
+        };
+        
+        g2.setColor(color);
+        g2.fillRoundRect(2, 2, 28, 28, 6, 6);
+        g2.setColor(Color.WHITE);
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(2, 2, 28, 28, 6, 6);
+        g2.dispose();
+        
+        return placeholder;
+    }
+    
+    private void useItem(String itemName) {
+        // Check if player has the item
+        if (gp.player.getInventory().getOrDefault(itemName, 0) <= 0) {
+            addBattleMessage("You don't have any " + itemName + "!");
+            return;
+        }
+        
+        boolean itemUsed = false;
+        
+        if (isConsumable(itemName)) {
+            itemUsed = useConsumable(itemName);
+        } else if (isLegendBall(itemName)) {
+            itemUsed = useLegendBall(itemName);
+        }
+        
+        if (itemUsed) {
+            // Only remove item from inventory and skip turn if item had an effect
+            gp.player.removeFromInventory(itemName, 1);
+            
+            // Using an item counts as the player's turn
+            playerTurn = false;
+            battleState = BattleState.EXECUTING;
+            messageTimer = 120;
+        } else {
+            // Item had no effect, don't consume it and don't skip turn
+            // Stay in item selection to allow player to choose something else
+            messageTimer = 60; // Short timer to show the "no effect" message
+        }
+    }
+    
+    private boolean useConsumable(String itemName) {
+        Champion target = playerChampion; // For now, consumables target the player's champion
+        
+        switch (itemName.toLowerCase()) {
+            case "potion":
+                int healAmount = 50;
+                int currentHp = target.getCurrentHp();
+                int maxHp = target.getCurrentMaxHP();
+                int actualHeal = Math.min(healAmount, maxHp - currentHp);
+                
+                if (actualHeal <= 0) {
+                    addBattleMessage(target.getName() + " is already at full HP!");
+                    return false; // No effect, don't consume item or skip turn
+                }
+                
+                target.setCurrentHp(currentHp + actualHeal);
+                addPlayerMessage("Used " + itemName + "!");
+                addBattleMessage(target.getName() + " recovered " + actualHeal + " HP!");
+                return true;
+                
+            case "mana potion":
+                // Check if target has mana/resource and if it's not already full
+                int currentResource = target.getCurrentResource();
+                int maxResource = target.getMaxResource();
+                
+                if (currentResource >= maxResource) {
+                    addBattleMessage(target.getName() + " already has full " + target.getResourceType().name() + "!");
+                    return false; // No effect, don't consume item or skip turn
+                }
+                
+                target.restoreResource(30);
+                addPlayerMessage("Used " + itemName + "!");
+                addBattleMessage(target.getName() + " recovered " + target.getResourceType().name() + "!");
+                return true;
+                
+            case "full restore":
+                int currentHpBefore = target.getCurrentHp();
+                int maxHpCurrent = target.getCurrentMaxHP();
+                boolean hasStatusEffects = !target.getStatusEffects().isEmpty();
+                
+                if (currentHpBefore >= maxHpCurrent && !hasStatusEffects) {
+                    addBattleMessage(target.getName() + " is already at full HP with no status effects!");
+                    return false; // No effect, don't consume item or skip turn
+                }
+                
+                target.setCurrentHp(maxHpCurrent); // Full heal
+                target.clearAllStatusEffects();
+                addPlayerMessage("Used " + itemName + "!");
+                addBattleMessage(target.getName() + " was fully restored!");
+                return true;
+                
+            case "revive":
+                if (!target.isFainted()) {
+                    addBattleMessage(target.getName() + " is not fainted!");
+                    return false; // No effect, don't consume item or skip turn
+                }
+                
+                int reviveHp = target.getCurrentMaxHP() / 2; // 50% HP
+                target.setCurrentHp(reviveHp);
+                addPlayerMessage("Used " + itemName + "!");
+                addBattleMessage(target.getName() + " was revived!");
+                return true;
+                
+            case "max revive":
+                if (!target.isFainted()) {
+                    addBattleMessage(target.getName() + " is not fainted!");
+                    return false; // No effect, don't consume item or skip turn
+                }
+                
+                target.setCurrentHp(target.getCurrentMaxHP()); // Full revive
+                addPlayerMessage("Used " + itemName + "!");
+                addBattleMessage(target.getName() + " was fully revived!");
+                return true;
+                
+            case "refillable potion":
+                int refillHeal = 40;
+                int currentHpRef = target.getCurrentHp();
+                int maxHpRef = target.getCurrentMaxHP();
+                int actualRefillHeal = Math.min(refillHeal, maxHpRef - currentHpRef);
+                
+                if (actualRefillHeal <= 0) {
+                    addBattleMessage(target.getName() + " is already at full HP!");
+                    return false; // No effect, don't consume item or skip turn
+                }
+                
+                target.setCurrentHp(currentHpRef + actualRefillHeal);
+                addPlayerMessage("Used " + itemName + "!");
+                addBattleMessage(target.getName() + " recovered " + actualRefillHeal + " HP!");
+                return true;
+                
+            default:
+                addBattleMessage("Cannot use " + itemName + " in battle!");
+                return false;
+        }
+    }
+    
+    private boolean useLegendBall(String itemName) {
+        // Simple legendball usage - just log and consume
+        addPlayerMessage("Used " + itemName + "!");
+        addBattleMessage("You threw a " + itemName + "!");
+        
+        // Always successful for simplicity
+        return true;
     }
     
     // Auto Attack execution
@@ -2459,6 +2852,9 @@ public class BattleManager {
                 case MOVE_SELECTION:
                     addBattleMessage("Choose a move for " + playerChampion.getName() + ".");
                     break;
+                case ITEM_SELECTION:
+                    addBattleMessage("Choose an item to use.");
+                    break;
                 case EXECUTING:
                     addBattleMessage("Battle in progress...");
                     break;
@@ -3717,6 +4113,571 @@ public class BattleManager {
         
         g2.setColor(new Color(200, 220, 255));
         g2.drawString(instructions, panelX + (panelWidth - instrWidth) / 2, instrPanelY + 21);
+    }
+    
+    private void drawItemSelection(Graphics2D g2) {
+        // Enable high-quality rendering
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        
+        // Get inventory
+        java.util.Map<String, Integer> inventory = gp.player.getInventory();
+        
+        // Modern panel dimensions
+        int panelWidth = 560;
+        int panelHeight = 450;
+        int panelX = (gp.screenWidth - panelWidth) / 2;
+        int panelY = (gp.screenHeight - panelHeight) / 2;
+        
+        // Multi-layer backdrop blur effect
+        for (int i = 0; i < 3; i++) {
+            g2.setColor(new Color(0, 0, 0, 25 + i * 15));
+            g2.fillRoundRect(panelX + 8 - i * 2, panelY + 8 - i * 2, panelWidth + i * 4, panelHeight + i * 4, 35 + i * 5, 35 + i * 5);
+        }
+        
+        // Glassmorphism main panel background
+        RadialGradientPaint glassGradient = new RadialGradientPaint(
+            panelX + panelWidth / 2f, panelY + panelHeight / 3f, panelWidth / 1.5f,
+            new float[]{0.0f, 0.6f, 1.0f},
+            new Color[]{
+                new Color(25, 35, 60, 220),
+                new Color(15, 25, 45, 200), 
+                new Color(10, 15, 30, 180)
+            }
+        );
+        g2.setPaint(glassGradient);
+        g2.fillRoundRect(panelX, panelY, panelWidth, panelHeight, 30, 30);
+        
+        // Glass reflection highlight
+        g2.setPaint(new GradientPaint(
+            panelX, panelY, new Color(255, 255, 255, 60),
+            panelX, panelY + panelHeight / 3, new Color(255, 255, 255, 0)
+        ));
+        g2.fillRoundRect(panelX + 2, panelY + 2, panelWidth - 4, panelHeight / 3, 28, 28);
+        
+        // Modern border with glow
+        g2.setStroke(new BasicStroke(2.5f));
+        g2.setColor(new Color(100, 200, 255, 180));
+        g2.drawRoundRect(panelX, panelY, panelWidth, panelHeight, 30, 30);
+        
+        // Outer glow
+        g2.setStroke(new BasicStroke(1f));
+        g2.setColor(new Color(100, 200, 255, 40));
+        g2.drawRoundRect(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4, 32, 32);
+        
+        // Title with modern typography
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        String titleText = "Battle Bag";
+        FontMetrics titleFm = g2.getFontMetrics();
+        int titleWidth = titleFm.stringWidth(titleText);
+        int titleX = panelX + (panelWidth - titleWidth) / 2;
+        int titleY = panelY + 45;
+        
+        // Title shadow
+        g2.setColor(new Color(0, 0, 0, 120));
+        g2.drawString(titleText, titleX + 2, titleY + 2);
+        
+        // Title main text with gradient
+        GradientPaint titleGradient = new GradientPaint(
+            titleX, titleY - 20, new Color(255, 255, 255, 240),
+            titleX, titleY + 5, new Color(200, 220, 255, 200)
+        );
+        g2.setPaint(titleGradient);
+        g2.drawString(titleText, titleX, titleY);
+        
+        // Return arrow in top left
+        int returnArrowSize = 40;
+        int returnArrowX = panelX + 20;
+        int returnArrowY = panelY + 20;
+        
+        drawReturnArrow(g2, returnArrowX, returnArrowY, returnArrowSize, itemNavState == ItemNavigationState.RETURN_ARROW);
+        
+        // Enhanced tabs design with navigation state highlighting
+        int tabWidth = 180;
+        int tabHeight = 50;
+        int tabY = panelY + 80;
+        int tabSpacing = 20;
+        int consumablesTabX = panelX + (panelWidth - (tabWidth * 2 + tabSpacing)) / 2;
+        int legendballsTabX = consumablesTabX + tabWidth + tabSpacing;
+        
+        // Draw tab backgrounds with navigation highlighting (only when in TAB_SELECTION state)
+        drawModernTab(g2, consumablesTabX, tabY, tabWidth, tabHeight, "Consumables", "consumables", 
+                     new Color(50, 180, 100), new Color(30, 140, 70), 
+                     itemNavState == ItemNavigationState.TAB_SELECTION && selectedTabIndex == 0);
+        drawModernTab(g2, legendballsTabX, tabY, tabWidth, tabHeight, "Legend Balls", "legendballs",
+                     new Color(180, 70, 140), new Color(140, 40, 100),
+                     itemNavState == ItemNavigationState.TAB_SELECTION && selectedTabIndex == 1);
+        
+        // Get items for current category in chronological order
+        java.util.List<String> categoryItems = new java.util.ArrayList<>();
+        java.util.List<String> orderedItemNames = gp.player.getInventoryKeysInOrder();
+        
+        for (String itemName : orderedItemNames) {
+            if (inventory.get(itemName) > 0) {
+                if (selectedItemCategory.equals("consumables") && isConsumable(itemName)) {
+                    categoryItems.add(itemName);
+                } else if (selectedItemCategory.equals("legendballs") && isLegendBall(itemName)) {
+                    categoryItems.add(itemName);
+                }
+            }
+        }
+        
+        // Modern item list area with pagination
+        int itemsStartY = tabY + tabHeight + 25;
+        int itemsEndY = panelY + panelHeight - 80; // Leave more space for pagination info
+        int availableHeight = itemsEndY - itemsStartY;
+        int itemHeight = 55;
+        
+        // Calculate pagination
+        int totalPages = categoryItems.isEmpty() ? 1 : (int) Math.ceil((double) categoryItems.size() / ITEMS_PER_PAGE);
+        int startIndex = currentPage * ITEMS_PER_PAGE;
+        int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, categoryItems.size());
+        java.util.List<String> currentPageItems = categoryItems.isEmpty() ? 
+            new java.util.ArrayList<>() : 
+            new java.util.ArrayList<>(categoryItems.subList(startIndex, endIndex));
+        
+        if (categoryItems.isEmpty()) {
+            drawNoItemsMessage(g2, panelX, panelWidth, itemsStartY + 60, selectedItemCategory);
+        } else {
+            drawPaginatedItemList(g2, panelX, panelWidth, itemsStartY, itemHeight, 
+                                currentPageItems, inventory);
+        }
+        
+        // Draw pagination info and instructions
+        drawPaginationInfo(g2, panelX, panelY + panelHeight - 55, panelWidth, currentPage + 1, totalPages);
+        drawModernInstructions(g2, panelX, panelY + panelHeight - 25, panelWidth);
+    }
+    
+    private void drawModernTab(Graphics2D g2, int x, int y, int width, int height, String text, 
+                              String category, Color color1, Color color2, boolean isHovered) {
+        // Only show as selected if current category AND in TAB_SELECTION state
+        boolean isSelected = selectedItemCategory.equals(category) && 
+                           (itemNavState == ItemNavigationState.TAB_SELECTION || itemNavState == ItemNavigationState.ITEM_LIST);
+        
+        // Tab shadow
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.fillRoundRect(x + 3, y + 3, width, height, 20, 20);
+        
+        // Tab gradient background with hover and selection states
+        Color tabColor1, tabColor2;
+        if (isSelected) {
+            tabColor1 = color1.brighter();
+            tabColor2 = color2.brighter();
+        } else if (isHovered) {
+            tabColor1 = color1.brighter().brighter();
+            tabColor2 = color2.brighter().brighter();
+        } else {
+            tabColor1 = color1;
+            tabColor2 = color2;
+        }
+        
+        GradientPaint tabGradient = new GradientPaint(x, y, tabColor1, x, y + height, tabColor2);
+        g2.setPaint(tabGradient);
+        g2.fillRoundRect(x, y, width, height, 20, 20);
+        
+        // Tab highlight
+        if (isSelected || isHovered) {
+            g2.setPaint(new GradientPaint(
+                x, y, new Color(255, 255, 255, isHovered ? 120 : 80),
+                x, y + height / 2, new Color(255, 255, 255, 0)
+            ));
+            g2.fillRoundRect(x + 2, y + 2, width - 4, height / 2, 18, 18);
+        }
+        
+        // Tab border
+        float borderWidth = (isSelected ? 3f : (isHovered ? 2.5f : 2f));
+        int borderAlpha = (isSelected ? 200 : (isHovered ? 150 : 100));
+        g2.setStroke(new BasicStroke(borderWidth));
+        g2.setColor(new Color(255, 255, 255, borderAlpha));
+        g2.drawRoundRect(x, y, width, height, 20, 20);
+        
+        // Tab text with shadow
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        FontMetrics fm = g2.getFontMetrics();
+        int textWidth = fm.stringWidth(text);
+        int textX = x + (width - textWidth) / 2;
+        int textY = y + height / 2 + fm.getAscent() / 2 - 2;
+        
+        // Text shadow
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.drawString(text, textX + 1, textY + 1);
+        
+        // Main text
+        g2.setColor(isSelected ? new Color(50, 50, 50) : Color.WHITE);
+        g2.drawString(text, textX, textY);
+    }
+    
+    private void drawModernButton(Graphics2D g2, int x, int y, int width, int height, String text,
+                                 Color color1, Color color2, Color textColor) {
+        // Button shadow
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.fillRoundRect(x + 2, y + 2, width, height, 16, 16);
+        
+        // Button gradient
+        GradientPaint btnGradient = new GradientPaint(x, y, color1, x, y + height, color2);
+        g2.setPaint(btnGradient);
+        g2.fillRoundRect(x, y, width, height, 16, 16);
+        
+        // Button highlight
+        g2.setPaint(new GradientPaint(
+            x, y, new Color(255, 255, 255, 60),
+            x, y + height / 2, new Color(255, 255, 255, 0)
+        ));
+        g2.fillRoundRect(x + 2, y + 2, width - 4, height / 2, 14, 14);
+        
+        // Button border
+        g2.setStroke(new BasicStroke(2f));
+        g2.setColor(new Color(255, 255, 255, 150));
+        g2.drawRoundRect(x, y, width, height, 16, 16);
+        
+        // Button text
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        FontMetrics fm = g2.getFontMetrics();
+        int textWidth = fm.stringWidth(text);
+        int textX = x + (width - textWidth) / 2;
+        int textY = y + height / 2 + fm.getAscent() / 2 - 2;
+        
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.drawString(text, textX + 1, textY + 1);
+        g2.setColor(textColor);
+        g2.drawString(text, textX, textY);
+    }
+    
+    private void drawNoItemsMessage(Graphics2D g2, int panelX, int panelWidth, int y, String category) {
+        g2.setFont(new Font("Segoe UI", Font.ITALIC, 18));
+        g2.setColor(new Color(0, 0, 0, 60));
+        String noItemsText = "No " + category + " available";
+        FontMetrics fm = g2.getFontMetrics();
+        int textWidth = fm.stringWidth(noItemsText);
+        int textX = panelX + (panelWidth - textWidth) / 2;
+        
+        g2.drawString(noItemsText, textX + 2, y + 2);
+        g2.setColor(new Color(180, 180, 180, 180));
+        g2.drawString(noItemsText, textX, y);
+    }
+    
+    private void drawModernItemList(Graphics2D g2, int panelX, int panelWidth, int startY, int itemHeight,
+                                   int maxVisible, java.util.List<String> items, java.util.Map<String, Integer> inventory) {
+        int itemMargin = 15;
+        int itemWidth = panelWidth - itemMargin * 2;
+        
+        for (int i = 0; i < Math.min(items.size(), maxVisible); i++) {
+            String itemName = items.get(i);
+            int quantity = inventory.get(itemName);
+            int itemY = startY + i * itemHeight;
+            boolean isSelected = (i == selectedItemIndex);
+            
+            drawModernItemCard(g2, panelX + itemMargin, itemY, itemWidth, itemHeight - 5, 
+                             itemName, quantity, isSelected && !hoveringReturnArrow);
+        }
+    }
+    
+    private void drawPaginatedItemList(Graphics2D g2, int panelX, int panelWidth, int startY, int itemHeight,
+                                     java.util.List<String> currentPageItems, java.util.Map<String, Integer> inventory) {
+        int itemMargin = 15;
+        int itemWidth = panelWidth - itemMargin * 2;
+        
+        for (int i = 0; i < currentPageItems.size(); i++) {
+            String itemName = currentPageItems.get(i);
+            int quantity = inventory.get(itemName);
+            int itemY = startY + i * itemHeight;
+            boolean isSelected = (i == selectedItemIndex) && (itemNavState == ItemNavigationState.ITEM_LIST);
+            
+            drawModernItemCard(g2, panelX + itemMargin, itemY, itemWidth, itemHeight - 5, 
+                             itemName, quantity, isSelected);
+        }
+    }
+    
+    private void drawPaginationInfo(Graphics2D g2, int x, int y, int width, int currentPage, int totalPages) {
+        if (totalPages <= 1) return; // Don't show pagination for single page
+        
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        String pageText = "Page " + currentPage + " of " + totalPages;
+        FontMetrics fm = g2.getFontMetrics();
+        int textWidth = fm.stringWidth(pageText);
+        int textX = x + (width - textWidth) / 2;
+        
+        // Background for pagination info
+        int bgWidth = textWidth + 20;
+        int bgHeight = 25;
+        int bgX = textX - 10;
+        int bgY = y - fm.getAscent() - 3;
+        
+        // Subtle background
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.fillRoundRect(bgX, bgY, bgWidth, bgHeight, 12, 12);
+        
+        // Border
+        g2.setStroke(new BasicStroke(1f));
+        g2.setColor(new Color(100, 150, 200, 150));
+        g2.drawRoundRect(bgX, bgY, bgWidth, bgHeight, 12, 12);
+        
+        // Text shadow
+        g2.setColor(new Color(0, 0, 0, 120));
+        g2.drawString(pageText, textX + 1, y + 1);
+        
+        // Main text
+        g2.setColor(new Color(200, 220, 255));
+        g2.drawString(pageText, textX, y);
+    }
+    
+    private void drawModernItemCard(Graphics2D g2, int x, int y, int width, int height, 
+                                   String itemName, int quantity, boolean isSelected) {
+        // Card shadow with multiple layers
+        for (int i = 0; i < 3; i++) {
+            g2.setColor(new Color(0, 0, 0, 20 - i * 5));
+            g2.fillRoundRect(x + 4 - i, y + 4 - i, width + i * 2, height + i * 2, 18 + i * 2, 18 + i * 2);
+        }
+        
+        // Card background with glassmorphism
+        Color cardBg1, cardBg2, borderColor;
+        if (isSelected) {
+            cardBg1 = new Color(255, 230, 100, 200);
+            cardBg2 = new Color(255, 200, 50, 180);
+            borderColor = new Color(255, 255, 0, 220);
+        } else {
+            cardBg1 = new Color(255, 255, 255, 40);
+            cardBg2 = new Color(255, 255, 255, 20);
+            borderColor = new Color(255, 255, 255, 80);
+        }
+        
+        GradientPaint cardGradient = new GradientPaint(x, y, cardBg1, x, y + height, cardBg2);
+        g2.setPaint(cardGradient);
+        g2.fillRoundRect(x, y, width, height, 18, 18);
+        
+        // Card highlight
+        g2.setPaint(new GradientPaint(
+            x, y, new Color(255, 255, 255, isSelected ? 100 : 60),
+            x, y + height / 2, new Color(255, 255, 255, 0)
+        ));
+        g2.fillRoundRect(x + 2, y + 2, width - 4, height / 2, 16, 16);
+        
+        // Card border
+        g2.setStroke(new BasicStroke(isSelected ? 3f : 1.5f));
+        g2.setColor(borderColor);
+        g2.drawRoundRect(x, y, width, height, 18, 18);
+        
+        // Enhanced item icon
+        int iconSize = 38;
+        int iconX = x + 18;
+        int iconY = y + (height - iconSize) / 2;
+        
+        drawItemIcon(g2, iconX, iconY, iconSize, itemName);
+        
+        // Item name with better typography
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        FontMetrics nameFm = g2.getFontMetrics();
+        int nameX = iconX + iconSize + 18;
+        int nameY = y + height / 2 - 5;
+        
+        // Name shadow
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.drawString(itemName, nameX + 1, nameY + 1);
+        
+        // Main name
+        g2.setColor(isSelected ? new Color(50, 50, 50) : new Color(240, 240, 240));
+        g2.drawString(itemName, nameX, nameY);
+        
+        // Quantity with modern styling
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        String qtyText = "×" + quantity;
+        FontMetrics qtyFm = g2.getFontMetrics();
+        int qtyWidth = qtyFm.stringWidth(qtyText);
+        int qtyX = x + width - qtyWidth - 18;
+        int qtyY = y + height / 2 + 8;
+        
+        // Quantity background pill
+        int pillWidth = qtyWidth + 12;
+        int pillHeight = 22;
+        int pillX = qtyX - 6;
+        int pillY = qtyY - 15;
+        
+        g2.setPaint(new GradientPaint(
+            pillX, pillY, new Color(100, 100, 100, 100),
+            pillX, pillY + pillHeight, new Color(60, 60, 60, 80)
+        ));
+        g2.fillRoundRect(pillX, pillY, pillWidth, pillHeight, 11, 11);
+        
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.drawString(qtyText, qtyX + 1, qtyY + 1);
+        g2.setColor(new Color(200, 200, 200));
+        g2.drawString(qtyText, qtyX, qtyY);
+    }
+    
+    private void drawItemIcon(Graphics2D g2, int x, int y, int size, String itemName) {
+        // Load the actual item image using new system
+        BufferedImage itemImage = loadItemIcon(itemName);
+        
+        if (itemImage != null) {
+            // Create a circular clipping mask for the image
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Icon shadow
+            g2.setColor(new Color(0, 0, 0, 80));
+            g2.fillOval(x + 2, y + 2, size, size);
+            
+            // Clip to circular shape and draw image
+            java.awt.Shape oldClip = g2.getClip();
+            g2.setClip(new java.awt.geom.Ellipse2D.Float(x, y, size, size));
+            
+            // Draw the item image scaled to fit the circle
+            g2.drawImage(itemImage, x, y, size, size, null);
+            
+            // Restore original clip
+            g2.setClip(oldClip);
+            
+            // Add a subtle highlight overlay
+            g2.setPaint(new GradientPaint(
+                x, y, new Color(255, 255, 255, 40),
+                x, y + size / 2, new Color(255, 255, 255, 0)
+            ));
+            g2.fillOval(x + 2, y + 2, size - 4, size / 2);
+            
+            // Icon border
+            g2.setStroke(new BasicStroke(2f));
+            g2.setColor(new Color(255, 255, 255, 160));
+            g2.drawOval(x, y, size, size);
+        } else {
+            // Fallback to colored circle if image fails to load
+            boolean isConsumable = item.ItemManager.isConsumable(itemName);
+            drawEnhancedIconFallback(g2, x, y, size, isConsumable);
+        }
+    }
+    
+    private void drawEnhancedIconFallback(Graphics2D g2, int x, int y, int size, boolean isConsumable) {
+        // Icon shadow
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.fillOval(x + 2, y + 2, size, size);
+        
+        // Icon gradient
+        Color iconColor1, iconColor2;
+        if (isConsumable) {
+            iconColor1 = new Color(100, 255, 150);
+            iconColor2 = new Color(50, 200, 100);
+        } else {
+            iconColor1 = new Color(255, 120, 180);
+            iconColor2 = new Color(200, 80, 140);
+        }
+        
+        RadialGradientPaint iconGradient = new RadialGradientPaint(
+            x + size / 2f, y + size / 3f, size / 2f,
+            new float[]{0.0f, 1.0f},
+            new Color[]{iconColor1, iconColor2}
+        );
+        g2.setPaint(iconGradient);
+        g2.fillOval(x, y, size, size);
+        
+        // Icon highlight
+        g2.setPaint(new GradientPaint(
+            x, y, new Color(255, 255, 255, 120),
+            x, y + size / 2, new Color(255, 255, 255, 0)
+        ));
+        g2.fillOval(x + 2, y + 2, size - 4, size / 2);
+        
+        // Icon border
+        g2.setStroke(new BasicStroke(2f));
+        g2.setColor(new Color(255, 255, 255, 150));
+        g2.drawOval(x, y, size, size);
+        
+        // Inner detail
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.setColor(new Color(255, 255, 255, 100));
+        g2.drawOval(x + 6, y + 6, size - 12, size - 12);
+    }
+    
+    private void drawModernInstructions(Graphics2D g2, int x, int y, int width) {
+        g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        
+        // Context-sensitive instructions based on navigation state
+        String instructions;
+        switch (itemNavState) {
+            case TAB_SELECTION:
+                instructions = "W: Return Arrow  •  S: Items  •  A/D: Switch Tabs  •  ESC: Exit";
+                break;
+            case RETURN_ARROW:
+                instructions = "S: Back to Tabs  •  ENTER/ESC: Exit Bag";
+                break;
+            case ITEM_LIST:
+                instructions = "W: Up  •  S: Down  •  A/D: Change Page  •  ENTER: Use Item  •  ESC: Exit";
+                break;
+            default:
+                instructions = "W/S: Navigate  •  A/D: Switch Tabs/Pages  •  ENTER: Select  •  ESC: Exit";
+        }
+        
+        FontMetrics fm = g2.getFontMetrics();
+        int textWidth = fm.stringWidth(instructions);
+        int textX = x + (width - textWidth) / 2;
+        
+        // Text shadow
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.drawString(instructions, textX + 1, y + 1);
+        
+        // Main text
+        g2.setColor(new Color(180, 220, 255, 200));
+        g2.drawString(instructions, textX, y);
+    }
+    
+    private void drawReturnArrow(Graphics2D g2, int x, int y, int size, boolean isHovered) {
+        // Arrow background circle
+        Color bgColor1 = isHovered ? new Color(255, 100, 100) : new Color(120, 120, 120);
+        Color bgColor2 = isHovered ? new Color(200, 50, 50) : new Color(80, 80, 80);
+        
+        // Shadow
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.fillOval(x + 2, y + 2, size, size);
+        
+        // Background gradient
+        RadialGradientPaint bgGradient = new RadialGradientPaint(
+            x + size / 2f, y + size / 3f, size / 2f,
+            new float[]{0.0f, 1.0f},
+            new Color[]{bgColor1, bgColor2}
+        );
+        g2.setPaint(bgGradient);
+        g2.fillOval(x, y, size, size);
+        
+        // Highlight
+        if (isHovered) {
+            g2.setPaint(new GradientPaint(
+                x, y, new Color(255, 255, 255, 100),
+                x, y + size / 2, new Color(255, 255, 255, 0)
+            ));
+            g2.fillOval(x + 2, y + 2, size - 4, size / 2);
+        }
+        
+        // Border
+        g2.setStroke(new BasicStroke(isHovered ? 3f : 2f));
+        g2.setColor(isHovered ? new Color(255, 255, 255, 200) : new Color(255, 255, 255, 120));
+        g2.drawOval(x, y, size, size);
+        
+        // Draw arrow shape pointing left
+        int arrowSize = size / 3;
+        int centerX = x + size / 2;
+        int centerY = y + size / 2;
+        
+        // Arrow points
+        int[] arrowX = {
+            centerX - arrowSize / 2,  // Left point
+            centerX + arrowSize / 2,  // Top right
+            centerX + arrowSize / 4,  // Inner right top
+            centerX + arrowSize / 4,  // Inner right bottom
+            centerX + arrowSize / 2   // Bottom right
+        };
+        int[] arrowY = {
+            centerY,                  // Left point
+            centerY - arrowSize / 2,  // Top right
+            centerY - arrowSize / 4,  // Inner right top
+            centerY + arrowSize / 4,  // Inner right bottom
+            centerY + arrowSize / 2   // Bottom right
+        };
+        
+        g2.setColor(Color.WHITE);
+        g2.fillPolygon(arrowX, arrowY, 5);
+        
+        // Arrow outline
+        g2.setStroke(new BasicStroke(1f));
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.drawPolygon(arrowX, arrowY, 5);
     }
 
     private void endBattle() {
