@@ -125,8 +125,7 @@ public class UI {
 	}
 	
 	public void drawPlayerLife() {
-		// Draw money display in top-right corner
-		drawMoney();
+		// Money display removed - only shown in shop
 	}
 	
 	public void drawMoney() {

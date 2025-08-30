@@ -7,7 +7,9 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 
@@ -50,6 +52,9 @@ public class Player extends Entity {
 
     // MONEY SYSTEM
     private int money; // Player's current money/gold
+    
+    // INVENTORY SYSTEM
+    private Map<String, Integer> inventory; // Central inventory (item name -> quantity)
 
 
 
@@ -110,6 +115,10 @@ public class Player extends Entity {
         
         // MONEY SYSTEM - Start with 3000 gold
         money = 3000;
+        
+        // INVENTORY SYSTEM - Central inventory for items
+        inventory = new HashMap<>();
+        initializeStartingItems();
     }
 
     public void getPlayerImage() {
@@ -383,6 +392,7 @@ public class Player extends Entity {
      * Get the useChamps array (compatibility method)
      * @deprecated Use getChampions() instead
      */
+    @Deprecated
     public Champion[] getUseChamps() {
         return getChampions();
     }
@@ -391,6 +401,7 @@ public class Player extends Entity {
      * Get the myTeam array (compatibility method)
      * @deprecated Use getBattleOrderedTeam() instead
      */
+    @Deprecated
     public Champion[] getMyTeam() {
         return getBattleOrderedTeam();
     }
@@ -837,6 +848,85 @@ public class Player extends Entity {
      */
     public String getFormattedMoney() {
         return String.format("%,d", money);
+    }
+    
+    // INVENTORY SYSTEM METHODS
+    
+    /**
+     * Initialize starting items for the player
+     */
+    private void initializeStartingItems() {
+        // Add some starting items for testing
+        inventory.put("Potion", 3);
+        inventory.put("Poke Ball", 5);
+    }
+    
+    /**
+     * Add item to player's inventory
+     * @param itemName Name of the item
+     * @param quantity Quantity to add
+     */
+    public void addToInventory(String itemName, int quantity) {
+        if (quantity > 0) {
+            int currentAmount = inventory.getOrDefault(itemName, 0);
+            inventory.put(itemName, currentAmount + quantity);
+            System.out.println("Added " + quantity + "x " + itemName + " to inventory. Total: " + (currentAmount + quantity));
+        }
+    }
+    
+    /**
+     * Remove item from player's inventory
+     * @param itemName Name of the item
+     * @param quantity Quantity to remove
+     * @return true if successfully removed, false if not enough items
+     */
+    public boolean removeFromInventory(String itemName, int quantity) {
+        int currentAmount = inventory.getOrDefault(itemName, 0);
+        if (currentAmount >= quantity) {
+            int newAmount = currentAmount - quantity;
+            if (newAmount == 0) {
+                inventory.remove(itemName);
+            } else {
+                inventory.put(itemName, newAmount);
+            }
+            System.out.println("Removed " + quantity + "x " + itemName + " from inventory.");
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Get quantity of specific item in inventory
+     * @param itemName Name of the item
+     * @return Quantity of the item (0 if not found)
+     */
+    public int getItemQuantity(String itemName) {
+        return inventory.getOrDefault(itemName, 0);
+    }
+    
+    /**
+     * Get the entire inventory map
+     * @return Copy of the inventory map
+     */
+    public Map<String, Integer> getInventory() {
+        return new HashMap<>(inventory); // Return a copy to prevent external modification
+    }
+    
+    /**
+     * Check if player has a specific item
+     * @param itemName Name of the item
+     * @return true if player has at least 1 of this item
+     */
+    public boolean hasItem(String itemName) {
+        return inventory.getOrDefault(itemName, 0) > 0;
+    }
+    
+    /**
+     * Clear all items from inventory (for testing/reset purposes)
+     */
+    public void clearInventory() {
+        inventory.clear();
+        System.out.println("Player inventory cleared.");
     }
     
     /**

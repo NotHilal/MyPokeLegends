@@ -57,37 +57,124 @@ public class Bag {
     }
     
     private void initializeInventory() {
+        loadInventoryFromPlayer();
+    }
+    
+    /**
+     * Load inventory from Player's central inventory system
+     */
+    private void loadInventoryFromPlayer() {
         inventory = new ArrayList<>();
+        Map<String, Integer> playerItems = gp.player.getInventory();
         
-        // Consumables tab (index 0) - Based on actual file names in your res/consumables folder
+        System.out.println("DEBUG BAG: Loading inventory from player. Total items: " + playerItems.size());
+        for (Map.Entry<String, Integer> entry : playerItems.entrySet()) {
+            System.out.println("DEBUG BAG: Player has '" + entry.getKey() + "' x" + entry.getValue());
+        }
+        
+        // Initialize empty category lists
         List<BagItem> consumables = new ArrayList<>();
-        consumables.add(new BagItem("Potion", "Restores 50 HP", 12, "potion"));
-        consumables.add(new BagItem("Mana Potion", "Restores mana", 8, "manapotion"));
-        consumables.add(new BagItem("Full Restore", "Fully restores HP and removes status", 1, "fullrestore"));
-        consumables.add(new BagItem("Revive", "Revives a fainted champion with half HP", 2, "revive"));
-        consumables.add(new BagItem("Max Revive", "Revives a fainted champion with full HP", 1, "maxrevive"));
-        consumables.add(new BagItem("Refillable Potion", "Can be refilled at shops", 1, "refillablepotion"));
-        
-        // Items tab (index 1) - Based on actual file names in your res/items folder
-        List<BagItem> items = new ArrayList<>();
-        items.add(new BagItem("Doran's Blade", "Balanced AD starter item", 2, "doranblade"));
-        items.add(new BagItem("Doran's Ring", "AP starter with mana sustain", 1, "doranring"));
-        items.add(new BagItem("B.F. Sword", "High attack damage component", 1, "bfsword"));
-        items.add(new BagItem("Needlessly Large Rod", "High ability power component", 3, "needlesslylargerod"));
-        items.add(new BagItem("Berserker's Greaves", "Attack speed boots", 1, "berserkersgreaves"));
-        items.add(new BagItem("Infinity Edge", "Increases critical strike damage", 1, "infinityedge"));
-        
-        // LegendBalls tab (index 2) - Based on actual file names in your res/legendballs folder
+        List<BagItem> items = new ArrayList<>(); 
         List<BagItem> legendBalls = new ArrayList<>();
-        legendBalls.add(new BagItem("Poke Ball", "Standard ball for catching champions", 25, "pokeball"));
-        legendBalls.add(new BagItem("Great Ball", "Better catch rate than Poke Ball", 10, "greatball"));
-        legendBalls.add(new BagItem("Ultra Ball", "High catch rate for strong champions", 5, "UltraBall"));
-        legendBalls.add(new BagItem("Master Ball", "Guaranteed catch for any champion", 1, "masterball"));
-        legendBalls.add(new BagItem("Legend Ball", "Special ball for legendary champions", 2, "legendball"));
+        
+        // Categorize items from player inventory
+        for (Map.Entry<String, Integer> entry : playerItems.entrySet()) {
+            String itemName = entry.getKey();
+            int quantity = entry.getValue();
+            
+            // Skip items with 0 quantity
+            if (quantity <= 0) continue;
+            
+            // Determine category and create BagItem
+            BagItem bagItem = createBagItem(itemName, quantity);
+            if (bagItem != null) {
+                // Categorize based on item name (you can improve this logic)
+                if (isConsumable(itemName)) {
+                    System.out.println("DEBUG BAG: Adding '" + itemName + "' to consumables");
+                    consumables.add(bagItem);
+                } else if (isLegendBall(itemName)) {
+                    System.out.println("DEBUG BAG: Adding '" + itemName + "' to legend balls");
+                    legendBalls.add(bagItem);
+                } else {
+                    System.out.println("DEBUG BAG: Adding '" + itemName + "' to items");
+                    items.add(bagItem); // Default to items category
+                }
+            }
+        }
+        
+        System.out.println("DEBUG BAG: Final counts - Consumables: " + consumables.size() + 
+                          ", Items: " + items.size() + ", LegendBalls: " + legendBalls.size());
         
         inventory.add(consumables);
         inventory.add(items);
         inventory.add(legendBalls);
+    }
+    
+    /**
+     * Create BagItem with appropriate description and icon path
+     */
+    private BagItem createBagItem(String itemName, int quantity) {
+        // Item descriptions map
+        String description = getItemDescription(itemName);
+        String iconPath = itemName.toLowerCase().replace(" ", "").replace("'", "");
+        
+        return new BagItem(itemName, description, quantity, iconPath);
+    }
+    
+    /**
+     * Check if item is a consumable
+     */
+    private boolean isConsumable(String itemName) {
+        String[] consumables = {"Potion", "Mana Potion", "Full Restore", "Revive", "Max Revive", "Refillable Potion"};
+        for (String consumable : consumables) {
+            if (itemName.equalsIgnoreCase(consumable)) return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Check if item is a legend ball
+     */
+    private boolean isLegendBall(String itemName) {
+        return itemName.toLowerCase().contains("ball");
+    }
+    
+    /**
+     * Get description for item
+     */
+    private String getItemDescription(String itemName) {
+        switch (itemName.toLowerCase()) {
+            case "potion": return "Restores 50 HP";
+            case "mana potion": return "Restores mana";
+            case "full restore": return "Fully restores HP and removes status";
+            case "revive": return "Revives a fainted champion with half HP";
+            case "max revive": return "Revives a fainted champion with full HP";
+            case "refillable potion": return "Can be refilled at shops";
+            case "doran's blade": return "Balanced AD starter item";
+            case "doran's ring": return "AP starter with mana sustain";
+            case "b.f. sword": return "High attack damage component";
+            case "needlessly large rod": return "High ability power component";
+            case "berserker's greaves": return "Attack speed boots";
+            case "infinity edge": return "Increases critical strike damage";
+            case "poke ball": return "Standard ball for catching champions";
+            case "great ball": return "Better catch rate than Poke Ball";
+            case "ultra ball": return "High catch rate for strong champions";
+            case "master ball": return "Guaranteed catch for any champion";
+            case "legend ball": return "Special ball for legendary champions";
+            default: return "A useful item";
+        }
+    }
+    
+    /**
+     * Refresh inventory from player data (call when returning to bag)
+     */
+    public void refreshInventory() {
+        loadInventoryFromPlayer();
+        // Reset selection if needed
+        if (selectedTab >= inventory.size()) selectedTab = 0;
+        if (selectedTab < inventory.size() && selectedItem >= inventory.get(selectedTab).size()) {
+            selectedItem = 0;
+        }
     }
     
     // Navigation methods
@@ -151,13 +238,13 @@ public class Bag {
             String folderPath = "";
             switch (tabIndex) {
                 case 0: // Consumables
-                    folderPath = "/consumables/";
+                    folderPath = "/LeagueItems/consumables/";
                     break;
                 case 1: // Items
-                    folderPath = "/items/";
+                    folderPath = "/LeagueItems/items/";
                     break;
                 case 2: // LegendBalls
-                    folderPath = "/legendballs/";
+                    folderPath = "/LeagueItems/legendballs/";
                     break;
             }
             
@@ -177,9 +264,19 @@ public class Bag {
             return image;
         } catch (Exception e) {
             System.err.println("Could not load icon for: " + itemName + " (tab: " + tabIndex + ")");
-            e.printStackTrace();
             
-            // Return a placeholder colored square
+            // Try to load imgnotfound.png as fallback
+            try {
+                BufferedImage fallbackImage = ImageIO.read(getClass().getResourceAsStream("/LeagueItems/imgnotfound.png"));
+                if (fallbackImage != null) {
+                    iconCache.put(cacheKey, fallbackImage);
+                    return fallbackImage;
+                }
+            } catch (Exception fallbackException) {
+                System.err.println("Could not load fallback image: imgnotfound.png");
+            }
+            
+            // Return a placeholder colored square as last resort
             return createPlaceholderIcon(tabIndex);
         }
     }

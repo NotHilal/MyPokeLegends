@@ -463,19 +463,30 @@ public class GamePanel extends JPanel implements Runnable{
 	}
 
 	public void openChampions() {
+		System.out.println("DEBUG: openChampions() called - switching to roleTeamState");
 		ui.currentDialog="Action done!\nYou openned the Champions list!";
 		
-		// Reset all key states to prevent accidental navigation
+		// Reset ALL key states to prevent accidental navigation and immediate exit
 		keyH.interctPressed = false;
 		keyH.upPressed = false;
 		keyH.downPressed = false;
 		keyH.gPressed = false;
 		keyH.tabPressed = false;
+		keyH.escPressed = false; // This was missing! Prevents immediate ESC exit
+		keyH.enterPressed = false;
+		
+		System.out.println("DEBUG: All key states cleared, including ESC");
 		
 		// Reset the role team page to prevent immediate champion details opening
-		roleTeamPage.resetJustEntered();
+		if (roleTeamPage != null) {
+			roleTeamPage.resetJustEntered();
+			System.out.println("DEBUG: Role team page reset completed");
+		} else {
+			System.out.println("DEBUG: Warning - roleTeamPage is null!");
+		}
 		
 		gameState = roleTeamState; // Switch to role team overview
+		System.out.println("DEBUG: Game state switched to roleTeamState (" + roleTeamState + ")");
 	}
 	
 	public void openTeamOrder() {
@@ -498,8 +509,8 @@ public class GamePanel extends JPanel implements Runnable{
 	public void openBag() {
 		gameState = bagState;
 		if (bag != null) {
-			// Reset bag navigation when opening
-			// The bag will handle its own state
+			// Refresh inventory from player when opening bag
+			bag.refreshInventory();
 		}
 	}
 	

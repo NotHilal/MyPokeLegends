@@ -22,18 +22,29 @@ public class Shop {
     
     // Shop categories and items
     private List<List<ShopItem>> shopInventory;
-    private final String[] categoryNames = {"Consumables", "Equipment", "Legend Balls"};
+    private final String[] categoryNames = {"Consumables", "Champion Items", "Legend Balls"};
     private int selectedCategory = 0;
     private int selectedItem = 0;
     private int scrollOffset = 0;
+    
+    // Tab navigation state
+    private boolean tabFocused = false; // Whether we're currently selecting tabs
+    
+    // Animation states for smooth transitions
+    private float cardHoverScale = 1.0f;
+    private int animationTimer = 0;
+    private float tabTransition = 0.0f;
     
     // Purchase popup state
     private boolean showPurchasePopup = false;
     private int purchaseQuantity = 1;
     private int maxPurchaseQuantity = 1;
+    private String lastArrowPressed = ""; // "up" or "down"
     
-    // Simple inventory system (item name -> quantity)
-    private Map<String, Integer> playerInventory;
+    // Note: Using Player's central inventory system instead of local inventory
+    
+    // Image cache for item icons
+    private Map<String, BufferedImage> imageCache = new HashMap<>();
     
     // UI Constants
     private static final int VISIBLE_ITEMS = 8;
@@ -65,15 +76,7 @@ public class Shop {
     public Shop(GamePanel gp) {
         this.gp = gp;
         initializeShop();
-        initializePlayerInventory();
-    }
-    
-    private void initializePlayerInventory() {
-        playerInventory = new HashMap<>();
-        // Initialize with some starting items for testing
-        playerInventory.put("Potion", 3);
-        playerInventory.put("Poke Ball", 5);
-        playerInventory.put("Doran's Blade", 1);
+        // Player inventory is now managed centrally in Player class
     }
     
     private void initializeShop() {
@@ -87,7 +90,7 @@ public class Shop {
         consumables.add(new ShopItem(ItemFactory.createItem("Revive")));
         consumables.add(new ShopItem(ItemFactory.createItem("Max Revive")));
         
-        // Category 1: Equipment (Basic items only)
+        // Category 1: Champion Items (Basic items only)
         List<ShopItem> equipment = new ArrayList<>();
         equipment.add(new ShopItem(ItemFactory.createItem("Doran's Blade")));
         equipment.add(new ShopItem(ItemFactory.createItem("Doran's Ring")));
@@ -110,39 +113,90 @@ public class Shop {
         shopInventory.add(legendBalls);
     }
     
-    // Navigation methods
+    // Navigation methods with tab focus system
     public void navigateUp() {
-        if (selectedItem > 0) {
-            selectedItem--;
-            adjustScrollOffset();
+        if (tabFocused) {
+            // If we're in tab mode, go back to items (first item of current tab)
+            tabFocused = false;
+            selectedItem = 0;
             gp.playSE(9);
+        } else {
+            int cardsPerRow = 4;
+            
+            // Check if we're in the top row
+            if (selectedItem < cardsPerRow) {
+                // Go to tab selection mode
+                tabFocused = true;
+                gp.playSE(9);
+            } else {
+                // Move up one row
+                selectedItem -= cardsPerRow;
+                gp.playSE(9);
+            }
         }
     }
     
     public void navigateDown() {
-        List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-        if (selectedItem < currentCategory.size() - 1) {
-            selectedItem++;
-            adjustScrollOffset();
+        if (tabFocused) {
+            // If we're in tab mode, go back to items (first item of current tab)
+            tabFocused = false;
+            selectedItem = 0;
             gp.playSE(9);
+        } else {
+            List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
+            int cardsPerRow = 4;
+            
+            // Move down one row if possible
+            if (selectedItem + cardsPerRow < currentCategory.size()) {
+                selectedItem += cardsPerRow;
+                gp.playSE(9);
+            }
+            // If at bottom, stay there (no automatic action)
         }
     }
     
     public void navigateLeft() {
-        if (selectedCategory > 0) {
-            selectedCategory--;
-            selectedItem = 0;
-            scrollOffset = 0;
-            gp.playSE(9);
+        if (tabFocused) {
+            // Navigate between tabs
+            if (selectedCategory > 0) {
+                selectedCategory--;
+                gp.playSE(9);
+            }
+        } else {
+            // Navigate within items (move left within row)
+            if (selectedItem > 0 && selectedItem % 4 != 0) {
+                selectedItem--;
+                gp.playSE(9);
+            }
         }
     }
     
     public void navigateRight() {
-        if (selectedCategory < categoryNames.length - 1) {
-            selectedCategory++;
+        if (tabFocused) {
+            // Navigate between tabs
+            if (selectedCategory < categoryNames.length - 1) {
+                selectedCategory++;
+                gp.playSE(9);
+            }
+        } else {
+            // Navigate within items (move right within row)
+            List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
+            if (selectedItem < currentCategory.size() - 1 && (selectedItem + 1) % 4 != 0) {
+                selectedItem++;
+                gp.playSE(9);
+            }
+        }
+    }
+    
+    public void selectCurrentItem() {
+        if (tabFocused) {
+            // Tab is already selected, just go back to items
+            tabFocused = false;
             selectedItem = 0;
-            scrollOffset = 0;
             gp.playSE(9);
+        } else {
+            // Purchase item (existing logic)
+            purchaseItem();
         }
     }
     
@@ -188,10 +242,14 @@ public class Shop {
         int totalCost = shopItem.price * purchaseQuantity;
         
         if (gp.player.spendMoney(totalCost)) {
-            // Add to player inventory
+            // Add to player's central inventory
             String itemName = shopItem.item.getName();
-            int currentAmount = playerInventory.getOrDefault(itemName, 0);
-            playerInventory.put(itemName, currentAmount + purchaseQuantity);
+            System.out.println("DEBUG: Purchasing item: '" + itemName + "'");
+            gp.player.addToInventory(itemName, purchaseQuantity);
+            
+            // Debug: Check if item was actually added
+            int currentQty = gp.player.getItemQuantity(itemName);
+            System.out.println("DEBUG: Item quantity after purchase: " + currentQty);
             
             gp.playSE(8); // Success sound
             System.out.println("Purchased " + purchaseQuantity + "x " + itemName + " for " + totalCost + " gold!");
@@ -210,6 +268,7 @@ public class Shop {
     public void adjustPurchaseQuantity(int delta) {
         if (showPurchasePopup) {
             purchaseQuantity = Math.max(1, Math.min(maxPurchaseQuantity, purchaseQuantity + delta));
+            lastArrowPressed = (delta > 0) ? "up" : "down";
             gp.playSE(9); // Navigation sound
         }
     }
@@ -218,13 +277,7 @@ public class Shop {
         gp.gameState = gp.playState;
     }
     
-    private void adjustScrollOffset() {
-        if (selectedItem < scrollOffset) {
-            scrollOffset = selectedItem;
-        } else if (selectedItem >= scrollOffset + VISIBLE_ITEMS) {
-            scrollOffset = selectedItem - VISIBLE_ITEMS + 1;
-        }
-    }
+    // Auto-scroll is handled in the draw method based on selected item position
     
     // Handle keyboard input - Pokémon style
     public void handleInput() {
@@ -267,7 +320,7 @@ public class Shop {
             }
             
             if (gp.keyH.enterPressed) {
-                purchaseItem(); // Show popup
+                selectCurrentItem(); // Handle both item purchase and tab selection
                 gp.keyH.enterPressed = false;
             }
             
@@ -278,28 +331,33 @@ public class Shop {
         }
     }
     
-    // Draw shop UI - Pokémon style
+    // Draw shop UI - Modern PokéMart style
     public void draw(Graphics2D g2) {
-        // Pokémon-style background gradient
-        drawPokemonBackground(g2);
+        // Enable antialiasing for smooth graphics
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         
-        // Draw main shop window
-        drawMainWindow(g2);
+        // Clean background
+        drawModernBackground(g2);
         
-        // Draw money display
-        drawMoneyWindow(g2);
+        // PokéMart header with awning
+        drawPokeMartHeader(g2);
         
-        // Draw category tabs
-        drawPokemonTabs(g2);
+        // Money display
+        drawMoneyDisplay(g2);
         
-        // Draw items list
-        drawPokemonItems(g2);
+        // Modern tabs
+        drawModernTabs(g2);
         
-        // Draw item description panel
-        drawItemDescription(g2);
+        // Current category items with scroll
+        drawScrollableItemGrid(g2);
+        
+        // No item description panel needed
         
         // Draw controls hint
-        drawPokemonControls(g2);
+        
+        // No separate hint needed - the grid itself shows the preview
+        
         
         // Draw purchase popup if shown
         if (showPurchasePopup) {
@@ -307,428 +365,615 @@ public class Shop {
         }
     }
     
-    private void drawPokemonBackground(Graphics2D g2) {
-        // Classic Pokémon blue gradient background
+    private void drawModernBackground(Graphics2D g2) {
+        // Premium gradient with multiple stops
         GradientPaint gradient = new GradientPaint(
-            0, 0, new Color(100, 149, 237),  // Cornflower blue
-            0, gp.screenHeight, new Color(65, 105, 225)  // Royal blue
+            0, 0, new Color(64, 132, 210),           // Brighter top
+            0, gp.screenHeight, new Color(41, 98, 188)  // Deeper bottom
         );
         g2.setPaint(gradient);
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
         
-        // Add some subtle pattern/texture
-        g2.setColor(new Color(255, 255, 255, 20));
-        for (int y = 0; y < gp.screenHeight; y += 40) {
-            for (int x = 0; x < gp.screenWidth; x += 40) {
-                if ((x / 40 + y / 40) % 2 == 0) {
-                    g2.fillRect(x, y, 20, 20);
-                }
+        // Subtle texture overlay for depth
+        g2.setColor(new Color(255, 255, 255, 8));
+        for (int y = 0; y < gp.screenHeight; y += 4) {
+            for (int x = (y/4) % 2; x < gp.screenWidth; x += 8) {
+                g2.fillRect(x, y, 1, 1);
             }
         }
     }
     
-    private void drawMainWindow(Graphics2D g2) {
-        // Main window with Pokémon-style border
-        int windowX = 50;
-        int windowY = 80;
-        int windowWidth = gp.screenWidth - 100;
-        int windowHeight = gp.screenHeight - 160;
+    private void drawPokeMartHeader(Graphics2D g2) {
+        int headerHeight = 120;
+        int awningHeight = 35;
         
-        // Window shadow
-        g2.setColor(new Color(0, 0, 0, 100));
-        g2.fillRoundRect(windowX + 4, windowY + 4, windowWidth, windowHeight, 20, 20);
-        
-        // Main window background
-        g2.setColor(new Color(248, 248, 255));
-        g2.fillRoundRect(windowX, windowY, windowWidth, windowHeight, 20, 20);
-        
-        // Window border - thick Pokémon style
-        g2.setStroke(new BasicStroke(4));
-        g2.setColor(new Color(70, 130, 180));
-        g2.drawRoundRect(windowX, windowY, windowWidth, windowHeight, 20, 20);
-        
-        // Inner border highlight
-        g2.setStroke(new BasicStroke(2));
-        g2.setColor(new Color(255, 255, 255, 150));
-        g2.drawRoundRect(windowX + 3, windowY + 3, windowWidth - 6, windowHeight - 6, 17, 17);
-        
-        // Title bar
-        GradientPaint titleGradient = new GradientPaint(
-            windowX, windowY, new Color(70, 130, 180),
-            windowX, windowY + 50, new Color(100, 149, 237)
+        // Premium header with multiple gradients
+        GradientPaint headerGradient = new GradientPaint(
+            0, 0, new Color(84, 154, 236),
+            0, headerHeight, new Color(64, 132, 210)
         );
-        g2.setPaint(titleGradient);
-        g2.fillRoundRect(windowX + 3, windowY + 3, windowWidth - 6, 47, 17, 17);
+        g2.setPaint(headerGradient);
+        g2.fillRect(0, 0, gp.screenWidth, headerHeight);
         
-        // Shop title
-        g2.setFont(new Font("Arial", Font.BOLD, 28));
-        g2.setColor(Color.WHITE);
-        String title = "POKÉ MART";
+        // Subtle inner glow at top
+        g2.setColor(new Color(255, 255, 255, 25));
+        g2.fillRect(0, 0, gp.screenWidth, 3);
+        
+        // Enhanced awning with gradient
+        GradientPaint awningGradient = new GradientPaint(
+            0, headerHeight - awningHeight, new Color(41, 98, 188),
+            0, headerHeight, new Color(31, 78, 158)
+        );
+        g2.setPaint(awningGradient);
+        for (int i = 0; i < gp.screenWidth; i += 40) {
+            g2.fillRect(i, headerHeight - awningHeight, 22, awningHeight);
+        }
+        
+        // Premium scalloped edge with drop shadow
+        g2.setColor(new Color(0, 0, 0, 40));
+        int scallops = gp.screenWidth / 40;
+        for (int i = 0; i < scallops; i++) {
+            int x = i * 40;
+            g2.fillOval(x + 6, headerHeight - 13, 30, 30);
+        }
+        
+        g2.setColor(new Color(248, 250, 252));
+        for (int i = 0; i < scallops; i++) {
+            int x = i * 40;
+            g2.fillOval(x + 5, headerHeight - 15, 30, 30);
+        }
+        
+        // Premium title with better typography
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 36));
+        String title = "PokéMart";
         FontMetrics fm = g2.getFontMetrics();
-        int titleX = windowX + (windowWidth - fm.stringWidth(title)) / 2;
-        // Title shadow
-        g2.setColor(new Color(0, 0, 0, 150));
-        g2.drawString(title, titleX + 2, windowY + 35);
-        // Main title
-        g2.setColor(Color.WHITE);
-        g2.drawString(title, titleX, windowY + 33);
+        int titleX = (gp.screenWidth - fm.stringWidth(title)) / 2;
+        
+        // Multiple shadow layers for depth
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.drawString(title, titleX + 3, 53);
+        g2.setColor(new Color(0, 0, 0, 30));
+        g2.drawString(title, titleX + 1, 51);
+        
+        // Main title with subtle gradient effect
+        g2.setColor(new Color(255, 255, 255, 240));
+        g2.drawString(title, titleX, 50);
     }
     
-    private void drawMoneyWindow(Graphics2D g2) {
-        // Money display window (top right)
-        int moneyWindowWidth = 200;
-        int moneyWindowHeight = 50;
-        int moneyX = gp.screenWidth - moneyWindowWidth - 20;
-        int moneyY = 20;
-        
-        // Money window shadow
-        g2.setColor(new Color(0, 0, 0, 100));
-        g2.fillRoundRect(moneyX + 2, moneyY + 2, moneyWindowWidth, moneyWindowHeight, 15, 15);
-        
-        // Money window background
-        g2.setColor(new Color(255, 248, 220)); // Cornsilk
-        g2.fillRoundRect(moneyX, moneyY, moneyWindowWidth, moneyWindowHeight, 15, 15);
-        
-        // Money window border
-        g2.setStroke(new BasicStroke(3));
-        g2.setColor(new Color(218, 165, 32)); // Goldenrod
-        g2.drawRoundRect(moneyX, moneyY, moneyWindowWidth, moneyWindowHeight, 15, 15);
-        
-        // Money text
-        g2.setFont(new Font("Arial", Font.BOLD, 20));
-        String moneyText = "₽" + gp.player.getFormattedMoney();
+    private void drawMoneyDisplay(Graphics2D g2) {
+        String moneyText = "₽ " + gp.player.getFormattedMoney();
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
         FontMetrics fm = g2.getFontMetrics();
-        int textX = moneyX + (moneyWindowWidth - fm.stringWidth(moneyText)) / 2;
         
-        // Money text shadow
-        g2.setColor(new Color(0, 0, 0, 100));
-        g2.drawString(moneyText, textX + 1, moneyY + 32);
-        // Main money text
-        g2.setColor(new Color(184, 134, 11)); // Dark goldenrod
-        g2.drawString(moneyText, textX, moneyY + 31);
+        int textWidth = fm.stringWidth(moneyText);
+        int padding = 15;
+        int x = gp.screenWidth - textWidth - 30;
+        int y = 30;
+        
+        // Glass morphism background
+        g2.setColor(new Color(255, 255, 255, 25));
+        g2.fillRoundRect(x - padding, y - 20, textWidth + (padding * 2), 30, 15, 15);
+        
+        // Subtle border
+        g2.setStroke(new BasicStroke(1));
+        g2.setColor(new Color(255, 255, 255, 60));
+        g2.drawRoundRect(x - padding, y - 20, textWidth + (padding * 2), 30, 15, 15);
+        
+        // Money text with shadow
+        g2.setColor(new Color(0, 0, 0, 40));
+        g2.drawString(moneyText, x + 1, y + 1);
+        g2.setColor(new Color(255, 255, 255, 250));
+        g2.drawString(moneyText, x, y);
+        
+        g2.setStroke(new BasicStroke(1)); // Reset
     }
     
-    private void drawPokemonTabs(Graphics2D g2) {
-        int tabWidth = 150;
-        int tabHeight = 35;
-        int tabSpacing = 10;
+    private void drawModernTabs(Graphics2D g2) {
+        int tabWidth = 160;
+        int tabHeight = 45;
+        int tabSpacing = 5;
         int totalWidth = (tabWidth * categoryNames.length) + (tabSpacing * (categoryNames.length - 1));
         int startX = (gp.screenWidth - totalWidth) / 2;
-        int y = 140;
+        int y = 135;
         
         for (int i = 0; i < categoryNames.length; i++) {
             int x = startX + (i * (tabWidth + tabSpacing));
-            boolean isSelected = (i == selectedCategory);
+            boolean isCurrentTab = (i == selectedCategory);
+            boolean isFocusedTab = tabFocused && (i == selectedCategory);
             
-            // Tab shadow
-            g2.setColor(new Color(0, 0, 0, 80));
-            g2.fillRoundRect(x + 2, y + 2, tabWidth, tabHeight, 15, 15);
+            // Enhanced shadow with blur effect
+            g2.setColor(new Color(0, 0, 0, 25));
+            g2.fillRoundRect(x + 2, y + 3, tabWidth, tabHeight, 15, 15);
+            g2.setColor(new Color(0, 0, 0, 10));
+            g2.fillRoundRect(x + 1, y + 2, tabWidth, tabHeight, 15, 15);
             
-            // Tab background
-            Color bgColor;
-            if (isSelected) {
-                bgColor = new Color(255, 215, 0); // Gold for selected
+            // Premium glass morphism tabs
+            if (isFocusedTab) {
+                // Focused: Bright glass effect
+                g2.setColor(new Color(255, 255, 255, 65));
+                g2.fillRoundRect(x, y, tabWidth, tabHeight, 15, 15);
+                // Inner highlight
+                g2.setColor(new Color(255, 255, 255, 35));
+                g2.fillRoundRect(x + 2, y + 2, tabWidth - 4, 8, 12, 12);
+            } else if (isCurrentTab) {
+                // Current: Medium glass effect
+                g2.setColor(new Color(255, 255, 255, 45));
+                g2.fillRoundRect(x, y, tabWidth, tabHeight, 15, 15);
+                // Inner highlight
+                g2.setColor(new Color(255, 255, 255, 20));
+                g2.fillRoundRect(x + 2, y + 2, tabWidth - 4, 6, 12, 12);
             } else {
-                bgColor = new Color(200, 220, 255); // Light blue for unselected
+                // Inactive: Subtle dark glass
+                g2.setColor(new Color(0, 0, 0, 25));
+                g2.fillRoundRect(x, y, tabWidth, tabHeight, 15, 15);
+                g2.setColor(new Color(255, 255, 255, 15));
+                g2.fillRoundRect(x + 1, y + 1, tabWidth - 2, 4, 14, 14);
             }
-            g2.setColor(bgColor);
-            g2.fillRoundRect(x, y, tabWidth, tabHeight, 15, 15);
             
-            // Tab border
-            g2.setStroke(new BasicStroke(2));
-            Color borderColor = isSelected ? new Color(218, 165, 32) : new Color(100, 149, 237);
-            g2.setColor(borderColor);
+            // Premium borders with varying opacity
+            if (isFocusedTab) {
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.setColor(new Color(255, 255, 255, 180));
+            } else if (isCurrentTab) {
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.setColor(new Color(255, 255, 255, 120));
+            } else {
+                g2.setStroke(new BasicStroke(1));
+                g2.setColor(new Color(255, 255, 255, 60));
+            }
             g2.drawRoundRect(x, y, tabWidth, tabHeight, 15, 15);
             
-            // Tab highlight (top edge)
-            if (isSelected) {
-                g2.setColor(new Color(255, 255, 255, 100));
-                g2.fillRoundRect(x + 2, y + 2, tabWidth - 4, 8, 10, 10);
+            // Premium typography
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 15));
+            Color textColor;
+            if (isFocusedTab) {
+                textColor = new Color(255, 255, 255, 255); // Bright white when focused
+            } else if (isCurrentTab) {
+                textColor = new Color(255, 255, 255, 240); // Almost white when current
+            } else {
+                textColor = new Color(255, 255, 255, 160); // Semi-transparent when inactive
             }
             
-            // Tab text
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
+            // Text shadow for better readability
+            g2.setColor(new Color(0, 0, 0, 60));
             FontMetrics fm = g2.getFontMetrics();
             int textX = x + (tabWidth - fm.stringWidth(categoryNames[i])) / 2;
             int textY = y + (tabHeight + fm.getAscent()) / 2 - 2;
-            
-            // Text shadow
-            g2.setColor(new Color(0, 0, 0, 100));
             g2.drawString(categoryNames[i], textX + 1, textY + 1);
             
             // Main text
-            Color textColor = isSelected ? new Color(139, 69, 19) : new Color(25, 25, 112); // Brown for selected, navy for unselected
             g2.setColor(textColor);
             g2.drawString(categoryNames[i], textX, textY);
-        }
-    }
-    
-    private void drawPokemonItems(Graphics2D g2) {
-        List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-        if (currentCategory.isEmpty()) return;
-        
-        // Item list panel
-        int panelX = 80;
-        int panelY = 190;
-        int panelWidth = 400;
-        int panelHeight = 300;
-        
-        // Panel shadow
-        g2.setColor(new Color(0, 0, 0, 100));
-        g2.fillRoundRect(panelX + 3, panelY + 3, panelWidth, panelHeight, 15, 15);
-        
-        // Panel background
-        g2.setColor(new Color(255, 255, 255, 250));
-        g2.fillRoundRect(panelX, panelY, panelWidth, panelHeight, 15, 15);
-        
-        // Panel border
-        g2.setStroke(new BasicStroke(2));
-        g2.setColor(new Color(70, 130, 180));
-        g2.drawRoundRect(panelX, panelY, panelWidth, panelHeight, 15, 15);
-        
-        // Draw items
-        int itemHeight = 35;
-        int itemY = panelY + 15;
-        int maxVisibleItems = Math.min(VISIBLE_ITEMS, (panelHeight - 30) / itemHeight);
-        
-        for (int i = 0; i < Math.min(maxVisibleItems, currentCategory.size() - scrollOffset); i++) {
-            int itemIndex = scrollOffset + i;
-            if (itemIndex >= currentCategory.size()) break;
             
-            ShopItem shopItem = currentCategory.get(itemIndex);
-            int y = itemY + (i * itemHeight);
-            boolean isSelected = (itemIndex == selectedItem);
             
-            // Item background
-            if (isSelected) {
-                // Selected item background
-                GradientPaint selectedGradient = new GradientPaint(
-                    panelX + 5, y, new Color(255, 215, 0, 200),
-                    panelX + panelWidth - 10, y, new Color(255, 235, 59, 150)
-                );
-                g2.setPaint(selectedGradient);
-                g2.fillRoundRect(panelX + 5, y, panelWidth - 10, itemHeight - 2, 8, 8);
+            // Premium arrow indicator with glow effect
+            if (isFocusedTab) {
+                int arrowX = x + tabWidth / 2;
+                int arrowY = y - 10;
                 
-                // Selected border
-                g2.setStroke(new BasicStroke(2));
-                g2.setColor(new Color(218, 165, 32));
-                g2.drawRoundRect(panelX + 5, y, panelWidth - 10, itemHeight - 2, 8, 8);
-            }
-            
-            // Draw item image (if available)
-            BufferedImage itemImage = getItemImage(shopItem.item.getName());
-            if (itemImage != null) {
-                int imageSize = itemHeight - 8;
-                g2.drawImage(itemImage, panelX + 8, y + 2, imageSize, imageSize, null);
-            }
-            
-            // Item name (with offset for image)
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
-            Color textColor = isSelected ? new Color(139, 69, 19) : new Color(25, 25, 112);
-            
-            int textX = panelX + (itemImage != null ? 50 : 15);
-            
-            // Text shadow
-            g2.setColor(new Color(0, 0, 0, 100));
-            g2.drawString(shopItem.item.getName(), textX + 1, y + 16);
-            
-            // Main text
-            g2.setColor(textColor);
-            g2.drawString(shopItem.item.getName(), textX, y + 15);
-            
-            // Show inventory quantity
-            int currentQuantity = playerInventory.getOrDefault(shopItem.item.getName(), 0);
-            g2.setFont(new Font("Arial", Font.PLAIN, 12));
-            String quantityText = "Own: " + currentQuantity;
-            g2.setColor(new Color(100, 100, 100));
-            g2.drawString(quantityText, textX, y + 28);
-            
-            // Price
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
-            String priceText = "₽" + shopItem.price;
-            FontMetrics fm = g2.getFontMetrics();
-            int priceX = panelX + panelWidth - fm.stringWidth(priceText) - 15;
-            
-            // Price shadow
-            g2.setColor(new Color(0, 0, 0, 100));
-            g2.drawString(priceText, priceX + 1, y + 16);
-            
-            // Main price
-            Color priceColor = gp.player.canAfford(shopItem.price) ? 
-                new Color(34, 139, 34) : new Color(220, 20, 60); // Green if affordable, red if not
-            g2.setColor(priceColor);
-            g2.drawString(priceText, priceX, y + 15);
-        }
-        
-        // Draw scroll indicator
-        if (currentCategory.size() > maxVisibleItems) {
-            int scrollX = panelX + panelWidth - 15;
-            int scrollY = panelY + 15;
-            int scrollHeight = panelHeight - 30;
-            
-            // Scroll track
-            g2.setColor(new Color(200, 200, 200));
-            g2.fillRect(scrollX, scrollY, 8, scrollHeight);
-            
-            // Scroll thumb
-            int thumbHeight = Math.max(20, scrollHeight * maxVisibleItems / currentCategory.size());
-            int thumbY = scrollY + (scrollHeight - thumbHeight) * scrollOffset / (currentCategory.size() - maxVisibleItems);
-            
-            g2.setColor(new Color(100, 149, 237));
-            g2.fillRoundRect(scrollX, thumbY, 8, thumbHeight, 4, 4);
-        }
-    }
-    
-    private void drawItemDescription(Graphics2D g2) {
-        List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-        if (currentCategory.isEmpty() || selectedItem >= currentCategory.size()) return;
-        
-        ShopItem shopItem = currentCategory.get(selectedItem);
-        
-        // Description panel
-        int panelX = 500;
-        int panelY = 190;
-        int panelWidth = gp.screenWidth - panelX - 80;
-        int panelHeight = 200;
-        
-        // Panel shadow
-        g2.setColor(new Color(0, 0, 0, 100));
-        g2.fillRoundRect(panelX + 3, panelY + 3, panelWidth, panelHeight, 15, 15);
-        
-        // Panel background
-        g2.setColor(new Color(255, 255, 255, 250));
-        g2.fillRoundRect(panelX, panelY, panelWidth, panelHeight, 15, 15);
-        
-        // Panel border
-        g2.setStroke(new BasicStroke(2));
-        g2.setColor(new Color(70, 130, 180));
-        g2.drawRoundRect(panelX, panelY, panelWidth, panelHeight, 15, 15);
-        
-        // Title bar
-        GradientPaint headerGradient = new GradientPaint(
-            panelX, panelY, new Color(100, 149, 237),
-            panelX, panelY + 30, new Color(135, 206, 250)
-        );
-        g2.setPaint(headerGradient);
-        g2.fillRoundRect(panelX + 2, panelY + 2, panelWidth - 4, 28, 12, 12);
-        
-        // Header text
-        g2.setFont(new Font("Arial", Font.BOLD, 16));
-        g2.setColor(Color.WHITE);
-        String headerText = "ITEM INFO";
-        FontMetrics fm = g2.getFontMetrics();
-        int headerX = panelX + (panelWidth - fm.stringWidth(headerText)) / 2;
-        g2.drawString(headerText, headerX, panelY + 22);
-        
-        // Item details
-        int textY = panelY + 50;
-        int lineHeight = 20;
-        
-        // Item name
-        g2.setFont(new Font("Arial", Font.BOLD, 18));
-        g2.setColor(new Color(25, 25, 112));
-        g2.drawString(shopItem.item.getName(), panelX + 15, textY);
-        textY += lineHeight + 5;
-        
-        // Item price
-        g2.setFont(new Font("Arial", Font.BOLD, 16));
-        String priceText = "Price: ₽" + shopItem.price;
-        Color priceColor = gp.player.canAfford(shopItem.price) ? 
-            new Color(34, 139, 34) : new Color(220, 20, 60);
-        g2.setColor(priceColor);
-        g2.drawString(priceText, panelX + 15, textY);
-        textY += lineHeight + 5;
-        
-        // Remove affordability text as requested
-        textY += lineHeight / 2;
-        
-        // Item description
-        g2.setFont(new Font("Arial", Font.PLAIN, 13));
-        g2.setColor(new Color(60, 60, 60));
-        String description = shopItem.item.getDescription();
-        
-        // Word wrap description
-        String[] words = description.split(" ");
-        StringBuilder line = new StringBuilder();
-        for (String word : words) {
-            String testLine = line.length() > 0 ? line + " " + word : word;
-            if (g2.getFontMetrics().stringWidth(testLine) > panelWidth - 30) {
-                if (line.length() > 0) {
-                    g2.drawString(line.toString(), panelX + 15, textY);
-                    textY += lineHeight;
-                    line = new StringBuilder(word);
-                } else {
-                    g2.drawString(word, panelX + 15, textY);
-                    textY += lineHeight;
+                // Glow effect
+                g2.setColor(new Color(255, 255, 255, 40));
+                for (int glow = 2; glow >= 0; glow--) {
+                    int[] xPoints = {arrowX - 5 - glow, arrowX + 5 + glow, arrowX};
+                    int[] yPoints = {arrowY, arrowY, arrowY - 7 - glow};
+                    g2.fillPolygon(xPoints, yPoints, 3);
                 }
-            } else {
-                line = new StringBuilder(testLine);
+                
+                // Main arrow
+                g2.setColor(new Color(255, 255, 255, 220));
+                int[] xPoints = {arrowX - 4, arrowX + 4, arrowX};
+                int[] yPoints = {arrowY, arrowY, arrowY - 6};
+                g2.fillPolygon(xPoints, yPoints, 3);
             }
         }
-        if (line.length() > 0) {
-            g2.drawString(line.toString(), panelX + 15, textY);
+        
+        g2.setStroke(new BasicStroke(1)); // Reset stroke
+    }
+    
+    private void drawScrollableItemGrid(Graphics2D g2) {
+        List<ShopItem> items = shopInventory.get(selectedCategory);
+        if (items.isEmpty()) return;
+        
+        // When tab is focused, show preview with semi-transparent overlay
+        boolean isPreviewMode = tabFocused;
+        
+        // Grid properties
+        int cardWidth = 140;
+        int cardHeight = 160;
+        int cardsPerRow = 4;
+        int cardSpacing = 20;
+        int gridStartY = 200;
+        int viewportHeight = gp.screenHeight - gridStartY - 80; // Leave space for controls
+        
+        // Calculate total grid width for centering
+        int totalGridWidth = (cardWidth * cardsPerRow) + (cardSpacing * (cardsPerRow - 1));
+        int startX = (gp.screenWidth - totalGridWidth) / 2;
+        
+        // Calculate visible rows
+        int rowHeight = cardHeight + cardSpacing;
+        int maxVisibleRows = (viewportHeight + cardSpacing) / rowHeight;
+        int totalRows = (int) Math.ceil((double) items.size() / cardsPerRow);
+        
+        // Auto-scroll logic: ensure selected item is visible (only when not in preview mode)
+        if (!isPreviewMode) {
+            int selectedRow = selectedItem / cardsPerRow;
+            
+            // Adjust scroll offset to keep selected item visible
+            if (selectedRow < scrollOffset) {
+                scrollOffset = selectedRow;
+            } else if (selectedRow >= scrollOffset + maxVisibleRows) {
+                scrollOffset = selectedRow - maxVisibleRows + 1;
+            }
+            
+            // Clamp scroll offset
+            scrollOffset = Math.max(0, Math.min(scrollOffset, Math.max(0, totalRows - maxVisibleRows)));
+        } else {
+            // In preview mode, always show from the top
+            scrollOffset = 0;
+        }
+        
+        // No additional overlay needed - blue background is already there
+        
+        // Draw visible items
+        for (int row = scrollOffset; row < Math.min(scrollOffset + maxVisibleRows + 1, totalRows); row++) {
+            for (int col = 0; col < cardsPerRow; col++) {
+                int itemIndex = row * cardsPerRow + col;
+                if (itemIndex >= items.size()) break;
+                
+                ShopItem shopItem = items.get(itemIndex);
+                
+                int cardX = startX + (col * (cardWidth + cardSpacing));
+                int cardY = gridStartY + ((row - scrollOffset) * rowHeight);
+                
+                // Only draw if card is within viewport
+                if (cardY + cardHeight >= gridStartY && cardY <= gridStartY + viewportHeight) {
+                    drawItemCard(g2, shopItem, cardX, cardY, cardWidth, cardHeight, itemIndex, isPreviewMode);
+                }
+            }
+        }
+        
+        // Draw scroll indicator if needed
+        if (totalRows > maxVisibleRows) {
+            drawScrollIndicator(g2, startX + totalGridWidth + 30, gridStartY, 12, viewportHeight, 
+                              totalRows, scrollOffset, maxVisibleRows);
         }
     }
     
-    private void drawPokemonControls(Graphics2D g2) {
-        // Control panel at bottom
-        int panelY = gp.screenHeight - 80;
-        int panelHeight = 60;
+    private void drawItemCard(Graphics2D g2, ShopItem shopItem, int x, int y, int width, int height, int itemIndex, boolean isPreview) {
+        boolean isSelected = !isPreview && (selectedItem == itemIndex); // No selection in preview mode
+        boolean canAfford = gp.player.canAfford(shopItem.price);
         
-        // Panel background
-        g2.setColor(new Color(70, 130, 180, 200));
-        g2.fillRoundRect(20, panelY, gp.screenWidth - 40, panelHeight, 15, 15);
+        // Premium multi-layer shadow for depth
+        int shadowAlpha = isPreview ? 12 : 18;
+        // Distant shadow
+        g2.setColor(new Color(0, 0, 0, shadowAlpha));
+        g2.fillRoundRect(x + 4, y + 6, width, height, 16, 16);
+        // Medium shadow
+        g2.setColor(new Color(0, 0, 0, shadowAlpha + 5));
+        g2.fillRoundRect(x + 2, y + 3, width, height, 16, 16);
+        // Close shadow
+        g2.setColor(new Color(0, 0, 0, shadowAlpha + 8));
+        g2.fillRoundRect(x + 1, y + 1, width, height, 16, 16);
         
-        // Panel border
-        g2.setStroke(new BasicStroke(2));
-        g2.setColor(new Color(100, 149, 237));
-        g2.drawRoundRect(20, panelY, gp.screenWidth - 40, panelHeight, 15, 15);
+        // Glass morphism card background
+        int bgAlpha = isPreview ? 140 : 190;
+        g2.setColor(new Color(255, 255, 255, bgAlpha));
+        g2.fillRoundRect(x, y, width, height, 16, 16);
         
-        // Control instructions
-        g2.setFont(new Font("Arial", Font.BOLD, 14));
-        g2.setColor(Color.WHITE);
+        // Inner highlight for glass effect
+        g2.setColor(new Color(255, 255, 255, 40));
+        g2.fillRoundRect(x + 2, y + 2, width - 4, 12, 14, 14);
         
-        String[] controls = {
-            "W/S ↕: Navigate Items", 
-            "A/D ↔: Switch Categories", 
-            "ENTER: Purchase", 
-            "B/ESC: Exit Shop"
+        // Gold selection border with glow
+        if (isSelected && !isPreview) {
+            // Golden glow effect
+            for (int glow = 3; glow >= 0; glow--) {
+                g2.setStroke(new BasicStroke(2.5f + glow));
+                int alpha = 35 - (glow * 8);
+                g2.setColor(new Color(255, 215, 0, alpha)); // Gold glow
+                g2.drawRoundRect(x - glow, y - glow, width + (glow * 2), height + (glow * 2), 16 + glow, 16 + glow);
+            }
+            // Main golden border
+            g2.setStroke(new BasicStroke(2.5f));
+            g2.setColor(new Color(255, 215, 0, 240)); // Bright gold
+        } else {
+            g2.setStroke(new BasicStroke(1.2f));
+            int borderAlpha = isPreview ? 80 : 120;
+            g2.setColor(new Color(255, 255, 255, borderAlpha));
+        }
+        g2.drawRoundRect(x, y, width, height, 16, 16);
+        
+        // Item image
+        BufferedImage itemImage = getItemImage(shopItem.item.getName());
+        if (itemImage != null) {
+            int imageSize = 60;
+            int imageX = x + (width - imageSize) / 2;
+            int imageY = y + 15;
+            g2.drawImage(itemImage, imageX, imageY, imageSize, imageSize, null);
+        }
+        
+        // Premium typography for item name (PokéMart style)
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 12)); // Smaller for grid items
+        FontMetrics fm = g2.getFontMetrics();
+        String itemName = shopItem.item.getName();
+        
+        // Word wrap item name if too long
+        if (fm.stringWidth(itemName) > width - 10) {
+            String[] words = itemName.split(" ");
+            StringBuilder line1 = new StringBuilder();
+            StringBuilder line2 = new StringBuilder();
+            
+            for (String word : words) {
+                if (fm.stringWidth(line1.toString() + word) < width - 10 && line1.length() < 15) {
+                    if (line1.length() > 0) line1.append(" ");
+                    line1.append(word);
+                } else {
+                    if (line2.length() > 0) line2.append(" ");
+                    line2.append(word);
+                }
+            }
+            
+            int textX1 = x + (width - fm.stringWidth(line1.toString())) / 2;
+            int textX2 = x + (width - fm.stringWidth(line2.toString())) / 2;
+            
+            // Multiple shadow layers for depth (same as PokéMart)
+            g2.setColor(new Color(0, 0, 0, 60));
+            g2.drawString(line1.toString(), textX1 + 2, y + 92);
+            if (line2.length() > 0) {
+                g2.drawString(line2.toString(), textX2 + 2, y + 107);
+            }
+            g2.setColor(new Color(0, 0, 0, 30));
+            g2.drawString(line1.toString(), textX1 + 1, y + 91);
+            if (line2.length() > 0) {
+                g2.drawString(line2.toString(), textX2 + 1, y + 106);
+            }
+            
+            // Main title with same style as PokéMart
+            g2.setColor(new Color(255, 255, 255, 240));
+            g2.drawString(line1.toString(), textX1, y + 90);
+            if (line2.length() > 0) {
+                g2.drawString(line2.toString(), textX2, y + 105);
+            }
+        } else {
+            int textX = x + (width - fm.stringWidth(itemName)) / 2;
+            
+            // Multiple shadow layers for depth (same as PokéMart)
+            g2.setColor(new Color(0, 0, 0, 60));
+            g2.drawString(itemName, textX + 2, y + 92);
+            g2.setColor(new Color(0, 0, 0, 30));
+            g2.drawString(itemName, textX + 1, y + 91);
+            
+            // Main title with same style as PokéMart
+            g2.setColor(new Color(255, 255, 255, 240));
+            g2.drawString(itemName, textX, y + 90);
+        }
+        
+        // Price display with green/red colors based on affordability
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        String priceText = "₽ " + shopItem.price;
+        
+        // Price background pill for better readability
+        FontMetrics priceFm = g2.getFontMetrics();
+        int priceWidth = priceFm.stringWidth(priceText);
+        int pillX = x + (width - priceWidth) / 2 - 8;
+        int pillY = y + 108;
+        
+        // Background pill color based on affordability
+        if (canAfford) {
+            g2.setColor(new Color(34, 139, 34, 60)); // Green background for affordable
+        } else {
+            g2.setColor(new Color(220, 20, 60, 60)); // Red background for unaffordable
+        }
+        g2.fillRoundRect(pillX, pillY, priceWidth + 16, 20, 10, 10);
+        
+        // Price text with color coding
+        if (canAfford) {
+            // Green for affordable items
+            g2.setColor(new Color(34, 139, 34, 250)); // Forest Green
+        } else {
+            // Red for unaffordable items
+            g2.setColor(new Color(220, 20, 60, 250)); // Crimson Red
+        }
+        
+        int priceX = x + (width - priceWidth) / 2;
+        g2.drawString(priceText, priceX, y + 122);
+        
+        // Add button (like in reference)
+        int buttonWidth = width - 20;
+        int buttonHeight = 25;
+        int buttonX = x + 10;
+        int buttonY = y + height - buttonHeight - 10;
+        
+        // Premium button with gradient and glow
+        if (canAfford) {
+            // Button glow effect
+            g2.setColor(new Color(51, 102, 204, 40));
+            g2.fillRoundRect(buttonX - 1, buttonY - 1, buttonWidth + 2, buttonHeight + 2, 10, 10);
+            
+            // Gradient button background
+            GradientPaint buttonGradient = new GradientPaint(
+                buttonX, buttonY, new Color(71, 132, 224),
+                buttonX, buttonY + buttonHeight, new Color(51, 102, 204)
+            );
+            g2.setPaint(buttonGradient);
+            g2.fillRoundRect(buttonX, buttonY, buttonWidth, buttonHeight, 9, 9);
+            
+            // Inner highlight
+            g2.setColor(new Color(255, 255, 255, 25));
+            g2.fillRoundRect(buttonX + 2, buttonY + 2, buttonWidth - 4, 4, 7, 7);
+        } else {
+            // Disabled button
+            g2.setColor(new Color(100, 100, 100, 120));
+            g2.fillRoundRect(buttonX, buttonY, buttonWidth, buttonHeight, 9, 9);
+        }
+        
+        // Premium button text with shadow
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        String buttonText = canAfford ? "Add" : "No Gold";
+        int buttonTextX = buttonX + (buttonWidth - g2.getFontMetrics().stringWidth(buttonText)) / 2;
+        
+        // Text shadow
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.drawString(buttonText, buttonTextX + 1, buttonY + 17);
+        
+        // Main text
+        g2.setColor(new Color(255, 255, 255, 250));
+        g2.drawString(buttonText, buttonTextX, buttonY + 16);
+    }
+    
+    private void drawScrollIndicator(Graphics2D g2, int x, int y, int width, int height, 
+                                   int totalRows, int scrollOffset, int visibleRows) {
+        // Scroll track background
+        g2.setColor(new Color(220, 220, 220));
+        g2.fillRoundRect(x, y, width, height, 6, 6);
+        
+        // Calculate thumb size and position
+        int thumbHeight = Math.max(20, (height * visibleRows) / totalRows);
+        int thumbY = y + ((height - thumbHeight) * scrollOffset) / Math.max(1, totalRows - visibleRows);
+        
+        // Scroll thumb
+        g2.setColor(new Color(74, 144, 226));
+        g2.fillRoundRect(x + 1, thumbY, width - 2, thumbHeight, 5, 5);
+    }
+    
+    
+    private void drawControls(Graphics2D g2) {
+        // Dynamic controls based on current state
+        String controlsText;
+        if (tabFocused) {
+            controlsText = "A/D: Switch Tabs  |  W/S: Back to Items  |  ENTER: Select Tab  |  ESC: Exit";
+        } else {
+            controlsText = "W: Up (or Tabs)  |  S: Down  |  A/D: Left/Right  |  ENTER: Purchase  |  ESC: Exit";
+        }
+        
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        g2.setColor(new Color(100, 100, 100));
+        
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = (gp.screenWidth - fm.stringWidth(controlsText)) / 2;
+        int textY = gp.screenHeight - 20;
+        
+        g2.drawString(controlsText, textX, textY);
+    }
+    
+    
+    /**
+     * Load item icon based on category and item name (similar to Bag system)
+     */
+    private BufferedImage getItemImage(String itemName) {
+        String cacheKey = itemName + "_" + selectedCategory;
+        
+        if (imageCache.containsKey(cacheKey)) {
+            return imageCache.get(cacheKey);
+        }
+        
+        try {
+            String folderPath = "";
+            switch (selectedCategory) {
+                case 0: // Consumables
+                    folderPath = "/LeagueItems/consumables/";
+                    break;
+                case 1: // Champion Items
+                    folderPath = "/LeagueItems/items/";
+                    break;
+                case 2: // Legend Balls
+                    folderPath = "/LeagueItems/legendballs/";
+                    break;
+            }
+            
+            // Clean item name for file path
+            String cleanName = itemName.toLowerCase()
+                                      .replace(" ", "")
+                                      .replace("'", "")
+                                      .replace(".", "")
+                                      .replace("-", "");
+            
+            // Try .png first, then .jpg as fallback
+            String imagePath = folderPath + cleanName + ".png";
+            BufferedImage image = null;
+            
+            try {
+                image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+            } catch (Exception e) {
+                // Try .jpg extension if .png fails
+                imagePath = folderPath + cleanName + ".jpg";
+                try {
+                    image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+                } catch (Exception e2) {
+                    // Try original name format
+                    imagePath = folderPath + itemName.toLowerCase().replace(" ", "_") + ".png";
+                    image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+                }
+            }
+            
+            if (image != null) {
+                imageCache.put(cacheKey, image);
+            }
+            return image;
+        } catch (Exception e) {
+            System.err.println("Could not load icon for: " + itemName + " (category: " + selectedCategory + ")");
+            
+            // Try to load imgnotfound.png as fallback
+            try {
+                BufferedImage fallbackImage = ImageIO.read(getClass().getResourceAsStream("/LeagueItems/imgnotfound.png"));
+                if (fallbackImage != null) {
+                    imageCache.put(cacheKey, fallbackImage);
+                    return fallbackImage;
+                }
+            } catch (Exception fallbackException) {
+                System.err.println("Could not load fallback image: imgnotfound.png");
+            }
+            
+            // Return a placeholder colored square as last resort
+            return createPlaceholderIcon(selectedCategory);
+        }
+    }
+    
+    /**
+     * Create a colored placeholder icon if image loading fails
+     */
+    private BufferedImage createPlaceholderIcon(int categoryIndex) {
+        BufferedImage placeholder = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = placeholder.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Different colors for different categories
+        Color color = switch (categoryIndex) {
+            case 0 -> new Color(255, 100, 100); // Red for consumables
+            case 1 -> new Color(100, 100, 255); // Blue for items
+            case 2 -> new Color(255, 215, 0);   // Gold for legend balls
+            default -> Color.GRAY;
         };
         
-        int controlSpacing = (gp.screenWidth - 60) / controls.length;
-        for (int i = 0; i < controls.length; i++) {
-            FontMetrics fm = g2.getFontMetrics();
-            int x = 30 + (i * controlSpacing) + (controlSpacing - fm.stringWidth(controls[i])) / 2;
-            
-            // Shadow
-            g2.setColor(new Color(0, 0, 0, 150));
-            g2.drawString(controls[i], x + 1, panelY + 35);
-            
-            // Main text
-            g2.setColor(Color.WHITE);
-            g2.drawString(controls[i], x, panelY + 34);
-        }
-    }
-    
-    private BufferedImage getItemImage(String itemName) {
-        try {
-            // Try to load item image from resources
-            String imagePath = "/items/" + itemName.toLowerCase().replace(" ", "_").replace("'", "") + ".png";
-            return ImageIO.read(getClass().getResourceAsStream(imagePath));
-        } catch (Exception e) {
-            // If image not found, return a default placeholder or null
-            return null;
-        }
+        g2.setColor(color);
+        g2.fillRoundRect(2, 2, 28, 28, 6, 6);
+        g2.setColor(Color.WHITE);
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(2, 2, 28, 28, 6, 6);
+        
+        // Add category symbol
+        g2.setFont(new Font("Arial", Font.BOLD, 16));
+        String symbol = switch (categoryIndex) {
+            case 0 -> "P"; // Potion
+            case 1 -> "I"; // Item
+            case 2 -> "B"; // Ball
+            default -> "?";
+        };
+        FontMetrics fm = g2.getFontMetrics();
+        int symbolX = 16 - fm.stringWidth(symbol) / 2;
+        int symbolY = 16 + fm.getAscent() / 2;
+        g2.drawString(symbol, symbolX, symbolY);
+        
+        g2.dispose();
+        return placeholder;
     }
     
     private void drawPurchasePopup(Graphics2D g2) {
-        // Professional overlay with subtle gradient
-        RadialGradientPaint overlay = new RadialGradientPaint(
-            gp.screenWidth / 2f, gp.screenHeight / 2f, gp.screenWidth / 2f,
-            new float[]{0.0f, 1.0f},
-            new Color[]{new Color(0, 0, 0, 120), new Color(0, 0, 0, 180)}
-        );
-        g2.setPaint(overlay);
+        // Professional backdrop blur effect
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Simple dark overlay
+        g2.setColor(new Color(0, 0, 0, 140));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
         
         // Get current item info
@@ -736,54 +981,20 @@ public class Shop {
         ShopItem shopItem = currentCategory.get(selectedItem);
         Item item = shopItem.item;
         
-        // Responsive popup dimensions
-        int popupWidth = 340;
-        int popupHeight = 520;
+        // Professional dimensions
+        int popupWidth = 420;
+        int popupHeight = 350;
         int popupX = (gp.screenWidth - popupWidth) / 2;
         int popupY = (gp.screenHeight - popupHeight) / 2;
         
-        // Enhanced drop shadow for depth
-        drawDropShadow(g2, popupX, popupY, popupWidth, popupHeight);
+        // Multi-layer professional shadow system
+        drawProfessionalShadow(g2, popupX, popupY, popupWidth, popupHeight);
         
-        // Beautiful gradient background
-        GradientPaint bgGradient = new GradientPaint(
-            popupX, popupY, new Color(108, 158, 208),
-            popupX, popupY + popupHeight, new Color(88, 138, 188)
-        );
-        g2.setPaint(bgGradient);
-        g2.fillRoundRect(popupX, popupY, popupWidth, popupHeight, 25, 25);
+        // Glassmorphism background
+        drawGlassmorphismBackground(g2, popupX, popupY, popupWidth, popupHeight);
         
-        // Subtle highlight on top edge
-        GradientPaint highlight = new GradientPaint(
-            popupX, popupY, new Color(255, 255, 255, 40),
-            popupX, popupY + 80, new Color(255, 255, 255, 0)
-        );
-        g2.setPaint(highlight);
-        g2.fillRoundRect(popupX, popupY, popupWidth, 80, 25, 25);
-        
-        // Item name with enhanced styling
-        drawEnhancedItemName(g2, item.getName(), popupX + 25, popupY + 35);
-        
-        // Item type with subtle styling
-        drawEnhancedItemType(g2, item.getType().toString(), popupX + 25, popupY + 65);
-        
-        // Enhanced item display with shadow and glow
-        drawEnhancedItemImage(g2, item, popupX + (popupWidth/2) - 70, popupY + 95, 140, 140);
-        
-        // Professional rarity display
-        drawEnhancedRarity(g2, getItemRarity(item), popupX + 25, popupY + 165);
-        
-        // Modern price display
-        drawEnhancedPrice(g2, shopItem.price, popupX + (popupWidth/2) - 50, popupY + 255);
-        
-        // Smooth quantity controls with hover effects
-        drawEnhancedQuantityControls(g2, popupX + (popupWidth/2) - 70, popupY + 305);
-        
-        // Elegant description formatting
-        drawEnhancedDescription(g2, item.getDescription(), popupX + 25, popupY + 365, popupWidth - 50);
-        
-        // Premium buy button with effects
-        drawEnhancedBuyButton(g2, popupX + (popupWidth/2) - 60, popupY + 450, 120);
+        // Content with proper spacing
+        drawProfessionalContent(g2, item, shopItem, popupX, popupY, popupWidth, popupHeight);
     }
     
     // Enhanced drawing methods for professional UI
@@ -1959,7 +2170,7 @@ public class Shop {
         
         // Price text with golden effect
         g2.setFont(new Font("Arial", Font.BOLD, 16));
-        String priceText = "₽" + String.format("%,d", price);
+        String priceText = "₽ " + String.format("%,d", price);
         FontMetrics fm = g2.getFontMetrics();
         int textX = x + (width - fm.stringWidth(priceText)) / 2;
         
@@ -2053,6 +2264,273 @@ public class Shop {
         g2.drawOval(x + width - 28, y + 20, 8, 8);
         g2.drawLine(x + width - 24, y + 15, x + width - 24, y + 35);
     }
+    
+    // Professional popup system
+    private void drawProfessionalShadow(Graphics2D g2, int x, int y, int width, int height) {
+        // Multi-layered professional shadow
+        for (int i = 0; i < 25; i++) {
+            int alpha = Math.max(0, 40 - i * 2);
+            g2.setColor(new Color(0, 0, 0, alpha));
+            g2.fillRoundRect(x - i + 5, y - i + 8, width + i * 2, height + i * 2, 30 + i, 30 + i);
+        }
+    }
+    
+    private void drawGlassmorphismBackground(Graphics2D g2, int x, int y, int width, int height) {
+        // Glass base with transparency
+        GradientPaint glassGradient = new GradientPaint(
+            x, y, new Color(255, 255, 255, 95),
+            x, y + height, new Color(240, 245, 255, 85)
+        );
+        g2.setPaint(glassGradient);
+        g2.fillRoundRect(x, y, width, height, 24, 24);
+        
+        // Glass border with subtle glow
+        GradientPaint borderGradient = new GradientPaint(
+            x, y, new Color(255, 255, 255, 120),
+            x, y + height, new Color(200, 210, 240, 80)
+        );
+        g2.setPaint(borderGradient);
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(x, y, width, height, 24, 24);
+        
+        // Inner highlight for glass effect
+        g2.setPaint(new GradientPaint(
+            x + 2, y + 2, new Color(255, 255, 255, 60),
+            x + 2, y + 40, new Color(255, 255, 255, 0)
+        ));
+        g2.fillRoundRect(x + 2, y + 2, width - 4, 38, 22, 22);
+    }
+    
+    private void drawProfessionalContent(Graphics2D g2, Item item, ShopItem shopItem, int x, int y, int width, int height) {
+        // Professional typography setup
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        
+        // Header with sophisticated typography
+        drawSophisticatedHeader(g2, item, x + 30, y + 35, width - 60);
+        
+        // Premium item showcase
+        drawPremiumItemShowcase(g2, item, x + (width - 100) / 2, y + 80, 100);
+        
+        // Elegant pricing section
+        int totalCost = shopItem.price * purchaseQuantity;
+        drawElegantPricing(g2, shopItem.price, totalCost, x + 30, y + 200, width - 60);
+        
+        // Professional quantity controls
+        drawProfessionalQuantityControls(g2, x + (width - 280) / 2, y + 240);
+        
+        // Refined action area
+        drawRefinedActionArea(g2, totalCost, x + 40, y + 290, width - 80);
+    }
+    
+    private void drawSophisticatedHeader(Graphics2D g2, Item item, int x, int y, int width) {
+        String itemName = item.getName();
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Smaller than PokéMart title (36)
+        
+        FontMetrics fm = g2.getFontMetrics();
+        int titleX = x + (width - fm.stringWidth(itemName)) / 2; // Center the title
+        
+        // Multiple shadow layers for depth (same as PokéMart)
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.drawString(itemName, titleX + 2, y + 2);
+        g2.setColor(new Color(0, 0, 0, 30));
+        g2.drawString(itemName, titleX + 1, y + 1);
+        
+        // Main title with same style as PokéMart
+        g2.setColor(new Color(255, 255, 255, 240));
+        g2.drawString(itemName, titleX, y);
+        
+    }
+    
+    private void drawPremiumItemShowcase(Graphics2D g2, Item item, int x, int y, int size) {
+        // Simple background square
+        g2.setColor(new Color(240, 245, 255, 120));
+        g2.fillRoundRect(x - 10, y - 10, size + 20, size + 20, 12, 12);
+        
+        // Simple border
+        g2.setColor(new Color(200, 215, 240, 100));
+        g2.setStroke(new BasicStroke(1f));
+        g2.drawRoundRect(x - 10, y - 10, size + 20, size + 20, 12, 12);
+        
+        // Item image
+        BufferedImage itemImage = getItemImage(item.getName());
+        if (itemImage != null) {
+            g2.drawImage(itemImage, x, y, size, size, null);
+        } else {
+            // Simple fallback
+            g2.setColor(new Color(220, 230, 250, 160));
+            g2.fillRoundRect(x + 20, y + 20, size - 40, size - 40, 8, 8);
+            g2.setColor(new Color(140, 150, 170));
+            g2.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+            g2.drawString("?", x + size/2 - 8, y + size/2 + 8);
+        }
+    }
+    
+    private void drawElegantPricing(Graphics2D g2, int unitPrice, int totalCost, int x, int y, int width) {
+        boolean canAfford = gp.player.canAfford(totalCost);
+        
+        // Elegant price container
+        g2.setColor(new Color(255, 255, 255, 120));
+        g2.fillRoundRect(x, y - 5, width, 30, 15, 15);
+        g2.setColor(new Color(220, 230, 250, 60));
+        g2.setStroke(new BasicStroke(0.8f));
+        g2.drawRoundRect(x, y - 5, width, 30, 15, 15);
+        
+        // Professional price typography
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        g2.setColor(new Color(255, 215, 0)); // Golden yellow for all prices
+        
+        String priceText = "₽ " + totalCost;
+        
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = x + (width - fm.stringWidth(priceText)) / 2;
+        g2.drawString(priceText, textX, y + 13);
+    }
+    
+    private void drawProfessionalQuantityControls(Graphics2D g2, int x, int y) {
+        // Sophisticated control container
+        GradientPaint containerGradient = new GradientPaint(
+            x, y, new Color(255, 255, 255, 140),
+            x, y + 45, new Color(248, 250, 255, 120)
+        );
+        g2.setPaint(containerGradient);
+        g2.fillRoundRect(x, y, 280, 45, 22, 22);
+        
+        // Container border with glass effect
+        g2.setColor(new Color(220, 230, 255, 80));
+        g2.setStroke(new BasicStroke(1.2f));
+        g2.drawRoundRect(x, y, 280, 45, 22, 22);
+        
+        // Professional arrow buttons
+        boolean canDecrease = purchaseQuantity > 1;
+        boolean canIncrease = purchaseQuantity < maxPurchaseQuantity;
+        
+        drawProfessionalArrow(g2, x + 15, y + 12, false, canDecrease, "down".equals(lastArrowPressed)); // Down
+        drawProfessionalArrow(g2, x + 245, y + 12, true, canIncrease, "up".equals(lastArrowPressed));  // Up
+        
+        // Elegant quantity display
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        g2.setColor(new Color(30, 41, 59));
+        String qtyText = String.valueOf(purchaseQuantity);
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = x + (280 - fm.stringWidth(qtyText)) / 2;
+        g2.drawString(qtyText, textX, y + 30);
+        
+        // Subtle max indicator
+        g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        g2.setColor(new Color(100, 116, 139, 180));
+        String maxText = "max " + maxPurchaseQuantity;
+        FontMetrics fmSmall = g2.getFontMetrics();
+        int maxTextX = x + (280 - fmSmall.stringWidth(maxText)) / 2;
+        g2.drawString(maxText, maxTextX, y + 58);
+    }
+    
+    private void drawProfessionalArrow(Graphics2D g2, int x, int y, boolean isUp, boolean enabled, boolean wasLastPressed) {
+        int size = 21;
+        
+        // Yellow glow effect if this was the last pressed button
+        if (wasLastPressed && enabled) {
+            // Draw yellow glow around button
+            for (int i = 0; i < 6; i++) {
+                g2.setColor(new Color(255, 215, 0, 30 - i * 4));
+                g2.fillOval(x - i, y - i, size + i * 2, size + i * 2);
+            }
+        }
+        
+        // Sophisticated button styling
+        if (enabled) {
+            // Enhanced state with yellow tint if last pressed
+            Color baseColor1, baseColor2, borderColor;
+            if (wasLastPressed) {
+                baseColor1 = new Color(255, 248, 220, 220);
+                baseColor2 = new Color(255, 235, 180, 180);
+                borderColor = new Color(255, 215, 0, 150);
+            } else {
+                baseColor1 = new Color(255, 255, 255, 200);
+                baseColor2 = new Color(240, 248, 255, 160);
+                borderColor = new Color(59, 130, 246, 120);
+            }
+            
+            GradientPaint buttonGradient = new GradientPaint(x, y, baseColor1, x, y + size, baseColor2);
+            g2.setPaint(buttonGradient);
+            g2.fillOval(x, y, size, size);
+            
+            // Border
+            g2.setColor(borderColor);
+            g2.setStroke(new BasicStroke(wasLastPressed ? 2.0f : 1.5f));
+            g2.drawOval(x, y, size, size);
+        } else {
+            // Disabled state
+            g2.setColor(new Color(249, 250, 251, 160));
+            g2.fillOval(x, y, size, size);
+            g2.setColor(new Color(209, 213, 219, 100));
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawOval(x, y, size, size);
+        }
+        
+        // Professional arrow design
+        Color arrowColor;
+        if (!enabled) {
+            arrowColor = new Color(156, 163, 175, 120);
+        } else if (wasLastPressed) {
+            arrowColor = new Color(255, 165, 0); // Orange-gold for pressed arrows
+        } else {
+            arrowColor = new Color(59, 130, 246);
+        }
+        
+        g2.setColor(arrowColor);
+        g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        
+        int centerX = x + size / 2;
+        int centerY = y + size / 2;
+        
+        if (isUp) {
+            g2.drawLine(centerX - 5, centerY + 2, centerX, centerY - 3);
+            g2.drawLine(centerX, centerY - 3, centerX + 5, centerY + 2);
+        } else {
+            g2.drawLine(centerX - 5, centerY - 2, centerX, centerY + 3);
+            g2.drawLine(centerX, centerY + 3, centerX + 5, centerY - 2);
+        }
+    }
+    
+    private void drawRefinedActionArea(Graphics2D g2, int totalCost, int x, int y, int width) {
+        boolean canAfford = gp.player.canAfford(totalCost);
+        int buttonWidth = (width - 15) / 2;
+        
+        // Primary action button (Buy)
+        Color primaryColor = canAfford ? new Color(16, 185, 129) : new Color(239, 68, 68);
+        GradientPaint primaryGradient = new GradientPaint(
+            x, y, primaryColor,
+            x, y + 36, new Color(primaryColor.getRed(), primaryColor.getGreen(), primaryColor.getBlue(), 220)
+        );
+        g2.setPaint(primaryGradient);
+        g2.fillRoundRect(x, y, buttonWidth, 36, 18, 18);
+        
+        // Primary button highlight
+        g2.setColor(new Color(255, 255, 255, 25));
+        g2.fillRoundRect(x + 1, y + 1, buttonWidth - 2, 12, 16, 16);
+        
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        String primaryText = canAfford ? "Purchase" : "Insufficient Funds";
+        FontMetrics fm = g2.getFontMetrics();
+        int primaryTextX = x + (buttonWidth - fm.stringWidth(primaryText)) / 2;
+        g2.drawString(primaryText, primaryTextX, y + 23);
+        
+        // Secondary action button (Cancel)
+        int cancelX = x + buttonWidth + 15;
+        g2.setColor(new Color(255, 255, 255, 140));
+        g2.fillRoundRect(cancelX, y, buttonWidth, 36, 18, 18);
+        g2.setColor(new Color(100, 116, 139, 80));
+        g2.setStroke(new BasicStroke(1f));
+        g2.drawRoundRect(cancelX, y, buttonWidth, 36, 18, 18);
+        
+        g2.setColor(new Color(71, 85, 105));
+        String cancelText = "Cancel";
+        int cancelTextX = cancelX + (buttonWidth - fm.stringWidth(cancelText)) / 2;
+        g2.drawString(cancelText, cancelTextX, y + 23);
+    }
+    
     
     // Utility methods for the new system
     private Color getRarityColor(Item item) {

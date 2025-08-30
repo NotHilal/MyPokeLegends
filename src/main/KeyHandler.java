@@ -247,7 +247,10 @@ public class KeyHandler implements KeyListener{
 		        switch (gp.ui.menuItems[gp.ui.menuNum]) {
 		        
 		            case "Dex" -> gp.openDex();
-		            case "Champions" -> gp.openChampions();
+		            case "Champions" -> {
+		                System.out.println("DEBUG KEYHANDLER: Champions selected from menu");
+		                gp.openChampions();
+		            }
 		            case "Bag" -> gp.openBag();
 		            case "Map" -> gp.openMap();
 		            case "Badges" -> gp.openBadges();
