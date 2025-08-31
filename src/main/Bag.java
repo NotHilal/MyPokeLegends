@@ -25,18 +25,30 @@ public class Bag {
     // Keyboard navigation
     private boolean keyboardMode = true;
     
+    // Scroll management for asymmetric scrolling
+    private int currentScrollOffset = 0;
+    
     // Image cache for item icons
     private Map<String, BufferedImage> iconCache = new HashMap<>();
     
-    // UI Constants
-    private static final int TAB_HEIGHT = 60;
-    private static final int ITEM_HEIGHT = 45;
-    private static final int VISIBLE_ITEMS = 8;
-    private static final Color PRIMARY_COLOR = new Color(70, 130, 180);
-    private static final Color SECONDARY_COLOR = new Color(30, 60, 100);
-    private static final Color SELECTED_COLOR = new Color(255, 215, 0);
-    private static final Color TEXT_COLOR = Color.WHITE;
-    private static final Color BACKGROUND_COLOR = new Color(25, 25, 35);
+    // UI Constants - Clean Pokemon Style
+    private static final int TAB_HEIGHT = 48;
+    private static final int ITEM_HEIGHT = 55;
+    private static final int VISIBLE_ITEMS = 6;
+    
+    // Clean blue-themed palette
+    private static final Color BG_BLUE_LIGHT = new Color(135, 170, 220);   // Light blue
+    private static final Color BG_BLUE_DARK = new Color(95, 130, 180);     // Darker blue
+    private static final Color CARD_WHITE = new Color(255, 255, 255);      // Pure white
+    private static final Color ACCENT_BLUE = new Color(70, 130, 200);      // Accent blue
+    private static final Color TEXT_DARK = new Color(45, 55, 75);          // Readable dark text
+    private static final Color TEXT_LIGHT = new Color(255, 255, 255);      // White text
+    private static final Color BORDER_COLOR = new Color(180, 200, 230);    // Subtle borders
+    
+    // Category-specific subtle colors
+    private static final Color CONSUMABLE_COLOR = new Color(220, 100, 130); // Muted pink
+    private static final Color ITEM_COLOR = new Color(100, 150, 220);      // Muted blue
+    private static final Color LEGENDBALL_COLOR = new Color(200, 170, 80);  // Muted gold
     
     // Item class for bag contents
     public static class BagItem {
@@ -136,10 +148,11 @@ public class Bag {
         }
     }
     
-    // Navigation methods
+    // Navigation methods with asymmetric scrolling
     public void navigateUp() {
         if (selectedItem > 0) {
             selectedItem--;
+            updateScrollForUpNavigation();
             gp.playSE(9);
         }
     }
@@ -148,14 +161,48 @@ public class Bag {
         List<BagItem> currentTab = inventory.get(selectedTab);
         if (selectedItem < currentTab.size() - 1) {
             selectedItem++;
+            updateScrollForDownNavigation();
             gp.playSE(9);
         }
+    }
+    
+    private void updateScrollForUpNavigation() {
+        List<BagItem> currentTab = inventory.get(selectedTab);
+        if (currentTab.size() <= VISIBLE_ITEMS) {
+            currentScrollOffset = 0;
+            return;
+        }
+        
+        // For upward navigation, only scroll when selectedItem goes above current view
+        if (selectedItem < currentScrollOffset) {
+            // We've moved above the current view, scroll up to show it
+            currentScrollOffset = selectedItem;
+        }
+        // Otherwise, keep current scroll offset to maintain the page view
+    }
+    
+    private void updateScrollForDownNavigation() {
+        List<BagItem> currentTab = inventory.get(selectedTab);
+        if (currentTab.size() <= VISIBLE_ITEMS) {
+            currentScrollOffset = 0;
+            return;
+        }
+        
+        // For downward navigation, scroll when selectedItem goes below current view
+        if (selectedItem >= currentScrollOffset + VISIBLE_ITEMS) {
+            // We've moved below the current view, scroll down to show it
+            currentScrollOffset = selectedItem - VISIBLE_ITEMS + 1;
+        }
+        
+        // Ensure we don't scroll past the end
+        currentScrollOffset = Math.min(currentScrollOffset, currentTab.size() - VISIBLE_ITEMS);
     }
     
     public void navigateLeft() {
         if (selectedTab > 0) {
             selectedTab--;
             selectedItem = 0; // Reset to first item in new tab
+            currentScrollOffset = 0; // Reset scroll when changing tabs
             gp.playSE(9);
         }
     }
@@ -164,6 +211,7 @@ public class Bag {
         if (selectedTab < tabNames.length - 1) {
             selectedTab++;
             selectedItem = 0; // Reset to first item in new tab
+            currentScrollOffset = 0; // Reset scroll when changing tabs
             gp.playSE(9);
         }
     }
@@ -267,353 +315,488 @@ public class Bag {
     }
     
     public void draw(Graphics2D g2) {
-        // Set high quality rendering
+        // Enable high quality antialiasing for smooth modern look
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         
-        // Draw background
-        g2.setColor(BACKGROUND_COLOR);
-        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+        // Draw modern background
+        drawModernBackground(g2);
         
         // Draw main bag window
-        drawBagWindow(g2);
+        drawModernBagWindow(g2);
         
         // Draw tabs
-        drawTabs(g2);
+        drawModernTabs(g2);
         
         // Draw items
-        drawItems(g2);
+        drawModernItems(g2);
         
         // Draw item description
-        drawItemDescription(g2);
+        drawModernItemDescription(g2);
         
-        // Draw close instruction
-        drawCloseInstruction(g2);
+        // Draw controls help
+        drawModernControls(g2);
     }
     
-    private void drawBagWindow(Graphics2D g2) {
-        int windowWidth = gp.screenWidth - 100;
-        int windowHeight = gp.screenHeight - 100;
-        int windowX = 50;
-        int windowY = 50;
+    private void drawModernBackground(Graphics2D g2) {
+        // Dark blue background matching HEX #1d243d
+        g2.setColor(new Color(0x1d243d));
+        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+    }
+    
+    private void drawModernBagWindow(Graphics2D g2) {
+        int windowWidth = gp.screenWidth - 60;
+        int windowHeight = gp.screenHeight - 60;
+        int windowX = 30;
+        int windowY = 30;
         
-        // Main window background
-        g2.setColor(PRIMARY_COLOR);
+        // Subtle shadow
+        g2.setColor(new Color(0, 0, 0, 30));
+        g2.fillRoundRect(windowX + 4, windowY + 4, windowWidth, windowHeight, 20, 20);
+        
+        // Clean window background
+        GradientPaint windowGradient = new GradientPaint(
+            windowX, windowY, CARD_WHITE,
+            windowX, windowY + windowHeight, new Color(245, 248, 255)
+        );
+        g2.setPaint(windowGradient);
         g2.fillRoundRect(windowX, windowY, windowWidth, windowHeight, 20, 20);
         
-        // Window border
-        g2.setColor(Color.WHITE);
-        g2.setStroke(new BasicStroke(3));
+        // Simple border
+        g2.setStroke(new BasicStroke(2));
+        g2.setColor(BORDER_COLOR);
         g2.drawRoundRect(windowX, windowY, windowWidth, windowHeight, 20, 20);
         
-        // Title
-        g2.setFont(new Font("Arial", Font.BOLD, 32));
-        g2.setColor(TEXT_COLOR);
+        // Clean title
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 28));
         String title = "BAG";
-        int titleWidth = g2.getFontMetrics().stringWidth(title);
-        g2.drawString(title, windowX + (windowWidth - titleWidth) / 2, windowY + 40);
+        FontMetrics fm = g2.getFontMetrics();
+        int titleWidth = fm.stringWidth(title);
+        int titleX = windowX + (windowWidth - titleWidth) / 2;
+        
+        // Title shadow
+        g2.setColor(new Color(0, 0, 0, 30));
+        g2.drawString(title, titleX + 1, windowY + 41);
+        
+        // Main title
+        g2.setColor(ACCENT_BLUE);
+        g2.drawString(title, titleX, windowY + 40);
+        
+        // Simple underline
+        g2.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.setColor(ACCENT_BLUE);
+        int lineY = windowY + 50;
+        g2.drawLine(titleX, lineY, titleX + titleWidth, lineY);
         
         g2.setStroke(new BasicStroke(1)); // Reset stroke
     }
     
-    private void drawTabs(Graphics2D g2) {
-        int windowWidth = gp.screenWidth - 100;
-        int windowX = 50;
-        int tabY = 100;
+    private void drawModernTabs(Graphics2D g2) {
+        int windowWidth = gp.screenWidth - 60;
+        int windowX = 30;
+        int tabY = 90;
         int tabWidth = (windowWidth - 60) / tabNames.length;
         
         for (int i = 0; i < tabNames.length; i++) {
-            int tabX = windowX + 20 + (i * tabWidth);
+            int tabX = windowX + 30 + (i * tabWidth);
+            boolean isSelected = (i == selectedTab);
+            Color categoryColor = getCategoryColor(i);
             
             // Tab background
-            Color tabColor = (i == selectedTab) ? SELECTED_COLOR : SECONDARY_COLOR;
-            g2.setColor(tabColor);
-            g2.fillRoundRect(tabX, tabY, tabWidth - 10, TAB_HEIGHT, 15, 15);
+            if (isSelected) {
+                GradientPaint tabGradient = new GradientPaint(
+                    tabX, tabY, categoryColor,
+                    tabX, tabY + TAB_HEIGHT, new Color(
+                        Math.max(0, categoryColor.getRed() - 30),
+                        Math.max(0, categoryColor.getGreen() - 20),
+                        Math.max(0, categoryColor.getBlue() - 10)
+                    )
+                );
+                g2.setPaint(tabGradient);
+            } else {
+                GradientPaint tabGradient = new GradientPaint(
+                    tabX, tabY, CARD_WHITE,
+                    tabX, tabY + TAB_HEIGHT, new Color(240, 245, 250)
+                );
+                g2.setPaint(tabGradient);
+            }
+            g2.fillRoundRect(tabX, tabY, tabWidth - 12, TAB_HEIGHT, 12, 12);
             
             // Tab border
-            g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(2));
-            g2.drawRoundRect(tabX, tabY, tabWidth - 10, TAB_HEIGHT, 15, 15);
+            g2.setColor(isSelected ? categoryColor : BORDER_COLOR);
+            g2.drawRoundRect(tabX, tabY, tabWidth - 12, TAB_HEIGHT, 12, 12);
             
             // Tab text
-            g2.setFont(new Font("Arial", Font.BOLD, 16));
-            Color textColor = (i == selectedTab) ? Color.BLACK : TEXT_COLOR;
-            g2.setColor(textColor);
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            String displayText = tabNames[i];
             
-            String tabName = tabNames[i];
             FontMetrics fm = g2.getFontMetrics();
-            int textWidth = fm.stringWidth(tabName);
+            int textWidth = fm.stringWidth(displayText);
             int textHeight = fm.getAscent();
+            int textX = tabX + (tabWidth - 12 - textWidth) / 2;
+            int textY = tabY + (TAB_HEIGHT + textHeight) / 2;
             
-            g2.drawString(tabName, 
-                tabX + (tabWidth - 10 - textWidth) / 2, 
-                tabY + (TAB_HEIGHT + textHeight) / 2 - 2);
+            // Text shadow for selected tab
+            if (isSelected) {
+                g2.setColor(new Color(0, 0, 0, 30));
+                g2.drawString(displayText, textX + 1, textY + 1);
+                g2.setColor(TEXT_LIGHT);
+            } else {
+                g2.setColor(TEXT_DARK);
+            }
+            
+            g2.drawString(displayText, textX, textY);
         }
         
         g2.setStroke(new BasicStroke(1)); // Reset stroke
     }
     
-    private void drawItems(Graphics2D g2) {
+    private void drawModernItems(Graphics2D g2) {
         List<BagItem> currentTab = inventory.get(selectedTab);
-        int itemsAreaX = 70;
-        int itemsAreaY = 180;
-        int itemsAreaWidth = 450; // Increased width for prettier cards
+        // Center the items list on the page with more space
+        int itemsAreaWidth = 700;
+        int itemsAreaX = (gp.screenWidth - itemsAreaWidth) / 2;
+        int itemsAreaY = 155;
         
-        // Items background with gradient
+        // Items container with modern styling
+        // Soft shadow
+        g2.setColor(new Color(0, 0, 0, 10));
+        g2.fillRoundRect(itemsAreaX + 4, itemsAreaY + 4, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 15, 15);
+        
+        // Background with subtle gradient
         GradientPaint bgGradient = new GradientPaint(
-            itemsAreaX, itemsAreaY, new Color(45, 45, 65, 220),
-            itemsAreaX, itemsAreaY + VISIBLE_ITEMS * ITEM_HEIGHT + 20, new Color(25, 25, 35, 220)
+            itemsAreaX, itemsAreaY, CARD_WHITE,
+            itemsAreaX, itemsAreaY + VISIBLE_ITEMS * ITEM_HEIGHT + 20, new Color(248, 252, 255)
         );
         g2.setPaint(bgGradient);
-        g2.fillRoundRect(itemsAreaX, itemsAreaY, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 12, 12);
+        g2.fillRoundRect(itemsAreaX, itemsAreaY, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 15, 15);
         
-        // Items border with subtle glow
-        g2.setColor(new Color(100, 130, 160, 180));
+        // Modern border
         g2.setStroke(new BasicStroke(2));
-        g2.drawRoundRect(itemsAreaX, itemsAreaY, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 12, 12);
+        g2.setColor(new Color(200, 210, 230));
+        g2.drawRoundRect(itemsAreaX, itemsAreaY, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 15, 15);
         
-        // Calculate scroll offset
-        int scrollOffset = Math.max(0, selectedItem - VISIBLE_ITEMS + 1);
+        // Use the managed scroll offset for asymmetric scrolling
+        int scrollOffset = currentScrollOffset;
         
-        // Draw visible items with enhanced styling
-        for (int i = 0; i < Math.min(VISIBLE_ITEMS, currentTab.size()); i++) {
+        // Draw visible items with bounds checking - reserve space for scrollbar
+        int scrollbarWidth = 20;
+        int itemsToShow = Math.min(VISIBLE_ITEMS, currentTab.size());
+        for (int i = 0; i < itemsToShow; i++) {
             int itemIndex = scrollOffset + i;
-            if (itemIndex >= currentTab.size()) break;
+            if (itemIndex < 0 || itemIndex >= currentTab.size()) continue;
             
             BagItem item = currentTab.get(itemIndex);
-            int itemY = itemsAreaY + 10 + (i * ITEM_HEIGHT);
+            int itemY = itemsAreaY + 15 + (i * ITEM_HEIGHT);
             boolean isSelected = itemIndex == selectedItem;
             
-            drawEnhancedBagItem(g2, item, itemsAreaX + 8, itemY - 2, itemsAreaWidth - 16, ITEM_HEIGHT - 6, isSelected);
+            drawModernBagItem(g2, item, itemsAreaX + 15, itemY, itemsAreaWidth - 30 - scrollbarWidth, ITEM_HEIGHT - 8, isSelected);
         }
         
-        // Enhanced scroll indicator
+        // Modern scroll indicator - positioned inside the white items area
         if (currentTab.size() > VISIBLE_ITEMS) {
-            drawScrollIndicator(g2, itemsAreaX + itemsAreaWidth + 15, itemsAreaY + 10, 
-                               20, VISIBLE_ITEMS * ITEM_HEIGHT, 
-                               currentTab.size(), selectedItem, VISIBLE_ITEMS);
+            int scrollX = itemsAreaX + itemsAreaWidth - 25;
+            int scrollY = itemsAreaY + 15;
+            int scrollHeight = VISIBLE_ITEMS * ITEM_HEIGHT - 10;
+            drawModernScrollIndicator(g2, scrollX, scrollY, 
+                                    15, scrollHeight, 
+                                    currentTab.size(), scrollOffset, VISIBLE_ITEMS);
         }
         
         g2.setStroke(new BasicStroke(1)); // Reset stroke
     }
     
-    private void drawEnhancedBagItem(Graphics2D g2, BagItem item, int x, int y, int width, int height, boolean isSelected) {
-        // Multi-layer shadow for depth
+    private void drawModernBagItem(Graphics2D g2, BagItem item, int x, int y, int width, int height, boolean isSelected) {
+        Color categoryColor = getCategoryColor(selectedTab);
+        
+        // Clean item card styling
         if (isSelected) {
-            // Golden glow for selected items
-            for (int glow = 3; glow >= 0; glow--) {
-                g2.setColor(new Color(255, 215, 0, 15 - (glow * 3)));
-                g2.fillRoundRect(x - glow - 2, y - glow - 2, width + (glow + 2) * 2, height + (glow + 2) * 2, 12 + glow, 12 + glow);
+            // Simple selection background
+            g2.setColor(new Color(categoryColor.getRed(), categoryColor.getGreen(), categoryColor.getBlue(), 50));
+            g2.fillRoundRect(x, y, width, height, 8, 8);
+            
+            // Selection border
+            g2.setStroke(new BasicStroke(2));
+            g2.setColor(categoryColor);
+            g2.drawRoundRect(x, y, width, height, 8, 8);
+        } else {
+            // Alternate row background
+            int itemIndex = (y - 170) / ITEM_HEIGHT;
+            if (itemIndex % 2 == 1) {
+                g2.setColor(new Color(245, 248, 252));
+                g2.fillRoundRect(x, y, width, height, 6, 6);
             }
-        } else {
-            // Subtle shadow for unselected items
-            g2.setColor(new Color(0, 0, 0, 20));
-            g2.fillRoundRect(x + 2, y + 2, width, height, 12, 12);
         }
         
-        // Card background with glass effect
-        if (isSelected) {
-            GradientPaint cardGradient = new GradientPaint(
-                x, y, new Color(255, 255, 255, 220),
-                x, y + height, new Color(255, 248, 200, 200)
-            );
-            g2.setPaint(cardGradient);
-        } else {
-            GradientPaint cardGradient = new GradientPaint(
-                x, y, new Color(255, 255, 255, 180),
-                x, y + height, new Color(240, 240, 255, 160)
-            );
-            g2.setPaint(cardGradient);
-        }
-        g2.fillRoundRect(x, y, width, height, 12, 12);
-        
-        // Inner highlight
-        g2.setColor(new Color(255, 255, 255, 60));
-        g2.fillRoundRect(x + 2, y + 2, width - 4, 8, 10, 10);
-        
-        // Selection border
-        if (isSelected) {
-            g2.setStroke(new BasicStroke(2.5f));
-            g2.setColor(new Color(255, 215, 0, 240));
-            g2.drawRoundRect(x, y, width, height, 12, 12);
-        } else {
-            g2.setStroke(new BasicStroke(1.2f));
-            g2.setColor(new Color(200, 200, 220, 120));
-            g2.drawRoundRect(x, y, width, height, 12, 12);
-        }
-        
-        // Item icon with enhanced styling
+        // Clean item icon
         BufferedImage itemIcon = loadItemIcon(item.iconPath, selectedTab);
-        int iconSize = 40;
+        int iconSize = 36;
         int iconX = x + 12;
         int iconY = y + (height - iconSize) / 2;
         
+        // Icon background
+        g2.setColor(CARD_WHITE);
+        g2.fillRoundRect(iconX, iconY, iconSize, iconSize, 6, 6);
+        
+        // Icon border
+        g2.setStroke(new BasicStroke(1));
+        g2.setColor(BORDER_COLOR);
+        g2.drawRoundRect(iconX, iconY, iconSize, iconSize, 6, 6);
+        
         if (itemIcon != null) {
-            // Icon shadow
-            g2.setColor(new Color(0, 0, 0, 40));
-            g2.fillRoundRect(iconX + 2, iconY + 2, iconSize, iconSize, 8, 8);
-            
-            // Icon background
-            g2.setColor(new Color(255, 255, 255, 200));
-            g2.fillRoundRect(iconX, iconY, iconSize, iconSize, 8, 8);
-            
-            g2.drawImage(itemIcon, iconX + 4, iconY + 4, iconSize - 8, iconSize - 8, null);
-            
-            // Icon border
-            g2.setStroke(new BasicStroke(1));
-            g2.setColor(new Color(180, 180, 200, 150));
-            g2.drawRoundRect(iconX, iconY, iconSize, iconSize, 8, 8);
+            g2.drawImage(itemIcon, iconX + 3, iconY + 3, iconSize - 6, iconSize - 6, null);
         } else {
-            // Enhanced fallback placeholder
-            GradientPaint iconGradient = new GradientPaint(
-                iconX, iconY, new Color(120, 120, 140),
-                iconX, iconY + iconSize, new Color(80, 80, 100)
-            );
-            g2.setPaint(iconGradient);
-            g2.fillRoundRect(iconX, iconY, iconSize, iconSize, 8, 8);
+            // Simple placeholder
+            g2.setColor(new Color(categoryColor.getRed(), categoryColor.getGreen(), categoryColor.getBlue(), 100));
+            g2.fillRoundRect(iconX + 2, iconY + 2, iconSize - 4, iconSize - 4, 4, 4);
             
-            g2.setColor(new Color(200, 200, 220));
-            g2.setStroke(new BasicStroke(1.5f));
-            g2.drawRoundRect(iconX, iconY, iconSize, iconSize, 8, 8);
-            
-            // "?" placeholder
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
+            // Question mark
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            g2.setColor(TEXT_LIGHT);
             FontMetrics fm = g2.getFontMetrics();
-            String questionMark = "?";
-            int textX = iconX + (iconSize - fm.stringWidth(questionMark)) / 2;
-            int textY = iconY + (iconSize + fm.getAscent()) / 2 - 2;
-            g2.setColor(new Color(220, 220, 240));
-            g2.drawString(questionMark, textX, textY);
+            String question = "?";
+            int qx = iconX + (iconSize - fm.stringWidth(question)) / 2;
+            int qy = iconY + (iconSize + fm.getAscent()) / 2 - 2;
+            g2.drawString(question, qx, qy);
         }
         
-        // Item name with enhanced typography
-        int textX = iconX + iconSize + 15;
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        FontMetrics fm = g2.getFontMetrics();
+        // Item name
+        int textStartX = iconX + iconSize + 14;
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        g2.setColor(TEXT_DARK);
+        g2.drawString(item.name, textStartX, y + height/2 + 4);
         
-        // Text shadow for depth
-        g2.setColor(new Color(0, 0, 0, 60));
-        g2.drawString(item.name, textX + 1, y + 20);
-        
-        // Main text
-        g2.setColor(isSelected ? new Color(40, 40, 60) : new Color(60, 60, 80));
-        g2.drawString(item.name, textX, y + 19);
-        
-        // Quantity with pill background
+        // Simple quantity badge
         String quantityText = "×" + item.quantity;
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
         FontMetrics qfm = g2.getFontMetrics();
-        int quantityWidth = qfm.stringWidth(quantityText);
+        int qWidth = qfm.stringWidth(quantityText);
         
-        // Quantity pill background
-        int pillX = x + width - quantityWidth - 20;
-        int pillY = y + height - 22;
-        g2.setColor(new Color(100, 150, 200, 120));
-        g2.fillRoundRect(pillX - 6, pillY - 4, quantityWidth + 12, 18, 9, 9);
+        int badgeX = x + width - qWidth - 18;
+        int badgeY = y + height - 18;
         
-        // Quantity text
-        g2.setColor(new Color(255, 255, 255, 240));
-        g2.drawString(quantityText, pillX, pillY + 8);
+        // Simple quantity background
+        g2.setColor(new Color(categoryColor.getRed(), categoryColor.getGreen(), categoryColor.getBlue(), 120));
+        g2.fillRoundRect(badgeX - 4, badgeY - 8, qWidth + 8, 16, 8, 8);
         
-        // Category indicator dot
-        Color categoryColor = switch (selectedTab) {
-            case 0 -> new Color(255, 100, 100); // Red for consumables
-            case 1 -> new Color(100, 150, 255); // Blue for items  
-            case 2 -> new Color(255, 215, 0);   // Gold for legend balls
-            default -> Color.GRAY;
-        };
-        
-        g2.setColor(categoryColor);
-        g2.fillOval(x + width - 15, y + 8, 8, 8);
-        g2.setColor(new Color(255, 255, 255, 180));
-        g2.setStroke(new BasicStroke(1));
-        g2.drawOval(x + width - 15, y + 8, 8, 8);
+        g2.setColor(TEXT_LIGHT);
+        g2.drawString(quantityText, badgeX, badgeY + 2);
         
         g2.setStroke(new BasicStroke(1)); // Reset stroke
     }
     
-    private void drawItemDescription(Graphics2D g2) {
+    private Color getCategoryColor(int tabIndex) {
+        return switch (tabIndex) {
+            case 0 -> CONSUMABLE_COLOR;  // Hot pink for consumables
+            case 1 -> ITEM_COLOR;        // Sky blue for items  
+            case 2 -> LEGENDBALL_COLOR;  // Golden yellow for legend balls
+            default -> new Color(150, 150, 150);
+        };
+    }
+    
+    
+    private void drawModernItemDescription(Graphics2D g2) {
         List<BagItem> currentTab = inventory.get(selectedTab);
         if (selectedItem >= currentTab.size()) return;
         
         BagItem selectedBagItem = currentTab.get(selectedItem);
+        Color categoryColor = getCategoryColor(selectedTab);
         
-        int descX = 490;
-        int descY = 180;
-        int descWidth = gp.screenWidth - descX - 70;
-        int descHeight = 200;
+        // Position description as a compact square at bottom
+        int itemsEndY = 155 + VISIBLE_ITEMS * ITEM_HEIGHT + 35;
         
-        // Description background
-        g2.setColor(new Color(40, 40, 50, 220));
-        g2.fillRoundRect(descX, descY, descWidth, descHeight, 10, 10);
+        int descWidth = 500;  // Make it more square
+        int descHeight = 120; // Fixed smaller height
+        int descX = (gp.screenWidth - descWidth) / 2;
+        int descY = itemsEndY + 15;
         
-        // Description border
-        g2.setColor(Color.WHITE);
+        // Simple shadow
+        g2.setColor(new Color(0, 0, 0, 20));
+        g2.fillRoundRect(descX + 3, descY + 3, descWidth, descHeight, 12, 12);
+        
+        // Clean description background
+        GradientPaint descGradient = new GradientPaint(
+            descX, descY, CARD_WHITE,
+            descX, descY + descHeight, new Color(248, 252, 255)
+        );
+        g2.setPaint(descGradient);
+        g2.fillRoundRect(descX, descY, descWidth, descHeight, 12, 12);
+        
+        // Simple border
         g2.setStroke(new BasicStroke(2));
-        g2.drawRoundRect(descX, descY, descWidth, descHeight, 10, 10);
+        g2.setColor(BORDER_COLOR);
+        g2.drawRoundRect(descX, descY, descWidth, descHeight, 12, 12);
         
-        // Item name
-        g2.setFont(new Font("Arial", Font.BOLD, 18));
-        g2.setColor(SELECTED_COLOR);
-        g2.drawString(selectedBagItem.name, descX + 15, descY + 30);
+        // Clean item name
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        g2.setColor(categoryColor);
+        g2.drawString(selectedBagItem.name, descX + 18, descY + 35);
+        
+        // Quantity badge - moved to top right
+        String quantityText = "×" + selectedBagItem.quantity;
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        FontMetrics qtyFm = g2.getFontMetrics();
+        int qtyWidth = qtyFm.stringWidth(quantityText);
+        int qtyX = descX + descWidth - qtyWidth - 25;
+        int qtyY = descY + 25;
+        
+        g2.setColor(new Color(categoryColor.getRed(), categoryColor.getGreen(), categoryColor.getBlue(), 150));
+        g2.fillRoundRect(qtyX - 6, qtyY - 12, qtyWidth + 12, 20, 10, 10);
+        g2.setColor(TEXT_LIGHT);
+        g2.drawString(quantityText, qtyX, qtyY + 2);
+        
+        // Category badge - smaller and repositioned
+        int badgeWidth = 80;
+        g2.setColor(new Color(categoryColor.getRed(), categoryColor.getGreen(), categoryColor.getBlue(), 120));
+        g2.fillRoundRect(descX + 18, descY + 50, badgeWidth, 18, 9, 9);
+        
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        g2.setColor(TEXT_LIGHT);
+        String category = tabNames[selectedTab].toUpperCase();
+        FontMetrics catFm = g2.getFontMetrics();
+        int catWidth = catFm.stringWidth(category);
+        g2.drawString(category, descX + 18 + (badgeWidth - catWidth) / 2, descY + 62);
+        
+        // Simple separator line - adjusted for smaller panel
+        g2.setStroke(new BasicStroke(2));
+        g2.setColor(new Color(categoryColor.getRed(), categoryColor.getGreen(), categoryColor.getBlue(), 100));
+        g2.drawLine(descX + 18, descY + 72, descX + descWidth - 18, descY + 72);
         
         // Item description
-        g2.setFont(new Font("Arial", Font.PLAIN, 14));
-        g2.setColor(TEXT_COLOR);
+        g2.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        g2.setColor(TEXT_DARK);
         
-        // Word wrap description
+        // Word wrap description - optimized for compact panel
         String[] words = selectedBagItem.description.split(" ");
         String currentLine = "";
-        int lineY = descY + 60;
-        int maxWidth = descWidth - 30;
+        int textLineY = descY + 88;
+        int maxWidth = descWidth - 36;
         
         FontMetrics fm = g2.getFontMetrics();
+        int lineHeight = fm.getHeight() + 1;
+        int maxLines = 2; // Limit to 2 lines for compact display
+        int linesDrawn = 0;
         
         for (String word : words) {
             String testLine = currentLine + (currentLine.isEmpty() ? "" : " ") + word;
             if (fm.stringWidth(testLine) <= maxWidth) {
                 currentLine = testLine;
             } else {
-                if (!currentLine.isEmpty()) {
-                    g2.drawString(currentLine, descX + 15, lineY);
-                    lineY += 20;
+                if (!currentLine.isEmpty() && linesDrawn < maxLines) {
+                    g2.drawString(currentLine, descX + 18, textLineY);
+                    textLineY += lineHeight;
+                    linesDrawn++;
                     currentLine = word;
+                    
+                    if (linesDrawn >= maxLines) {
+                        // Add ellipsis if text is truncated
+                        if (!word.isEmpty()) {
+                            currentLine = currentLine + "...";
+                        }
+                        break;
+                    }
                 }
             }
         }
         
-        if (!currentLine.isEmpty()) {
-            g2.drawString(currentLine, descX + 15, lineY);
+        if (!currentLine.isEmpty() && linesDrawn < maxLines) {
+            g2.drawString(currentLine, descX + 18, textLineY);
         }
-        
-        // Quantity
-        g2.setFont(new Font("Arial", Font.BOLD, 16));
-        g2.setColor(new Color(200, 200, 200));
-        g2.drawString("Quantity: " + selectedBagItem.quantity, descX + 15, descY + descHeight - 20);
         
         g2.setStroke(new BasicStroke(1)); // Reset stroke
     }
     
-    private void drawScrollIndicator(Graphics2D g2, int x, int y, int width, int height, 
-                                   int totalItems, int selectedIndex, int visibleItems) {
-        // Scroll track
-        g2.setColor(new Color(100, 100, 100));
-        g2.fillRect(x, y, width, height);
+    private void drawModernScrollIndicator(Graphics2D g2, int x, int y, int width, int height, 
+                                         int totalItems, int scrollOffset, int visibleItems) {
+        Color categoryColor = getCategoryColor(selectedTab);
         
-        // Scroll thumb
-        int thumbHeight = Math.max(20, (height * visibleItems) / totalItems);
-        int thumbY = y + (height - thumbHeight) * selectedIndex / Math.max(1, totalItems - visibleItems);
+        // Simple scroll track background
+        g2.setColor(new Color(230, 235, 245));
+        g2.fillRoundRect(x, y, width, height, width/2, width/2);
         
-        g2.setColor(SELECTED_COLOR);
-        g2.fillRect(x + 2, thumbY, width - 4, thumbHeight);
+        // Calculate thumb position and size with bounds checking
+        int thumbHeight = Math.max(20, (height * visibleItems) / Math.max(1, totalItems));
+        int maxThumbY = y + height - thumbHeight;
+        int thumbY = y;
+        
+        if (totalItems > visibleItems) {
+            // Use scroll offset instead of selected index for thumb position
+            float scrollRatio = (float) scrollOffset / Math.max(1, totalItems - visibleItems);
+            thumbY = y + (int) ((height - thumbHeight) * scrollRatio);
+            thumbY = Math.max(y, Math.min(maxThumbY, thumbY));
+        }
+        
+        // Clean scroll thumb
+        GradientPaint thumbGradient = new GradientPaint(
+            x, thumbY, categoryColor,
+            x, thumbY + thumbHeight, new Color(
+                Math.max(0, categoryColor.getRed() - 30),
+                Math.max(0, categoryColor.getGreen() - 20),
+                Math.max(0, categoryColor.getBlue() - 10)
+            )
+        );
+        g2.setPaint(thumbGradient);
+        g2.fillRoundRect(x + 1, thumbY, width - 2, thumbHeight, (width-2)/2, (width-2)/2);
+        
+        // Simple highlight
+        g2.setColor(new Color(255, 255, 255, 60));
+        g2.fillRoundRect(x + 2, thumbY + 1, width - 4, thumbHeight / 3, (width-4)/2, (width-4)/2);
     }
     
-    private void drawCloseInstruction(Graphics2D g2) {
-        g2.setFont(new Font("Arial", Font.BOLD, 14));
-        g2.setColor(TEXT_COLOR);
+    private void drawModernControls(Graphics2D g2) {
+        // Clean controls panel - reduced size
+        int controlY = gp.screenHeight - 40;
+        int controlHeight = 35;
         
-        String instruction = "ESC: Close  |  W/S: Navigate Items  |  A/D: Switch Tabs  |  ENTER: Use Item";
-        int textWidth = g2.getFontMetrics().stringWidth(instruction);
-        g2.drawString(instruction, (gp.screenWidth - textWidth) / 2, gp.screenHeight - 30);
+        // Simple shadow
+        g2.setColor(new Color(0, 0, 0, 15));
+        g2.fillRoundRect(2, controlY + 2, gp.screenWidth - 4, controlHeight, 12, 12);
+        
+        // Clean panel background
+        GradientPaint controlGradient = new GradientPaint(
+            0, controlY, CARD_WHITE,
+            0, controlY + controlHeight, new Color(240, 245, 250)
+        );
+        g2.setPaint(controlGradient);
+        g2.fillRoundRect(0, controlY, gp.screenWidth, controlHeight, 12, 12);
+        
+        // Simple top border
+        g2.setStroke(new BasicStroke(2));
+        g2.setColor(BORDER_COLOR);
+        g2.drawLine(0, controlY, gp.screenWidth, controlY);
+        
+        // Clean control buttons
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        
+        String[] controls = {
+            "ESC: Close",
+            "W/S: Navigate", 
+            "A/D: Switch Tabs",
+            "ENTER: Use Item"
+        };
+        
+        int totalWidth = 0;
+        FontMetrics fm = g2.getFontMetrics();
+        for (String control : controls) {
+            totalWidth += fm.stringWidth(control) + 30;
+        }
+        
+        int startX = (gp.screenWidth - totalWidth) / 2;
+        int textY = controlY + 25;
+        
+        g2.setColor(TEXT_DARK);
+        for (int i = 0; i < controls.length; i++) {
+            g2.drawString(controls[i], startX, textY);
+            startX += fm.stringWidth(controls[i]) + 30;
+            
+            // Separator
+            if (i < controls.length - 1) {
+                g2.setColor(BORDER_COLOR);
+                g2.drawString("|", startX - 18, textY);
+                g2.setColor(TEXT_DARK);
+            }
+        }
     }
 }

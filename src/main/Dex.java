@@ -290,8 +290,8 @@ public class Dex {
     }
 
     public void draw(Graphics2D g2) {
-        // Draw background
-        g2.setColor(Color.DARK_GRAY);
+        // Draw background matching HEX #1d243d
+        g2.setColor(new Color(0x1d243d));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
 
         // Draw Title "CHAMPION DEX"

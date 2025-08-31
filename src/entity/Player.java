@@ -115,8 +115,8 @@ public class Player extends Entity {
         maxLife=6;
         life=maxLife;
         
-        // MONEY SYSTEM - Start with 3000 gold
-        money = 3000;
+        // MONEY SYSTEM - Start with 10000 gold for testing
+        money = 10000;
         
         // INVENTORY SYSTEM - Central inventory for items
         inventory = new HashMap<>();
@@ -859,13 +859,49 @@ public class Player extends Entity {
      * Initialize starting items for the player
      */
     private void initializeStartingItems() {
-        // Add some starting items for testing with timestamps
+        // Add many starting items for testing with timestamps
         long currentTime = System.currentTimeMillis();
-        inventory.put("Potion", 3);
+        
+        // Consumables for testing - add all available types
+        inventory.put("Potion", 15);
         itemTimestamps.put("Potion", currentTime);
         
-        inventory.put("Poke Ball", 5);
-        itemTimestamps.put("Poke Ball", currentTime + 1); // Slightly later timestamp
+        inventory.put("Mana Potion", 10);
+        itemTimestamps.put("Mana Potion", currentTime + 1);
+        
+        inventory.put("Full Restore", 5);
+        itemTimestamps.put("Full Restore", currentTime + 2);
+        
+        inventory.put("Revive", 8);
+        itemTimestamps.put("Revive", currentTime + 3);
+        
+        inventory.put("Max Revive", 3);
+        itemTimestamps.put("Max Revive", currentTime + 4);
+        
+        inventory.put("Refillable Potion", 12);
+        itemTimestamps.put("Refillable Potion", currentTime + 5);
+        
+        inventory.put("Corrupting Potion", 6);
+        itemTimestamps.put("Corrupting Potion", currentTime + 6);
+        
+        inventory.put("Elixir of Iron", 4);
+        itemTimestamps.put("Elixir of Iron", currentTime + 7);
+        
+        inventory.put("Elixir of Sorcery", 4);
+        itemTimestamps.put("Elixir of Sorcery", currentTime + 8);
+        
+        inventory.put("Elixir of Wrath", 4);
+        itemTimestamps.put("Elixir of Wrath", currentTime + 9);
+        
+        // Legend balls for testing
+        inventory.put("Poke Ball", 20);
+        itemTimestamps.put("Poke Ball", currentTime + 10);
+        
+        inventory.put("Great Ball", 10);
+        itemTimestamps.put("Great Ball", currentTime + 11);
+        
+        inventory.put("Ultra Ball", 5);
+        itemTimestamps.put("Ultra Ball", currentTime + 12);
     }
     
     /**

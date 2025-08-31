@@ -575,8 +575,8 @@ import Champions.Champion;
 
 	    
 	    public void draw(Graphics2D g2) {
-	        // Draw background
-	        g2.setColor(Color.DARK_GRAY);
+	        // Draw background matching HEX #1d243d
+	        g2.setColor(new Color(0x1d243d));
 	        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
 	
 	        drawLeftPanel(g2);
@@ -666,7 +666,7 @@ import Champions.Champion;
 	        int arrowPadding = 60; // Additional padding for arrows
 	
 	        // Draw filter section background
-	        g2.setColor(Color.DARK_GRAY);
+	        g2.setColor(new Color(0x1d243d));
 	        g2.fillRect(rightPanelX, 0, rightPanelWidth, filterHeight);
 	        g2.setColor(Color.WHITE);
 	        g2.drawRect(rightPanelX, 0, rightPanelWidth, filterHeight);
