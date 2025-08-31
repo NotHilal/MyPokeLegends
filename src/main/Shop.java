@@ -40,6 +40,7 @@ public class Shop {
     private int purchaseQuantity = 1;
     private int maxPurchaseQuantity = 1;
     private String lastArrowPressed = ""; // "up" or "down"
+    private int selectedPopupButton = 0; // 0 = Purchase, 1 = Cancel
     
     // Note: Using Player's central inventory system instead of local inventory
     
@@ -231,6 +232,7 @@ public class Shop {
         maxPurchaseQuantity = Math.min(maxPurchaseQuantity, 99);
         
         purchaseQuantity = 1;
+        selectedPopupButton = 0; // Reset to Purchase button
         showPurchasePopup = true;
         gp.playSE(9); // Popup open sound
     }
@@ -291,8 +293,22 @@ public class Shop {
                 adjustPurchaseQuantity(-1);
                 gp.keyH.downPressed = false;
             }
+            if (gp.keyH.leftPressed) {
+                selectedPopupButton = 0; // Navigate to Purchase button
+                gp.playSE(9); // Navigation sound
+                gp.keyH.leftPressed = false;
+            }
+            if (gp.keyH.rightPressed) {
+                selectedPopupButton = 1; // Navigate to Cancel button  
+                gp.playSE(9); // Navigation sound
+                gp.keyH.rightPressed = false;
+            }
             if (gp.keyH.enterPressed) {
-                purchaseItem(); // Execute purchase
+                if (selectedPopupButton == 0) {
+                    purchaseItem(); // Execute purchase
+                } else {
+                    closePurchasePopup(); // Cancel - close popup
+                }
                 gp.keyH.enterPressed = false;
             }
             if (gp.keyH.escPressed) {
@@ -2497,8 +2513,17 @@ public class Shop {
         boolean canAfford = gp.player.canAfford(totalCost);
         int buttonWidth = (width - 15) / 2;
         
-        // Primary action button (Buy)
+        // Primary action button (Purchase) - with selection highlight
+        boolean purchaseSelected = (selectedPopupButton == 0);
         Color primaryColor = canAfford ? new Color(16, 185, 129) : new Color(239, 68, 68);
+        
+        if (purchaseSelected) {
+            // Add selection border for Purchase button
+            g2.setColor(new Color(255, 255, 0, 180)); // Yellow selection border
+            g2.setStroke(new BasicStroke(3f));
+            g2.drawRoundRect(x - 2, y - 2, buttonWidth + 4, 40, 22, 22);
+        }
+        
         GradientPaint primaryGradient = new GradientPaint(
             x, y, primaryColor,
             x, y + 36, new Color(primaryColor.getRed(), primaryColor.getGreen(), primaryColor.getBlue(), 220)
@@ -2507,7 +2532,7 @@ public class Shop {
         g2.fillRoundRect(x, y, buttonWidth, 36, 18, 18);
         
         // Primary button highlight
-        g2.setColor(new Color(255, 255, 255, 25));
+        g2.setColor(new Color(255, 255, 255, purchaseSelected ? 40 : 25));
         g2.fillRoundRect(x + 1, y + 1, buttonWidth - 2, 12, 16, 16);
         
         g2.setColor(Color.WHITE);
@@ -2517,15 +2542,24 @@ public class Shop {
         int primaryTextX = x + (buttonWidth - fm.stringWidth(primaryText)) / 2;
         g2.drawString(primaryText, primaryTextX, y + 23);
         
-        // Secondary action button (Cancel)
+        // Secondary action button (Cancel) - with selection highlight
+        boolean cancelSelected = (selectedPopupButton == 1);
         int cancelX = x + buttonWidth + 15;
-        g2.setColor(new Color(255, 255, 255, 140));
+        
+        if (cancelSelected) {
+            // Add selection border for Cancel button
+            g2.setColor(new Color(255, 255, 0, 180)); // Yellow selection border
+            g2.setStroke(new BasicStroke(3f));
+            g2.drawRoundRect(cancelX - 2, y - 2, buttonWidth + 4, 40, 22, 22);
+        }
+        
+        g2.setColor(new Color(255, 255, 255, cancelSelected ? 180 : 140));
         g2.fillRoundRect(cancelX, y, buttonWidth, 36, 18, 18);
         g2.setColor(new Color(100, 116, 139, 80));
         g2.setStroke(new BasicStroke(1f));
         g2.drawRoundRect(cancelX, y, buttonWidth, 36, 18, 18);
         
-        g2.setColor(new Color(71, 85, 105));
+        g2.setColor(cancelSelected ? new Color(71, 85, 105, 255) : new Color(71, 85, 105));
         String cancelText = "Cancel";
         int cancelTextX = cancelX + (buttonWidth - fm.stringWidth(cancelText)) / 2;
         g2.drawString(cancelText, cancelTextX, y + 23);

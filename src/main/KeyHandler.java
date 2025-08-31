@@ -261,6 +261,7 @@ public class KeyHandler implements KeyListener{
 		    }
 		    if (code == KeyEvent.VK_ESCAPE) {
 		    	gp.ui.menuNum =0;
+		        gp.keyH.resetKeyStates();
 		        gp.gameState=gp.playState;
 		    }
 		}
@@ -482,6 +483,7 @@ public class KeyHandler implements KeyListener{
 				if(gp.dex != null && gp.dex.showPopup) {
 					gp.dex.closePopup();
 				} else {
+					gp.keyH.resetKeyStates();
 					gp.gameState = gp.pauseState;
 				}
 			}
@@ -527,6 +529,7 @@ public class KeyHandler implements KeyListener{
 				if(gp.bag != null) {
 					gp.bag.closeBag();
 				} else {
+					gp.keyH.resetKeyStates();
 					gp.gameState = gp.pauseState;
 				}
 			}
@@ -767,6 +770,25 @@ public class KeyHandler implements KeyListener{
 		{
 			return false;
 		}
+	}
+	
+	// Reset all key states - useful when switching between game states/menus
+	public void resetKeyStates() {
+		upPressed = false;
+		downPressed = false;
+		leftPressed = false;
+		rightPressed = false;
+		f2Pressed = false;
+		f3Pressed = false;
+		interctPressed = false;
+		enterPressed = false;
+		num1Pressed = false;
+		num2Pressed = false;
+		num3Pressed = false;
+		num4Pressed = false;
+		gPressed = false;
+		tabPressed = false;
+		escPressed = false;
 	}
 
 }

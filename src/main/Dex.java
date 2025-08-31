@@ -53,6 +53,11 @@ public class Dex {
     
     // Method to call when Dex is opened to ensure first champion is highlighted
     public void onDexOpened() {
+        // Reset to main dex view when opened
+        showPopup = false;
+        selectedChampion = null;
+        popupPage = 0;
+        currentPage = 0; // Reset to first page of champions
         enableKeyboardMode();
         resetToFirstChampion();
     }
@@ -251,6 +256,7 @@ public class Dex {
     }
     
     public void returnToMenu() {
+        gp.keyH.resetKeyStates();
         gp.gameState = gp.pauseState;
     }
     
@@ -663,6 +669,7 @@ public class Dex {
 
         if (mouseX >= returnButtonX && mouseX <= returnButtonX + returnButtonSize &&
             mouseY >= returnButtonY && mouseY <= returnButtonY + returnButtonSize) {
+            gp.keyH.resetKeyStates();
             gp.gameState = gp.pauseState; // Transition to previous menu
             return;
         }

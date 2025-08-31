@@ -220,6 +220,7 @@ public class Bag {
     }
     
     public void closeBag() {
+        gp.keyH.resetKeyStates();
         gp.gameState = gp.pauseState;
         gp.playSE(9);
     }

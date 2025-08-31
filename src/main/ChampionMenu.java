@@ -355,6 +355,7 @@ import Champions.Champion;
 	    }
 	    
 	    public void returnToMenu() {
+	        gp.keyH.resetKeyStates();
 	        gp.gameState = gp.pauseState;
 	    }
 	    
@@ -1058,6 +1059,7 @@ import Champions.Champion;
 
 	        if (mouseX >= returnButtonX && mouseX <= returnButtonX + returnButtonWidth &&
 	            mouseY >= returnButtonY && mouseY <= returnButtonY + returnButtonHeight) {
+	            gp.keyH.resetKeyStates();
 	            gp.gameState = gp.pauseState; // Return to menu
 	            return;
 	        }

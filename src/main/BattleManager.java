@@ -140,6 +140,20 @@ public class BattleManager {
     }
 
     public void startBattle(Champion playerChampion, Champion wildChampion) {
+        // Initialize ItemManager at battle start to ensure item system is ready
+        item.ItemManager.initialize();
+        
+        // Reset UI battle navigation to Fight option
+        gp.ui.battleNum = 0;
+        
+        // Reset all key states to prevent issues from overworld menu usage
+        gp.keyH.enterPressed = false;
+        gp.keyH.escPressed = false;
+        gp.keyH.upPressed = false;
+        gp.keyH.downPressed = false;
+        gp.keyH.leftPressed = false;
+        gp.keyH.rightPressed = false;
+        
         this.playerChampion = playerChampion;
         this.wildChampion = wildChampion;
         this.battleState = BattleState.MAIN_MENU;
@@ -1050,6 +1064,9 @@ public class BattleManager {
                 // Don't clear battle message when switching to move selection
             }
             case 1 -> {
+                // Ensure ItemManager is initialized before checking inventory
+                item.ItemManager.initialize();
+                
                 // Check if player has any items
                 if (gp.player.getInventory().isEmpty()) {
                     addBattleMessage("No items available!");
@@ -4390,7 +4407,7 @@ public class BattleManager {
     }
     
     private void drawPaginationInfo(Graphics2D g2, int x, int y, int width, int currentPage, int totalPages) {
-        if (totalPages <= 1) return; // Don't show pagination for single page
+        // Always show page info (even for single page)
         
         g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
         String pageText = "Page " + currentPage + " of " + totalPages;
@@ -4684,6 +4701,14 @@ public class BattleManager {
         gp.ui.battleNum = 0;
         gp.gameState = gp.playState;
         gp.playMusic(gp.currentMusic);
+        
+        // Reset all key states to prevent issues when returning to overworld
+        gp.keyH.enterPressed = false;
+        gp.keyH.escPressed = false;
+        gp.keyH.upPressed = false;
+        gp.keyH.downPressed = false;
+        gp.keyH.leftPressed = false;
+        gp.keyH.rightPressed = false;
         
         // Reset battle state
         battleState = BattleState.MAIN_MENU;
