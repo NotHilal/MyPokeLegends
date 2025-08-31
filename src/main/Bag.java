@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import javax.imageio.ImageIO;
+import factories.ItemDataLoader;
+import data.ItemTemplate;
 
 public class Bag {
     
@@ -62,6 +64,7 @@ public class Bag {
     
     /**
      * Load inventory from Player's central inventory system
+     * Items are ordered the same as in Shop using ItemDataLoader
      */
     private void loadInventoryFromPlayer() {
         inventory = new ArrayList<>();
@@ -72,35 +75,10 @@ public class Bag {
             System.out.println("DEBUG BAG: Player has '" + entry.getKey() + "' x" + entry.getValue());
         }
         
-        // Initialize empty category lists
-        List<BagItem> consumables = new ArrayList<>();
-        List<BagItem> items = new ArrayList<>(); 
-        List<BagItem> legendBalls = new ArrayList<>();
-        
-        // Categorize items from player inventory
-        for (Map.Entry<String, Integer> entry : playerItems.entrySet()) {
-            String itemName = entry.getKey();
-            int quantity = entry.getValue();
-            
-            // Skip items with 0 quantity
-            if (quantity <= 0) continue;
-            
-            // Determine category and create BagItem
-            BagItem bagItem = createBagItem(itemName, quantity);
-            if (bagItem != null) {
-                // Categorize based on item name (you can improve this logic)
-                if (isConsumable(itemName)) {
-                    System.out.println("DEBUG BAG: Adding '" + itemName + "' to consumables");
-                    consumables.add(bagItem);
-                } else if (isLegendBall(itemName)) {
-                    System.out.println("DEBUG BAG: Adding '" + itemName + "' to legend balls");
-                    legendBalls.add(bagItem);
-                } else {
-                    System.out.println("DEBUG BAG: Adding '" + itemName + "' to items");
-                    items.add(bagItem); // Default to items category
-                }
-            }
-        }
+        // Initialize category lists using ItemDataLoader order
+        List<BagItem> consumables = createOrderedCategoryList("consumables", playerItems);
+        List<BagItem> items = createOrderedCategoryList("items", playerItems);
+        List<BagItem> legendBalls = createOrderedCategoryList("legendballs", playerItems);
         
         System.out.println("DEBUG BAG: Final counts - Consumables: " + consumables.size() + 
                           ", Items: " + items.size() + ", LegendBalls: " + legendBalls.size());
@@ -111,59 +89,40 @@ public class Bag {
     }
     
     /**
+     * Create ordered list for a category using ItemDataLoader order
+     */
+    private List<BagItem> createOrderedCategoryList(String category, Map<String, Integer> playerItems) {
+        List<BagItem> categoryList = new ArrayList<>();
+        List<ItemTemplate> templateItems = ItemDataLoader.getItemsByCategory(category);
+        
+        // Go through items in ItemDataLoader order
+        for (ItemTemplate template : templateItems) {
+            String itemName = template.name;
+            if (playerItems.containsKey(itemName) && playerItems.get(itemName) > 0) {
+                int quantity = playerItems.get(itemName);
+                BagItem bagItem = createBagItem(itemName, quantity);
+                if (bagItem != null) {
+                    categoryList.add(bagItem);
+                    System.out.println("DEBUG BAG: Adding '" + itemName + "' to " + category + " (ordered)");
+                }
+            }
+        }
+        
+        return categoryList;
+    }
+    
+    /**
      * Create BagItem with appropriate description and icon path
      */
     private BagItem createBagItem(String itemName, int quantity) {
-        // Item descriptions map
-        String description = getItemDescription(itemName);
-        String iconPath = itemName.toLowerCase().replace(" ", "").replace("'", "");
+        // Get description from ItemDataLoader
+        ItemTemplate template = ItemDataLoader.getItem(itemName);
+        String description = template != null ? template.description : "Unknown item";
+        String iconPath = template != null ? template.iconPath : itemName.toLowerCase().replace(" ", "").replace("'", "");
         
         return new BagItem(itemName, description, quantity, iconPath);
     }
     
-    /**
-     * Check if item is a consumable
-     */
-    private boolean isConsumable(String itemName) {
-        String[] consumables = {"Potion", "Mana Potion", "Full Restore", "Revive", "Max Revive", "Refillable Potion"};
-        for (String consumable : consumables) {
-            if (itemName.equalsIgnoreCase(consumable)) return true;
-        }
-        return false;
-    }
-    
-    /**
-     * Check if item is a legend ball
-     */
-    private boolean isLegendBall(String itemName) {
-        return itemName.toLowerCase().contains("ball");
-    }
-    
-    /**
-     * Get description for item
-     */
-    private String getItemDescription(String itemName) {
-        switch (itemName.toLowerCase()) {
-            case "potion": return "Restores 50 HP";
-            case "mana potion": return "Restores mana";
-            case "full restore": return "Fully restores HP and removes status";
-            case "revive": return "Revives a fainted champion with half HP";
-            case "max revive": return "Revives a fainted champion with full HP";
-            case "refillable potion": return "Can be refilled at shops";
-            case "doran's blade": return "Balanced AD starter item";
-            case "doran's ring": return "AP starter with mana sustain";
-            case "b.f. sword": return "High attack damage component";
-            case "needlessly large rod": return "High ability power component";
-            case "berserker's greaves": return "Attack speed boots";
-            case "infinity edge": return "Increases critical strike damage";
-            case "poke ball": return "Standard ball for catching champions";
-            case "great ball": return "Better catch rate than Poke Ball";
-            case "ultra ball": return "High catch rate for strong champions";
-            case "master ball": return "Guaranteed catch for any champion";
-            case "legend ball": return "Special ball for legendary champions";
-            default: return "A useful item";
-        }
-    }
     
     /**
      * Refresh inventory from player data (call when returning to bag)
@@ -398,67 +357,177 @@ public class Bag {
         List<BagItem> currentTab = inventory.get(selectedTab);
         int itemsAreaX = 70;
         int itemsAreaY = 180;
-        int itemsAreaWidth = 400;
+        int itemsAreaWidth = 450; // Increased width for prettier cards
         
-        // Items background
-        g2.setColor(new Color(40, 40, 50, 200));
-        g2.fillRoundRect(itemsAreaX, itemsAreaY, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 10, 10);
+        // Items background with gradient
+        GradientPaint bgGradient = new GradientPaint(
+            itemsAreaX, itemsAreaY, new Color(45, 45, 65, 220),
+            itemsAreaX, itemsAreaY + VISIBLE_ITEMS * ITEM_HEIGHT + 20, new Color(25, 25, 35, 220)
+        );
+        g2.setPaint(bgGradient);
+        g2.fillRoundRect(itemsAreaX, itemsAreaY, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 12, 12);
         
-        // Items border
-        g2.setColor(Color.WHITE);
+        // Items border with subtle glow
+        g2.setColor(new Color(100, 130, 160, 180));
         g2.setStroke(new BasicStroke(2));
-        g2.drawRoundRect(itemsAreaX, itemsAreaY, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 10, 10);
+        g2.drawRoundRect(itemsAreaX, itemsAreaY, itemsAreaWidth, VISIBLE_ITEMS * ITEM_HEIGHT + 20, 12, 12);
         
         // Calculate scroll offset
         int scrollOffset = Math.max(0, selectedItem - VISIBLE_ITEMS + 1);
         
-        // Draw visible items
+        // Draw visible items with enhanced styling
         for (int i = 0; i < Math.min(VISIBLE_ITEMS, currentTab.size()); i++) {
             int itemIndex = scrollOffset + i;
             if (itemIndex >= currentTab.size()) break;
             
             BagItem item = currentTab.get(itemIndex);
             int itemY = itemsAreaY + 10 + (i * ITEM_HEIGHT);
+            boolean isSelected = itemIndex == selectedItem;
             
-            // Item selection background
-            if (itemIndex == selectedItem) {
-                g2.setColor(new Color(255, 215, 0, 100));
-                g2.fillRoundRect(itemsAreaX + 5, itemY - 5, itemsAreaWidth - 10, ITEM_HEIGHT - 5, 8, 8);
-                
-                g2.setColor(SELECTED_COLOR);
-                g2.setStroke(new BasicStroke(2));
-                g2.drawRoundRect(itemsAreaX + 5, itemY - 5, itemsAreaWidth - 10, ITEM_HEIGHT - 5, 8, 8);
-            }
-            
-            // Draw actual item icon
-            BufferedImage itemIcon = loadItemIcon(item.iconPath, selectedTab);
-            if (itemIcon != null) {
-                g2.drawImage(itemIcon, itemsAreaX + 15, itemY, 32, 32, null);
-            } else {
-                // Fallback placeholder
-                g2.setColor(Color.GRAY);
-                g2.fillRect(itemsAreaX + 15, itemY, 32, 32);
-                g2.setColor(Color.WHITE);
-                g2.drawRect(itemsAreaX + 15, itemY, 32, 32);
-            }
-            
-            // Item name
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
-            g2.setColor(TEXT_COLOR);
-            g2.drawString(item.name, itemsAreaX + 55, itemY + 15);
-            
-            // Item quantity
-            g2.setFont(new Font("Arial", Font.PLAIN, 12));
-            g2.setColor(new Color(200, 200, 200));
-            g2.drawString("x" + item.quantity, itemsAreaX + 55, itemY + 30);
+            drawEnhancedBagItem(g2, item, itemsAreaX + 8, itemY - 2, itemsAreaWidth - 16, ITEM_HEIGHT - 6, isSelected);
         }
         
-        // Scroll indicator
+        // Enhanced scroll indicator
         if (currentTab.size() > VISIBLE_ITEMS) {
-            drawScrollIndicator(g2, itemsAreaX + itemsAreaWidth + 10, itemsAreaY + 10, 
+            drawScrollIndicator(g2, itemsAreaX + itemsAreaWidth + 15, itemsAreaY + 10, 
                                20, VISIBLE_ITEMS * ITEM_HEIGHT, 
                                currentTab.size(), selectedItem, VISIBLE_ITEMS);
         }
+        
+        g2.setStroke(new BasicStroke(1)); // Reset stroke
+    }
+    
+    private void drawEnhancedBagItem(Graphics2D g2, BagItem item, int x, int y, int width, int height, boolean isSelected) {
+        // Multi-layer shadow for depth
+        if (isSelected) {
+            // Golden glow for selected items
+            for (int glow = 3; glow >= 0; glow--) {
+                g2.setColor(new Color(255, 215, 0, 15 - (glow * 3)));
+                g2.fillRoundRect(x - glow - 2, y - glow - 2, width + (glow + 2) * 2, height + (glow + 2) * 2, 12 + glow, 12 + glow);
+            }
+        } else {
+            // Subtle shadow for unselected items
+            g2.setColor(new Color(0, 0, 0, 20));
+            g2.fillRoundRect(x + 2, y + 2, width, height, 12, 12);
+        }
+        
+        // Card background with glass effect
+        if (isSelected) {
+            GradientPaint cardGradient = new GradientPaint(
+                x, y, new Color(255, 255, 255, 220),
+                x, y + height, new Color(255, 248, 200, 200)
+            );
+            g2.setPaint(cardGradient);
+        } else {
+            GradientPaint cardGradient = new GradientPaint(
+                x, y, new Color(255, 255, 255, 180),
+                x, y + height, new Color(240, 240, 255, 160)
+            );
+            g2.setPaint(cardGradient);
+        }
+        g2.fillRoundRect(x, y, width, height, 12, 12);
+        
+        // Inner highlight
+        g2.setColor(new Color(255, 255, 255, 60));
+        g2.fillRoundRect(x + 2, y + 2, width - 4, 8, 10, 10);
+        
+        // Selection border
+        if (isSelected) {
+            g2.setStroke(new BasicStroke(2.5f));
+            g2.setColor(new Color(255, 215, 0, 240));
+            g2.drawRoundRect(x, y, width, height, 12, 12);
+        } else {
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.setColor(new Color(200, 200, 220, 120));
+            g2.drawRoundRect(x, y, width, height, 12, 12);
+        }
+        
+        // Item icon with enhanced styling
+        BufferedImage itemIcon = loadItemIcon(item.iconPath, selectedTab);
+        int iconSize = 40;
+        int iconX = x + 12;
+        int iconY = y + (height - iconSize) / 2;
+        
+        if (itemIcon != null) {
+            // Icon shadow
+            g2.setColor(new Color(0, 0, 0, 40));
+            g2.fillRoundRect(iconX + 2, iconY + 2, iconSize, iconSize, 8, 8);
+            
+            // Icon background
+            g2.setColor(new Color(255, 255, 255, 200));
+            g2.fillRoundRect(iconX, iconY, iconSize, iconSize, 8, 8);
+            
+            g2.drawImage(itemIcon, iconX + 4, iconY + 4, iconSize - 8, iconSize - 8, null);
+            
+            // Icon border
+            g2.setStroke(new BasicStroke(1));
+            g2.setColor(new Color(180, 180, 200, 150));
+            g2.drawRoundRect(iconX, iconY, iconSize, iconSize, 8, 8);
+        } else {
+            // Enhanced fallback placeholder
+            GradientPaint iconGradient = new GradientPaint(
+                iconX, iconY, new Color(120, 120, 140),
+                iconX, iconY + iconSize, new Color(80, 80, 100)
+            );
+            g2.setPaint(iconGradient);
+            g2.fillRoundRect(iconX, iconY, iconSize, iconSize, 8, 8);
+            
+            g2.setColor(new Color(200, 200, 220));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(iconX, iconY, iconSize, iconSize, 8, 8);
+            
+            // "?" placeholder
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
+            FontMetrics fm = g2.getFontMetrics();
+            String questionMark = "?";
+            int textX = iconX + (iconSize - fm.stringWidth(questionMark)) / 2;
+            int textY = iconY + (iconSize + fm.getAscent()) / 2 - 2;
+            g2.setColor(new Color(220, 220, 240));
+            g2.drawString(questionMark, textX, textY);
+        }
+        
+        // Item name with enhanced typography
+        int textX = iconX + iconSize + 15;
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        FontMetrics fm = g2.getFontMetrics();
+        
+        // Text shadow for depth
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.drawString(item.name, textX + 1, y + 20);
+        
+        // Main text
+        g2.setColor(isSelected ? new Color(40, 40, 60) : new Color(60, 60, 80));
+        g2.drawString(item.name, textX, y + 19);
+        
+        // Quantity with pill background
+        String quantityText = "×" + item.quantity;
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        FontMetrics qfm = g2.getFontMetrics();
+        int quantityWidth = qfm.stringWidth(quantityText);
+        
+        // Quantity pill background
+        int pillX = x + width - quantityWidth - 20;
+        int pillY = y + height - 22;
+        g2.setColor(new Color(100, 150, 200, 120));
+        g2.fillRoundRect(pillX - 6, pillY - 4, quantityWidth + 12, 18, 9, 9);
+        
+        // Quantity text
+        g2.setColor(new Color(255, 255, 255, 240));
+        g2.drawString(quantityText, pillX, pillY + 8);
+        
+        // Category indicator dot
+        Color categoryColor = switch (selectedTab) {
+            case 0 -> new Color(255, 100, 100); // Red for consumables
+            case 1 -> new Color(100, 150, 255); // Blue for items  
+            case 2 -> new Color(255, 215, 0);   // Gold for legend balls
+            default -> Color.GRAY;
+        };
+        
+        g2.setColor(categoryColor);
+        g2.fillOval(x + width - 15, y + 8, 8, 8);
+        g2.setColor(new Color(255, 255, 255, 180));
+        g2.setStroke(new BasicStroke(1));
+        g2.drawOval(x + width - 15, y + 8, 8, 8);
         
         g2.setStroke(new BasicStroke(1)); // Reset stroke
     }

@@ -25,7 +25,8 @@ public class Shop {
     private final String[] categoryNames = {"Consumables", "Champion Items", "Legend Balls"};
     private int selectedCategory = 0;
     private int selectedItem = 0;
-    private int scrollOffset = 0;
+    private int currentPage = 0;
+    private static final int ITEMS_PER_PAGE = 8; // 2 rows × 4 columns
     
     // Tab navigation state
     private boolean tabFocused = false; // Whether we're currently selecting tabs
@@ -83,31 +84,90 @@ public class Shop {
     private void initializeShop() {
         shopInventory = new ArrayList<>();
         
-        // Category 0: Consumables
+        // Category 0: Consumables - All from ItemDataLoader
         List<ShopItem> consumables = new ArrayList<>();
         consumables.add(new ShopItem(ItemFactory.createItem("Potion")));
         consumables.add(new ShopItem(ItemFactory.createItem("Mana Potion")));
         consumables.add(new ShopItem(ItemFactory.createItem("Full Restore")));
         consumables.add(new ShopItem(ItemFactory.createItem("Revive")));
         consumables.add(new ShopItem(ItemFactory.createItem("Max Revive")));
+        consumables.add(new ShopItem(ItemFactory.createItem("Refillable Potion")));
+        consumables.add(new ShopItem(ItemFactory.createItem("Corrupting Potion")));
+        consumables.add(new ShopItem(ItemFactory.createItem("Elixir of Iron")));
+        consumables.add(new ShopItem(ItemFactory.createItem("Elixir of Sorcery")));
+        consumables.add(new ShopItem(ItemFactory.createItem("Elixir of Wrath")));
         
-        // Category 1: Champion Items (Basic items only)
+        // Category 1: Champion Items - All equipment from ItemDataLoader
         List<ShopItem> equipment = new ArrayList<>();
+        
+        // Starter Items
         equipment.add(new ShopItem(ItemFactory.createItem("Doran's Blade")));
         equipment.add(new ShopItem(ItemFactory.createItem("Doran's Ring")));
         equipment.add(new ShopItem(ItemFactory.createItem("Doran's Shield")));
+        
+        // Basic Components
         equipment.add(new ShopItem(ItemFactory.createItem("Long Sword")));
         equipment.add(new ShopItem(ItemFactory.createItem("Amplifying Tome")));
         equipment.add(new ShopItem(ItemFactory.createItem("Cloth Armor")));
-        equipment.add(new ShopItem(ItemFactory.createItem("Berserker's Greaves")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Null-Magic Mantle")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Ruby Crystal")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Sapphire Crystal")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Dagger")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Pickaxe")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Cloak of Agility")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Vampiric Scepter")));
         
-        // Category 2: Legend Balls
+        // Higher-tier Components
+        equipment.add(new ShopItem(ItemFactory.createItem("B.F. Sword")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Needlessly Large Rod")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Chain Vest")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Negatron Cloak")));
+        
+        // Boots
+        equipment.add(new ShopItem(ItemFactory.createItem("Berserker's Greaves")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Sorcerer's Shoes")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Plated Steelcaps")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Mercury's Treads")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Boots of Swiftness")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Ionian Boots of Lucidity")));
+        
+        // Legendary Items
+        equipment.add(new ShopItem(ItemFactory.createItem("Infinity Edge")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Rabadon's Deathcap")));
+        equipment.add(new ShopItem(ItemFactory.createItem("The Bloodthirster")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Void Staff")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Lord Dominik's Regards")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Guardian Angel")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Zhonya's Hourglass")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Banshee's Veil")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Dead Man's Plate")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Spirit Visage")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Nashor's Tooth")));
+        equipment.add(new ShopItem(ItemFactory.createItem("The Black Cleaver")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Mortal Reminder")));
+        equipment.add(new ShopItem(ItemFactory.createItem("The Collector")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Shadowflame")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Horizon Focus")));
+        
+        // Mythic Items
+        equipment.add(new ShopItem(ItemFactory.createItem("Kraken Slayer")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Galeforce")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Immortal Shieldbow")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Luden's Tempest")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Riftmaker")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Everfrost")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Sunfire Aegis")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Turbo Chemtank")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Eclipse")));
+        equipment.add(new ShopItem(ItemFactory.createItem("Duskblade of Draktharr")));
+        
+        // Category 2: Legend Balls - All from ItemDataLoader (except Master Ball - too powerful)
         List<ShopItem> legendBalls = new ArrayList<>();
         legendBalls.add(new ShopItem(ItemFactory.createItem("Poke Ball")));
         legendBalls.add(new ShopItem(ItemFactory.createItem("Great Ball")));
         legendBalls.add(new ShopItem(ItemFactory.createItem("Ultra Ball")));
         legendBalls.add(new ShopItem(ItemFactory.createItem("Legend Ball")));
-        // Master Ball not sold in shop (too powerful)
+        // Master Ball not sold in shop (too powerful - cost is 999999)
         
         shopInventory.add(consumables);
         shopInventory.add(equipment);
@@ -124,7 +184,7 @@ public class Shop {
         } else {
             int cardsPerRow = 4;
             
-            // Check if we're in the top row
+            // Check if we're in the top row of current page
             if (selectedItem < cardsPerRow) {
                 // Go to tab selection mode
                 tabFocused = true;
@@ -144,15 +204,14 @@ public class Shop {
             selectedItem = 0;
             gp.playSE(9);
         } else {
-            List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
             int cardsPerRow = 4;
+            int itemsOnCurrentPage = getItemsOnCurrentPage();
             
-            // Move down one row if possible
-            if (selectedItem + cardsPerRow < currentCategory.size()) {
+            // Move down one row if possible within current page
+            if (selectedItem + cardsPerRow < itemsOnCurrentPage) {
                 selectedItem += cardsPerRow;
                 gp.playSE(9);
             }
-            // If at bottom, stay there (no automatic action)
         }
     }
     
@@ -161,13 +220,18 @@ public class Shop {
             // Navigate between tabs
             if (selectedCategory > 0) {
                 selectedCategory--;
+                currentPage = 0; // Reset to first page when switching categories
+                selectedItem = 0; // Reset selection
                 gp.playSE(9);
             }
         } else {
-            // Navigate within items (move left within row)
+            // Navigate within items (move left within row or previous page)
             if (selectedItem > 0 && selectedItem % 4 != 0) {
                 selectedItem--;
                 gp.playSE(9);
+            } else if (selectedItem % 4 == 0) {
+                // At leftmost column, try to go to previous page
+                previousPage();
             }
         }
     }
@@ -177,16 +241,46 @@ public class Shop {
             // Navigate between tabs
             if (selectedCategory < categoryNames.length - 1) {
                 selectedCategory++;
+                currentPage = 0; // Reset to first page when switching categories
+                selectedItem = 0; // Reset selection
                 gp.playSE(9);
             }
         } else {
-            // Navigate within items (move right within row)
-            List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-            if (selectedItem < currentCategory.size() - 1 && (selectedItem + 1) % 4 != 0) {
+            // Navigate within items (move right within row or next page)
+            int itemsOnCurrentPage = getItemsOnCurrentPage();
+            if (selectedItem < itemsOnCurrentPage - 1 && (selectedItem + 1) % 4 != 0) {
                 selectedItem++;
                 gp.playSE(9);
+            } else if ((selectedItem + 1) % 4 == 0) {
+                // At rightmost column, try to go to next page
+                nextPage();
             }
         }
+    }
+    
+    public void nextPage() {
+        List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
+        int totalPages = (int) Math.ceil((double) currentCategory.size() / ITEMS_PER_PAGE);
+        if (currentPage < totalPages - 1) {
+            currentPage++;
+            selectedItem = 0; // Reset selection to first item on new page
+            gp.playSE(9);
+        }
+    }
+    
+    public void previousPage() {
+        if (currentPage > 0) {
+            currentPage--;
+            selectedItem = 0; // Reset selection to first item on new page
+            gp.playSE(9);
+        }
+    }
+    
+    private int getItemsOnCurrentPage() {
+        List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
+        int startIndex = currentPage * ITEMS_PER_PAGE;
+        int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, currentCategory.size());
+        return endIndex - startIndex;
     }
     
     public void selectCurrentItem() {
@@ -213,9 +307,10 @@ public class Shop {
     
     private void showPurchasePopup() {
         List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-        if (selectedItem >= currentCategory.size()) return;
+        int actualItemIndex = currentPage * ITEMS_PER_PAGE + selectedItem;
+        if (actualItemIndex >= currentCategory.size()) return;
         
-        ShopItem shopItem = currentCategory.get(selectedItem);
+        ShopItem shopItem = currentCategory.get(actualItemIndex);
         if (!shopItem.inStock) {
             gp.playSE(2);
             return;
@@ -239,7 +334,8 @@ public class Shop {
     
     private void executePurchase() {
         List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-        ShopItem shopItem = currentCategory.get(selectedItem);
+        int actualItemIndex = currentPage * ITEMS_PER_PAGE + selectedItem;
+        ShopItem shopItem = currentCategory.get(actualItemIndex);
         
         int totalCost = shopItem.price * purchaseQuantity;
         
@@ -599,59 +695,35 @@ public class Shop {
         int cardsPerRow = 4;
         int cardSpacing = 20;
         int gridStartY = 200;
-        int viewportHeight = gp.screenHeight - gridStartY - 80; // Leave space for controls
+        int viewportHeight = gp.screenHeight - gridStartY - 80 - 25; // Leave space for controls + 25px bottom margin
         
         // Calculate total grid width for centering
         int totalGridWidth = (cardWidth * cardsPerRow) + (cardSpacing * (cardsPerRow - 1));
         int startX = (gp.screenWidth - totalGridWidth) / 2;
         
-        // Calculate visible rows
+        // Page-based logic: show only items from current page
+        int startIndex = currentPage * ITEMS_PER_PAGE;
+        int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, items.size());
         int rowHeight = cardHeight + cardSpacing;
-        int maxVisibleRows = (viewportHeight + cardSpacing) / rowHeight;
-        int totalRows = (int) Math.ceil((double) items.size() / cardsPerRow);
         
-        // Auto-scroll logic: ensure selected item is visible (only when not in preview mode)
-        if (!isPreviewMode) {
-            int selectedRow = selectedItem / cardsPerRow;
+        // Draw items from current page (2 rows × 4 columns = 8 items max)
+        for (int i = startIndex; i < endIndex; i++) {
+            int pageItemIndex = i - startIndex; // Index within current page (0-7)
+            int row = pageItemIndex / cardsPerRow; // Row within page (0-1)
+            int col = pageItemIndex % cardsPerRow; // Column within row (0-3)
             
-            // Adjust scroll offset to keep selected item visible
-            if (selectedRow < scrollOffset) {
-                scrollOffset = selectedRow;
-            } else if (selectedRow >= scrollOffset + maxVisibleRows) {
-                scrollOffset = selectedRow - maxVisibleRows + 1;
-            }
+            ShopItem shopItem = items.get(i);
             
-            // Clamp scroll offset
-            scrollOffset = Math.max(0, Math.min(scrollOffset, Math.max(0, totalRows - maxVisibleRows)));
-        } else {
-            // In preview mode, always show from the top
-            scrollOffset = 0;
+            int cardX = startX + (col * (cardWidth + cardSpacing));
+            int cardY = gridStartY + (row * rowHeight) + 25; // +25px margin from top
+            
+            drawItemCard(g2, shopItem, cardX, cardY, cardWidth, cardHeight, pageItemIndex, isPreviewMode);
         }
         
-        // No additional overlay needed - blue background is already there
-        
-        // Draw visible items
-        for (int row = scrollOffset; row < Math.min(scrollOffset + maxVisibleRows + 1, totalRows); row++) {
-            for (int col = 0; col < cardsPerRow; col++) {
-                int itemIndex = row * cardsPerRow + col;
-                if (itemIndex >= items.size()) break;
-                
-                ShopItem shopItem = items.get(itemIndex);
-                
-                int cardX = startX + (col * (cardWidth + cardSpacing));
-                int cardY = gridStartY + ((row - scrollOffset) * rowHeight);
-                
-                // Only draw if card is within viewport
-                if (cardY + cardHeight >= gridStartY && cardY <= gridStartY + viewportHeight) {
-                    drawItemCard(g2, shopItem, cardX, cardY, cardWidth, cardHeight, itemIndex, isPreviewMode);
-                }
-            }
-        }
-        
-        // Draw scroll indicator if needed
-        if (totalRows > maxVisibleRows) {
-            drawScrollIndicator(g2, startX + totalGridWidth + 30, gridStartY, 12, viewportHeight, 
-                              totalRows, scrollOffset, maxVisibleRows);
+        // Draw page indicator
+        int totalPages = (int) Math.ceil((double) items.size() / ITEMS_PER_PAGE);
+        if (totalPages > 1) {
+            drawPageIndicator(g2, totalPages, currentPage);
         }
     }
     
@@ -852,6 +924,116 @@ public class Shop {
         g2.fillRoundRect(x + 1, thumbY, width - 2, thumbHeight, 5, 5);
     }
     
+    private void drawPageIndicator(Graphics2D g2, int totalPages, int currentPage) {
+        // Enhanced page indicator with better styling
+        String pageText = "Page " + (currentPage + 1) + " / " + totalPages;
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        FontMetrics fm = g2.getFontMetrics();
+        int textWidth = fm.stringWidth(pageText);
+        int centerX = gp.screenWidth / 2;
+        int indicatorY = gp.screenHeight - 60; // 60px from bottom to leave 25px margin
+        
+        // Calculate full indicator width - always same size for consistency
+        int arrowSize = 16;
+        int arrowSpacing = 25;
+        // Always reserve space for both arrows even if not visible
+        int totalWidth = textWidth + (totalPages > 1 ? (arrowSize + arrowSpacing) * 2 : 0) + 40;
+        
+        // Elegant gradient background
+        GradientPaint bgGradient = new GradientPaint(
+            centerX - totalWidth/2, indicatorY - 25,
+            new Color(45, 45, 65, 200),
+            centerX + totalWidth/2, indicatorY + 5,
+            new Color(25, 25, 35, 200)
+        );
+        g2.setPaint(bgGradient);
+        g2.fillRoundRect(centerX - totalWidth/2, indicatorY - 25, totalWidth, 35, 18, 18);
+        
+        // Subtle border
+        g2.setStroke(new BasicStroke(2));
+        g2.setColor(new Color(100, 130, 160, 150));
+        g2.drawRoundRect(centerX - totalWidth/2, indicatorY - 25, totalWidth, 35, 18, 18);
+        
+        // Page text with shadow effect
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.drawString(pageText, centerX - textWidth/2 + 1, indicatorY + 1);
+        g2.setColor(new Color(220, 220, 255));
+        g2.drawString(pageText, centerX - textWidth/2, indicatorY);
+        
+        // Enhanced arrows - only show when navigation is possible
+        if (totalPages > 1) {
+            // Left arrow for previous page (only if not on first page)
+            if (currentPage > 0) {
+                int leftArrowX = centerX - textWidth/2 - arrowSpacing - arrowSize/2;
+                drawEnhancedArrow(g2, leftArrowX, indicatorY - 8, arrowSize, true, true);
+            }
+            
+            // Right arrow for next page (only if not on last page)
+            if (currentPage < totalPages - 1) {
+                int rightArrowX = centerX + textWidth/2 + arrowSpacing - arrowSize/2;
+                drawEnhancedArrow(g2, rightArrowX, indicatorY - 8, arrowSize, false, true);
+            }
+        }
+        
+        g2.setStroke(new BasicStroke(1)); // Reset stroke
+    }
+    
+    private void drawEnhancedArrow(Graphics2D g2, int centerX, int centerY, int size, boolean pointLeft, boolean enabled) {
+        // Arrow colors based on state
+        Color arrowColor, shadowColor;
+        if (enabled) {
+            arrowColor = new Color(255, 215, 0); // Gold
+            shadowColor = new Color(180, 150, 0, 100);
+        } else {
+            arrowColor = new Color(120, 120, 120); // Gray
+            shadowColor = new Color(80, 80, 80, 60);
+        }
+        
+        // Calculate arrow points
+        int[] xPoints, yPoints;
+        if (pointLeft) {
+            xPoints = new int[]{centerX - size/2, centerX + size/2, centerX + size/2};
+            yPoints = new int[]{centerY, centerY - size/2, centerY + size/2};
+        } else {
+            xPoints = new int[]{centerX + size/2, centerX - size/2, centerX - size/2};
+            yPoints = new int[]{centerY, centerY - size/2, centerY + size/2};
+        }
+        
+        // Draw shadow
+        g2.setColor(shadowColor);
+        for (int i = 0; i < xPoints.length; i++) {
+            xPoints[i] += 1;
+            yPoints[i] += 1;
+        }
+        g2.fillPolygon(xPoints, yPoints, 3);
+        
+        // Reset points and draw main arrow
+        for (int i = 0; i < xPoints.length; i++) {
+            xPoints[i] -= 1;
+            yPoints[i] -= 1;
+        }
+        
+        if (enabled) {
+            // Gradient for enabled arrows
+            GradientPaint arrowGradient = new GradientPaint(
+                centerX, centerY - size/2, new Color(255, 235, 59),
+                centerX, centerY + size/2, new Color(255, 193, 7)
+            );
+            g2.setPaint(arrowGradient);
+        } else {
+            g2.setColor(arrowColor);
+        }
+        g2.fillPolygon(xPoints, yPoints, 3);
+        
+        // Subtle highlight on enabled arrows
+        if (enabled) {
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.setColor(new Color(255, 255, 255, 60));
+            g2.drawPolygon(xPoints, yPoints, 3);
+        }
+    }
     
     private void drawControls(Graphics2D g2) {
         // Dynamic controls based on current state
@@ -859,7 +1041,7 @@ public class Shop {
         if (tabFocused) {
             controlsText = "A/D: Switch Tabs  |  W/S: Back to Items  |  ENTER: Select Tab  |  ESC: Exit";
         } else {
-            controlsText = "W: Up (or Tabs)  |  S: Down  |  A/D: Left/Right  |  ENTER: Purchase  |  ESC: Exit";
+            controlsText = "W: Up (or Tabs)  |  S: Down  |  A/D: Navigate/Page  |  ENTER: Purchase  |  ESC: Exit";
         }
         
         g2.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -994,7 +1176,8 @@ public class Shop {
         
         // Get current item info
         List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-        ShopItem shopItem = currentCategory.get(selectedItem);
+        int actualItemIndex = currentPage * ITEMS_PER_PAGE + selectedItem;
+        ShopItem shopItem = currentCategory.get(actualItemIndex);
         Item item = shopItem.item;
         
         // Professional dimensions
@@ -1198,7 +1381,8 @@ public class Shop {
     
     private void drawEnhancedBuyButton(Graphics2D g2, int x, int y, int width) {
         List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-        ShopItem shopItem = currentCategory.get(selectedItem);
+        int actualItemIndex = currentPage * ITEMS_PER_PAGE + selectedItem;
+        ShopItem shopItem = currentCategory.get(actualItemIndex);
         boolean canAfford = gp.player.canAfford(shopItem.price * purchaseQuantity);
         
         // Button gradient background
@@ -1373,7 +1557,8 @@ public class Shop {
     
     private void drawBuyButton(Graphics2D g2, int x, int y, int width) {
         List<ShopItem> currentCategory = shopInventory.get(selectedCategory);
-        ShopItem shopItem = currentCategory.get(selectedItem);
+        int actualItemIndex = currentPage * ITEMS_PER_PAGE + selectedItem;
+        ShopItem shopItem = currentCategory.get(actualItemIndex);
         int totalCost = shopItem.price * purchaseQuantity;
         boolean canAfford = gp.player.canAfford(totalCost);
         
