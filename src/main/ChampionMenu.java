@@ -34,6 +34,7 @@ import Champions.Champion;
 	    // Arrow navigation states
 	    private boolean leftArrowSelected = false;  // Is left arrow selected
 	    private boolean rightArrowSelected = false; // Is right arrow selected
+	    private boolean goBackSelected = false; // Is GO BACK button selected
 	    
 	    // X button navigation states
 	    private boolean xButtonMode = false;        // Are we in X button navigation mode
@@ -41,7 +42,7 @@ import Champions.Champion;
 	    
 	    // Helper method to check if any arrow is selected
 	    private boolean isAnyArrowSelected() {
-	        return leftArrowSelected || rightArrowSelected;
+	        return leftArrowSelected || rightArrowSelected || goBackSelected;
 	    }
 	    
 	    // Helper method to check if X button mode is active
@@ -117,6 +118,7 @@ import Champions.Champion;
 	        // Reset arrow selection
 	        leftArrowSelected = false;
 	        rightArrowSelected = false;
+	        goBackSelected = false;
 	        // Reset X button mode
 	        xButtonMode = false;
 	        selectedXButton = 0;
@@ -145,7 +147,7 @@ import Champions.Champion;
 	            return;
 	        }
 	        
-	        // Handle arrow to grid transitions with specific positions
+	        // Handle arrow/button to grid transitions with specific positions
 	        if (leftArrowSelected) {
 	            leftArrowSelected = false;
 	            setGridPosition(0, 0); // Top-left from left arrow
@@ -154,6 +156,16 @@ import Champions.Champion;
 	        } else if (rightArrowSelected) {
 	            rightArrowSelected = false;
 	            setGridPosition(0, 2); // Top-right from right arrow
+	            gp.playSE(9);
+	            return;
+	        } else if (goBackSelected) {
+	            // Do nothing when GO BACK is selected and W is pressed
+	            return;
+	        }
+	        
+	        // If at top row, go to GO BACK button
+	        if (selectedGridRow == 0) {
+	            goBackSelected = true;
 	            gp.playSE(9);
 	            return;
 	        }
@@ -170,6 +182,14 @@ import Champions.Champion;
 	        // Handle X button mode
 	        if (xButtonMode) {
 	            navigateXButtonDown();
+	            return;
+	        }
+	        
+	        // If GO BACK button is selected, go to first champion
+	        if (goBackSelected) {
+	            goBackSelected = false;
+	            setGridPosition(0, 0); // Go to first champion (top-left)
+	            gp.playSE(9);
 	            return;
 	        }
 	        
@@ -311,6 +331,9 @@ import Champions.Champion;
 	            if (selectedChampion != null) {
 	                handlePopupSelection();
 	            }
+	        } else if (goBackSelected) {
+	            // Handle GO BACK button selection
+	            returnToMenu();
 	        } else if (xButtonMode) {
 	            // Handle X button selection (remove champion)
 	            removeSelectedChampion();
@@ -584,6 +607,14 @@ import Champions.Champion;
 	
 	        // Draw popup if visible
 	        drawPopup(g2);
+	        
+	        // Draw GO BACK button
+	        drawGoBackButton(g2);
+	        
+	        // Draw title (after popup so it doesn't get covered)
+	        if (!showPopup) {
+	            drawTitle(g2);
+	        }
 	    }
 	
 	    private void drawLeftPanel(Graphics2D g2) {
@@ -1181,5 +1212,62 @@ import Champions.Champion;
 	        return false;
 	    }
 	
+	    private void drawGoBackButton(Graphics2D g2) {
+	        if (showPopup) return; // Don't show GO BACK button when popup is open
+	        
+	        int buttonSize = 40; // Square button for arrow
+	        int buttonX = 20; // Top left with padding
+	        int buttonY = 20;
+	        
+	        // Style similar to combat bag - clean rounded rectangle
+	        Color buttonColor = goBackSelected ? new Color(70, 130, 200) : new Color(135, 170, 220);
+	        Color arrowColor = goBackSelected ? Color.WHITE : new Color(45, 55, 75);
+	        
+	        // Draw button background
+	        g2.setColor(buttonColor);
+	        g2.fillRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+	        
+	        // Draw border
+	        g2.setColor(goBackSelected ? Color.WHITE : new Color(180, 200, 230));
+	        g2.setStroke(new BasicStroke(2));
+	        g2.drawRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+	        g2.setStroke(new BasicStroke(1)); // Reset stroke
+	        
+	        // Draw left-pointing arrow
+	        g2.setColor(arrowColor);
+	        int arrowSize = 16;
+	        int centerX = buttonX + buttonSize / 2;
+	        int centerY = buttonY + buttonSize / 2;
+	        
+	        // Left-pointing arrow triangle
+	        int[] arrowX = {centerX + arrowSize/2, centerX - arrowSize/2, centerX + arrowSize/2};
+	        int[] arrowY = {centerY - arrowSize/2, centerY, centerY + arrowSize/2};
+	        g2.fillPolygon(arrowX, arrowY, 3);
+	    }
+	    
+	    private void drawTitle(Graphics2D g2) {
+	        // Draw "MY TEAM" title centered over the champion grid area
+	        g2.setFont(new Font("Arial", Font.BOLD, 36));
+	        g2.setColor(Color.WHITE);
+	        String title = "MY TEAM";
+	        FontMetrics fm = g2.getFontMetrics();
+	        int titleWidth = fm.stringWidth(title);
+	        
+	        // Calculate center position over the actual champion grid area (between the arrows)
+	        int leftPanelWidth = gp.screenWidth / 4;
+	        int rightPanelX = leftPanelWidth;
+	        int arrowPadding = 60; 
+	        int arrowSize = 50;
+	        int gridStartX = rightPanelX + arrowPadding + arrowSize;
+	        int rightPanelWidth = gp.screenWidth - leftPanelWidth;
+	        int gridWidth = rightPanelWidth - 2 * (arrowPadding + arrowSize);
+	        
+	        // Center the title over the grid area
+	        int titleX = gridStartX + (gridWidth - titleWidth) / 2;
+	        
+	        int titleY = 60; // Position at top with padding
+	        
+	        g2.drawString(title, titleX, titleY);
+	    }
 	   
 	}

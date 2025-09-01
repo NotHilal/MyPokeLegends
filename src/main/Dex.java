@@ -28,6 +28,7 @@ public class Dex {
     private boolean keyboardMode = false; // Track if we're using keyboard navigation
     private boolean leftArrowSelected = false;  // Is left arrow selected
     private boolean rightArrowSelected = false; // Is right arrow selected
+    private boolean goBackSelected = false; // Is GO BACK button selected
     private boolean justOpened = false; // Prevent immediate selection when Dex opens
 
     
@@ -46,6 +47,7 @@ public class Dex {
         resetToFirstChampion();
         leftArrowSelected = false;
         rightArrowSelected = false;
+        goBackSelected = false;
     }
     
     // Disable keyboard mode (when using mouse)
@@ -67,6 +69,7 @@ public class Dex {
         // Enable keyboard mode to show Aatrox selection
         enableKeyboardMode();
         resetToFirstChampion();
+        goBackSelected = false; // Clear GO BACK selection
         
         // Debug: Ensure popup is definitely closed
         System.out.println("Dex opened - showPopup: " + showPopup + ", selectedChampion: " + selectedChampion);
@@ -79,7 +82,7 @@ public class Dex {
     }
     
     private boolean isAnyArrowSelected() {
-        return leftArrowSelected || rightArrowSelected;
+        return leftArrowSelected || rightArrowSelected || goBackSelected;
     }
     
     private int getChampionsOnCurrentPage() {
@@ -118,7 +121,7 @@ public class Dex {
         if (!keyboardMode) enableKeyboardMode();
         if (showPopup) return;
         
-        // Handle arrow to grid transitions with specific positions
+        // Handle arrow/button to grid transitions with specific positions
         if (leftArrowSelected) {
             leftArrowSelected = false;
             setGridPosition(0, 0); // Top-left from left arrow
@@ -127,6 +130,16 @@ public class Dex {
         } else if (rightArrowSelected) {
             rightArrowSelected = false;
             setGridPosition(0, 4); // Top-right from right arrow
+            gp.playSE(9);
+            return;
+        } else if (goBackSelected) {
+            // Do nothing when GO BACK is selected and W is pressed
+            return;
+        }
+        
+        // If at top row, go to GO BACK button
+        if (selectedGridRow == 0) {
+            goBackSelected = true;
             gp.playSE(9);
             return;
         }
@@ -138,6 +151,14 @@ public class Dex {
     public void navigateDown() {
         if (!keyboardMode) enableKeyboardMode();
         if (showPopup) return;
+        
+        // If GO BACK button is selected, go to first champion
+        if (goBackSelected) {
+            goBackSelected = false;
+            setGridPosition(0, 0); // Go to first champion (top-left)
+            gp.playSE(9);
+            return;
+        }
         
         // Handle arrow to grid transitions with specific positions
         if (leftArrowSelected) {
@@ -239,6 +260,9 @@ public class Dex {
             // Close popup
             showPopup = false;
             gp.playSE(9);
+        } else if (goBackSelected) {
+            // Handle GO BACK button selection
+            returnToMenu();
         } else if (leftArrowSelected) {
             // Handle left arrow selection (go to previous page)
             navigatePageLeft();
@@ -251,7 +275,7 @@ public class Dex {
             System.out.println("DEBUG: Attempting to select champion at index: " + championIndex);
             if (championIndex >= 0 && championIndex < gp.champList.size()) {
                 Champion champion = gp.champList.get(championIndex);
-                if (gp.player.isChampionOwned(champion)) {
+                if (gp.player.isChampionOwned(champion) || gp.player.isChampionSeen(champion)) {
                     System.out.println("DEBUG: Opening popup for champion: " + champion.getName());
                     selectedChampion = champion;
                     showPopup = true;
@@ -352,16 +376,8 @@ public class Dex {
         int titleY = 50; // Position at the top
         g2.drawString(title, titleX, titleY);
 
-        // **Draw Return Button (Red "X")**
-        int returnButtonSize = 40;
-        int returnButtonX = gp.screenWidth - returnButtonSize - 20; // Position it in the top-right corner
-        int returnButtonY = 20; // Spacing from the top
-
-        g2.setColor(Color.RED);
-        g2.fillRect(returnButtonX, returnButtonY, returnButtonSize, returnButtonSize);
-        g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, 24));
-        g2.drawString("X", returnButtonX + 12, returnButtonY + 28);
+        // **Draw GO BACK Button (Top Left)**
+        drawGoBackButton(g2);
 
         drawGrid(g2);
 
@@ -393,10 +409,8 @@ public class Dex {
         int startIndex = currentPage * CHAMPIONS_PER_PAGE;
         int endIndex = Math.min(startIndex + CHAMPIONS_PER_PAGE, champions.size());
 
-        // Get mouse position for hover effect (only when popup is closed)
-        Point mousePoint = MouseInfo.getPointerInfo().getLocation();
-        SwingUtilities.convertPointFromScreen(mousePoint, gp);
-
+        // Mouse hover effects disabled - keyboard-only navigation
+        
         for (int i = startIndex; i < endIndex; i++) {
             Champion champion = champions.get(i);
 
@@ -407,21 +421,14 @@ public class Dex {
             int xOffset = gridStartX + col * cellWidth;
             int yOffset = gridStartY + row * cellHeight;
 
-            // Enable hover effect only if the popup is closed
-            boolean isHovered = !showPopup &&
-                    mousePoint.x >= xOffset + 10 && mousePoint.x <= xOffset + cellWidth - 10 &&
-                    mousePoint.y >= yOffset + 10 && mousePoint.y <= yOffset + cellHeight - 10;
-
             // Check if this cell is selected via keyboard (but not when arrow is selected)
             boolean isKeyboardSelected = keyboardMode && !showPopup && !isAnyArrowSelected() &&
                     selectedGridRow == row && selectedGridCol == col;
 
-            // Draw cell background with keyboard selection priority
+            // Draw cell background - only keyboard selection
             Color cellColor = Color.WHITE;
             if (isKeyboardSelected) {
                 cellColor = new Color(0, 150, 255, 180); // Blue highlight for keyboard selection
-            } else if (isHovered) {
-                cellColor = new Color(180, 180, 180); // Light gray on hover
             }
             g2.setColor(cellColor);
             g2.fillRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
@@ -431,18 +438,26 @@ public class Dex {
             g2.drawRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
 
             // Draw champion image based on three states
-            BufferedImage champImage = loadChampionImage(champion.getImageName());
+            boolean isOwned = gp.player.isChampionOwned(champion);
+            boolean isSeen = gp.player.isChampionSeen(champion);
+            
+            BufferedImage champImage;
+            if (isOwned || isSeen) {
+                // Load normal image for owned and seen champions
+                champImage = loadChampionImage(champion.getImageName());
+            } else {
+                // Load dark image for unseen champions
+                champImage = loadDarkChampionImage(champion.getImageName());
+            }
+            
             if (champImage != null) {
                 int imgWidth = 80;
                 int imgHeight = 80;
                 int imgX = xOffset + (cellWidth - imgWidth) / 2;
                 int imgY = yOffset + (cellHeight - imgHeight) / 2;
-
-                boolean isOwned = gp.player.isChampionOwned(champion);
-                boolean isSeen = gp.player.isChampionSeen(champion);
                 
                 if (isOwned) {
-                    // State 4: Owned - fully visible
+                    // State 1: Owned - fully visible
                     g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
                 } else if (isSeen) {
                     // State 2: Seen but not owned - low opacity with single "?"
@@ -454,15 +469,8 @@ public class Dex {
                     g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
                     g2.drawString("?", imgX + imgWidth / 2 - 10, imgY + imgHeight / 2 + 20);
                 } else {
-                    // State 1: Unseen - no background, just an X
-                    g2.setFont(LARGE_FONT);
-                    g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
-                    String xMark = "X";
-                    FontMetrics fm = g2.getFontMetrics();
-                    int textWidth = fm.stringWidth(xMark);
-                    int textX = imgX + (imgWidth - textWidth) / 2;
-                    int textY = imgY + imgHeight / 2 + fm.getAscent() / 2 - 5;
-                    g2.drawString(xMark, textX, textY);
+                    // State 3: Unseen - use pre-made dark champion image
+                    g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
                 }
             }
         }
@@ -470,8 +478,36 @@ public class Dex {
         drawPageNavigationArrows(g2);
     }
 
-
-
+    private void drawGoBackButton(Graphics2D g2) {
+        int buttonSize = 40; // Square button for arrow
+        int buttonX = 20; // Top left with padding
+        int buttonY = 20;
+        
+        // Style similar to combat bag - clean rounded rectangle
+        Color buttonColor = goBackSelected ? new Color(70, 130, 200) : new Color(135, 170, 220);
+        Color arrowColor = goBackSelected ? Color.WHITE : new Color(45, 55, 75);
+        
+        // Draw button background
+        g2.setColor(buttonColor);
+        g2.fillRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        
+        // Draw border
+        g2.setColor(goBackSelected ? Color.WHITE : new Color(180, 200, 230));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        g2.setStroke(new BasicStroke(1)); // Reset stroke
+        
+        // Draw left-pointing arrow
+        g2.setColor(arrowColor);
+        int arrowSize = 16;
+        int centerX = buttonX + buttonSize / 2;
+        int centerY = buttonY + buttonSize / 2;
+        
+        // Left-pointing arrow triangle
+        int[] arrowX = {centerX + arrowSize/2, centerX - arrowSize/2, centerX + arrowSize/2};
+        int[] arrowY = {centerY - arrowSize/2, centerY, centerY + arrowSize/2};
+        g2.fillPolygon(arrowX, arrowY, 3);
+    }
     
     private void drawPageNavigationArrows(Graphics2D g2) {
         int arrowSize = ARROW_SIZE;
@@ -549,32 +585,79 @@ public class Dex {
         g2.setColor(new Color(50, 50, 50));
         g2.fillRect(popupX, popupY, popupWidth, popupHeight);
 
-        // Draw close button (red "X")
-        int closeButtonSize = 40; // Smaller button
-        int closeButtonX = popupX + popupWidth - closeButtonSize - 20;
-        int closeButtonY = popupY + 20;
-        g2.setColor(Color.RED);
-        g2.fillRect(closeButtonX, closeButtonY, closeButtonSize, closeButtonSize);
-        g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, 24));
-        g2.drawString("X", closeButtonX + 12, closeButtonY + 28);
+        // X button removed - use ESC key to close popup
+
+        // Draw navigation arrows for champion switching
+        drawPopupNavigationArrows(g2, popupX, popupY, popupWidth, popupHeight);
 
         // **Render Info Page Only**
         drawInfoPage(g2, popupX, popupY, popupWidth, popupHeight);
     }
 
-
-
+    private void drawPopupNavigationArrows(Graphics2D g2, int x, int y, int width, int height) {
+        if (selectedChampion == null) return;
+        
+        int currentIndex = gp.champList.indexOf(selectedChampion);
+        boolean hasPrevious = false;
+        boolean hasNext = false;
+        
+        // Check if there's a previous owned/seen champion
+        for (int i = currentIndex - 1; i >= 0; i--) {
+            Champion champion = gp.champList.get(i);
+            if (gp.player.isChampionOwned(champion) || gp.player.isChampionSeen(champion)) {
+                hasPrevious = true;
+                break;
+            }
+        }
+        
+        // Check if there's a next owned/seen champion  
+        for (int i = currentIndex + 1; i < gp.champList.size(); i++) {
+            Champion champion = gp.champList.get(i);
+            if (gp.player.isChampionOwned(champion) || gp.player.isChampionSeen(champion)) {
+                hasNext = true;
+                break;
+            }
+        }
+        
+        int arrowSize = 30;
+        int arrowY = height / 2 - arrowSize / 2; // Center vertically
+        int arrowPadding = 30;
+        
+        // Draw left arrow if there's a previous champion
+        if (hasPrevious) {
+            int leftArrowX = x + arrowPadding;
+            g2.setColor(new Color(200, 200, 200, 180)); // Semi-transparent light gray
+            g2.fillPolygon(
+                new int[]{leftArrowX + arrowSize, leftArrowX, leftArrowX + arrowSize},
+                new int[]{arrowY, arrowY + arrowSize / 2, arrowY + arrowSize},
+                3
+            );
+        }
+        
+        // Draw right arrow if there's a next champion
+        if (hasNext) {
+            int rightArrowX = x + width - arrowPadding - arrowSize;
+            g2.setColor(new Color(200, 200, 200, 180)); // Semi-transparent light gray
+            g2.fillPolygon(
+                new int[]{rightArrowX, rightArrowX + arrowSize, rightArrowX},
+                new int[]{arrowY, arrowY + arrowSize / 2, arrowY + arrowSize},
+                3
+            );
+        }
+    }
 
     private void drawInfoPage(Graphics2D g2, int x, int y, int width, int height) {
+        // Check if champion is owned or just seen
+        boolean isOwned = gp.player.isChampionOwned(selectedChampion);
+        
         // Divide the height into two halves
         int halfHeight = height / 2;
 
         // Load images dynamically
         BufferedImage champImage = loadChampionImage(selectedChampion.getImageName());
-        BufferedImage regionImage = loadRegionImage(selectedChampion.getRegion());
-        BufferedImage roleImage1 = loadRoleImage(selectedChampion.getRole());
-        BufferedImage roleImage2 = selectedChampion.getRole2().isEmpty() ? null : loadRoleImage(selectedChampion.getRole2());
+        BufferedImage regionImage = isOwned ? loadRegionImage(selectedChampion.getRegion()) : null;
+        BufferedImage roleImage1 = isOwned ? loadRoleImage(selectedChampion.getRole()) : null;
+        BufferedImage roleImage2 = (isOwned && !selectedChampion.getRole2().isEmpty()) ? loadRoleImage(selectedChampion.getRole2()) : null;
 
         // Champion Image and Name (Top Center)
         int champBoxWidth = 200;
@@ -588,16 +671,40 @@ public class Dex {
             int champImageSize = 150;
             int champImageX = champBoxX + (champBoxWidth - champImageSize) / 2;
             int champImageY = champBoxY + (champBoxHeight - champImageSize) / 2 - 20;
-            g2.drawImage(champImage, champImageX, champImageY, champImageSize, champImageSize, null);
+            
+            if (isOwned) {
+                // Owned - show full image
+                g2.drawImage(champImage, champImageX, champImageY, champImageSize, champImageSize, null);
+            } else {
+                // Seen but not owned - darken image significantly
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.15f));
+                g2.drawImage(champImage, champImageX, champImageY, champImageSize, champImageSize, null);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+                
+                // Add large "?" overlay
+                g2.setFont(new Font("Arial", Font.BOLD, 80));
+                g2.setColor(new Color(255, 255, 255, 200));
+                String questionMark = "?";
+                FontMetrics fm = g2.getFontMetrics();
+                int textWidth = fm.stringWidth(questionMark);
+                int textHeight = fm.getAscent();
+                g2.drawString(questionMark, 
+                    champImageX + (champImageSize - textWidth) / 2, 
+                    champImageY + (champImageSize + textHeight) / 2 - 10);
+            }
         }
-        g2.setFont(new Font("Arial", Font.BOLD, 24));
-        g2.setColor(Color.WHITE);
-        String champName = selectedChampion.getName();
-        int champNameWidth = g2.getFontMetrics().stringWidth(champName);
-        g2.drawString(champName, champBoxX + (champBoxWidth - champNameWidth) / 2, champBoxY + champBoxHeight - 35);
         
-        // Add champion title below name if available
-        if (ChampionDescriptions.hasChampionLore(selectedChampion.getName())) {
+        // Only show name if owned
+        if (isOwned) {
+            g2.setFont(new Font("Arial", Font.BOLD, 24));
+            g2.setColor(Color.WHITE);
+            String champName = selectedChampion.getName();
+            int champNameWidth = g2.getFontMetrics().stringWidth(champName);
+            g2.drawString(champName, champBoxX + (champBoxWidth - champNameWidth) / 2, champBoxY + champBoxHeight - 35);
+        }
+        
+        // Add champion title below name only if owned and available
+        if (isOwned && ChampionDescriptions.hasChampionLore(selectedChampion.getName())) {
             g2.setFont(new Font("Arial", Font.ITALIC, 16));
             g2.setColor(new Color(200, 200, 200));
             String title = ChampionDescriptions.getChampionTitle(selectedChampion.getName());
@@ -613,16 +720,30 @@ public class Dex {
 
         g2.setColor(Color.WHITE);
         g2.drawRect(regionBoxX, regionBoxY, regionBoxWidth, regionBoxHeight); // Region box
-        if (regionImage != null) {
+        
+        if (isOwned && regionImage != null) {
+            // Show region for owned champions
             int regionImageSize = 80;
             int regionImageX = regionBoxX + (regionBoxWidth - regionImageSize) / 2;
             int regionImageY = regionBoxY + (regionBoxHeight - regionImageSize) / 2;
             g2.drawImage(regionImage, regionImageX, regionImageY, regionImageSize, regionImageSize, null);
+        } else {
+            // Show "?" for non-owned champions
+            g2.setFont(new Font("Arial", Font.BOLD, 50));
+            g2.setColor(new Color(100, 100, 100));
+            String questionMark = "?";
+            FontMetrics fm = g2.getFontMetrics();
+            int textWidth = fm.stringWidth(questionMark);
+            int textHeight = fm.getAscent();
+            g2.drawString(questionMark, 
+                regionBoxX + (regionBoxWidth - textWidth) / 2, 
+                regionBoxY + (regionBoxHeight + textHeight) / 2 - 10);
         }
 
         // Region Name (Centered Below Box)
         g2.setFont(new Font("Arial", Font.PLAIN, 18));
-        String regionText = selectedChampion.getRegion();
+        g2.setColor(Color.WHITE);
+        String regionText = isOwned ? selectedChampion.getRegion() : "Unknown";
         int regionTextWidth = g2.getFontMetrics().stringWidth(regionText);
         g2.drawString(regionText, regionBoxX + (regionBoxWidth - regionTextWidth) / 2, regionBoxY + regionBoxHeight + 20);
 
@@ -636,16 +757,30 @@ public class Dex {
 
         g2.setColor(Color.WHITE);
         g2.drawRect(role1BoxX, roleYOffset, roleBoxWidth, roleBoxHeight); // Role 1 box
-        if (roleImage1 != null) {
+        
+        if (isOwned && roleImage1 != null) {
+            // Show role for owned champions
             int roleImageSize = 80;
             int roleImageX = role1BoxX + (roleBoxWidth - roleImageSize) / 2;
             int roleImageY = roleYOffset + (roleBoxHeight - roleImageSize) / 2;
             g2.drawImage(roleImage1, roleImageX, roleImageY, roleImageSize, roleImageSize, null);
+        } else {
+            // Show "?" for non-owned champions
+            g2.setFont(new Font("Arial", Font.BOLD, 50));
+            g2.setColor(new Color(100, 100, 100));
+            String questionMark = "?";
+            FontMetrics fm = g2.getFontMetrics();
+            int textWidth = fm.stringWidth(questionMark);
+            int textHeight = fm.getAscent();
+            g2.drawString(questionMark, 
+                role1BoxX + (roleBoxWidth - textWidth) / 2, 
+                roleYOffset + (roleBoxHeight + textHeight) / 2 - 10);
         }
 
         // Role 1 Name (Centered Below Box)
         g2.setFont(new Font("Arial", Font.PLAIN, 18));
-        String role1Text = selectedChampion.getRole();
+        g2.setColor(Color.WHITE);
+        String role1Text = isOwned ? selectedChampion.getRole() : "Unknown";
         int role1TextWidth = g2.getFontMetrics().stringWidth(role1Text);
         g2.drawString(role1Text, role1BoxX + (roleBoxWidth - role1TextWidth) / 2, roleYOffset + roleBoxHeight + 20);
 
@@ -654,16 +789,37 @@ public class Dex {
 
         g2.setColor(Color.WHITE);
         g2.drawRect(role2BoxX, roleYOffset, roleBoxWidth, roleBoxHeight); // Role 2 box
-        if (roleImage2 != null) {
+        
+        if (isOwned && roleImage2 != null) {
+            // Show role for owned champions
             int roleImageSize = 80;
             int roleImageX = role2BoxX + (roleBoxWidth - roleImageSize) / 2;
             int roleImageY = roleYOffset + (roleBoxHeight - roleImageSize) / 2;
             g2.drawImage(roleImage2, roleImageX, roleImageY, roleImageSize, roleImageSize, null);
+        } else {
+            // Show "?" for non-owned champions (or nothing if no second role)
+            if (!isOwned) {
+                g2.setFont(new Font("Arial", Font.BOLD, 50));
+                g2.setColor(new Color(100, 100, 100));
+                String questionMark = "?";
+                FontMetrics fm = g2.getFontMetrics();
+                int textWidth = fm.stringWidth(questionMark);
+                int textHeight = fm.getAscent();
+                g2.drawString(questionMark, 
+                    role2BoxX + (roleBoxWidth - textWidth) / 2, 
+                    roleYOffset + (roleBoxHeight + textHeight) / 2 - 10);
+            }
         }
 
         // Role 2 Name (Centered Below Box)
         g2.setFont(new Font("Arial", Font.PLAIN, 18));
-        String role2Text = selectedChampion.getRole2().isEmpty() ? "None" : selectedChampion.getRole2();
+        g2.setColor(Color.WHITE);
+        String role2Text;
+        if (isOwned) {
+            role2Text = selectedChampion.getRole2().isEmpty() ? "None" : selectedChampion.getRole2();
+        } else {
+            role2Text = "Unknown";
+        }
         int role2TextWidth = g2.getFontMetrics().stringWidth(role2Text);
         g2.drawString(role2Text, role2BoxX + (roleBoxWidth - role2TextWidth) / 2, roleYOffset + roleBoxHeight + 20);
 
@@ -676,77 +832,89 @@ public class Dex {
         g2.setColor(Color.WHITE);
         g2.drawRect(statsBoxX, statsBoxY, statsBoxWidth, statsBoxHeight); // Stats box
 
-        // **Stats Title (Outside the box, centered above it)**
-        g2.setFont(new Font("Arial", Font.BOLD, 22));
-        g2.setColor(Color.WHITE);
-        String statsTitle = "Champion Details:";
-        int statsTitleWidth = g2.getFontMetrics().stringWidth(statsTitle);
-        g2.drawString(statsTitle, statsBoxX + (statsBoxWidth - statsTitleWidth) / 2, statsBoxY - 10);
+        // **Stats Title (Outside the box, centered above it) - only for owned champions**
+        if (isOwned) {
+            g2.setFont(new Font("Arial", Font.BOLD, 22));
+            g2.setColor(Color.WHITE);
+            String statsTitle = "Champion Details:";
+            int statsTitleWidth = g2.getFontMetrics().stringWidth(statsTitle);
+            g2.drawString(statsTitle, statsBoxX + (statsBoxWidth - statsTitleWidth) / 2, statsBoxY - 10);
+        }
         
         // **Champion Statistics inside the box**
         int contentX = statsBoxX + 20;
         int contentY = statsBoxY + 30;
         int lineHeight = 25;
         
-        g2.setFont(new Font("Arial", Font.BOLD, 18));
-        g2.setColor(Color.WHITE);
-        
-        // Level and Experience
-        g2.drawString("Level: " + selectedChampion.getLevel(), contentX, contentY);
-        contentY += lineHeight;
-        
-        // Base Stats
-        g2.drawString("HP: " + selectedChampion.getMaxHp(), contentX, contentY);
-        contentY += lineHeight;
-        
-        g2.drawString("Attack: " + selectedChampion.getAD(), contentX, contentY);
-        contentY += lineHeight;
-        
-        g2.drawString("Defense: " + selectedChampion.getArmor(), contentX, contentY);
-        contentY += lineHeight;
-        
-        // Class info
-        g2.drawString("Class: " + selectedChampion.getChampionClass(), contentX, contentY);
-        contentY += lineHeight;
-        
-        // Description or abilities
-        g2.setFont(new Font("Arial", Font.PLAIN, 14));
-        g2.setColor(new Color(220, 220, 220));
-        
-        // Get real champion description from LoL lore
-        String description;
-        String championTitle = "";
-        
-        if (ChampionDescriptions.hasChampionLore(selectedChampion.getName())) {
-            description = ChampionDescriptions.getChampionDescription(selectedChampion.getName());
-            championTitle = " - " + ChampionDescriptions.getChampionTitle(selectedChampion.getName());
-        } else {
-            // Fallback description if champion not found in lore database
-            description = "A powerful champion from " + selectedChampion.getRegion() + 
-                         " region. Specializes in " + selectedChampion.getRole().toLowerCase() + 
-                         " combat tactics.";
-        }
-        
-        // Word wrap the description
-        String[] words = description.split(" ");
-        String currentLine = "";
-        int maxLineWidth = statsBoxWidth - 40;
-        FontMetrics fm = g2.getFontMetrics();
-        
-        for (String word : words) {
-            String testLine = currentLine + (currentLine.isEmpty() ? "" : " ") + word;
-            if (fm.stringWidth(testLine) <= maxLineWidth) {
-                currentLine = testLine;
+        if (isOwned) {
+            // Show full details for owned champions
+            g2.setFont(new Font("Arial", Font.BOLD, 18));
+            g2.setColor(Color.WHITE);
+            
+            // Level and Experience
+            g2.drawString("Level: " + selectedChampion.getLevel(), contentX, contentY);
+            contentY += lineHeight;
+            
+            // Base Stats
+            g2.drawString("HP: " + selectedChampion.getMaxHp(), contentX, contentY);
+            contentY += lineHeight;
+            
+            g2.drawString("Attack: " + selectedChampion.getAD(), contentX, contentY);
+            contentY += lineHeight;
+            
+            g2.drawString("Defense: " + selectedChampion.getArmor(), contentX, contentY);
+            contentY += lineHeight;
+            
+            // Class info
+            g2.drawString("Class: " + selectedChampion.getChampionClass(), contentX, contentY);
+            contentY += lineHeight;
+            
+            // Description or abilities
+            g2.setFont(new Font("Arial", Font.PLAIN, 14));
+            g2.setColor(new Color(220, 220, 220));
+            
+            // Get real champion description from LoL lore
+            String description;
+            String championTitle = "";
+            
+            if (ChampionDescriptions.hasChampionLore(selectedChampion.getName())) {
+                description = ChampionDescriptions.getChampionDescription(selectedChampion.getName());
+                championTitle = " - " + ChampionDescriptions.getChampionTitle(selectedChampion.getName());
             } else {
-                if (!currentLine.isEmpty()) {
-                    g2.drawString(currentLine, contentX, contentY);
-                    contentY += 18;
-                    currentLine = word;
+                // Fallback description if champion not found in lore database
+                description = "A powerful champion from " + selectedChampion.getRegion() + 
+                             " region. Specializes in " + selectedChampion.getRole().toLowerCase() + 
+                             " combat tactics.";
+            }
+            
+            // Word wrap the description
+            String[] words = description.split(" ");
+            String currentLine = "";
+            int maxLineWidth = statsBoxWidth - 40;
+            FontMetrics fm = g2.getFontMetrics();
+            
+            for (String word : words) {
+                String testLine = currentLine + (currentLine.isEmpty() ? "" : " ") + word;
+                if (fm.stringWidth(testLine) <= maxLineWidth) {
+                    currentLine = testLine;
+                } else {
+                    if (!currentLine.isEmpty()) {
+                        g2.drawString(currentLine, contentX, contentY);
+                        contentY += 18;
+                        currentLine = word;
+                    }
                 }
             }
-        }
-        if (!currentLine.isEmpty()) {
-            g2.drawString(currentLine, contentX, contentY);
+            if (!currentLine.isEmpty()) {
+                g2.drawString(currentLine, contentX, contentY);
+            }
+        } else {
+            // Show hidden message for non-owned champions
+            g2.setFont(new Font("Arial", Font.BOLD, 18));
+            g2.setColor(new Color(150, 150, 150));
+            
+            String hiddenMessage = "No champion info available";
+            g2.drawString(hiddenMessage, contentX, contentY);
         }
     }
 
@@ -758,82 +926,8 @@ public class Dex {
     
 
     public void handleMouseClick(int mouseX, int mouseY) {
-        // Disable keyboard mode when mouse is used
-        disableKeyboardMode();
-        
-        if (showPopup) {
-            handlePopupClick(mouseX, mouseY);
-            return;
-        }
-
-        // **Check for "X" button click (Return to previous menu)**
-        int returnButtonSize = 40;
-        int returnButtonX = gp.screenWidth - returnButtonSize - 20;
-        int returnButtonY = 20;
-
-        if (mouseX >= returnButtonX && mouseX <= returnButtonX + returnButtonSize &&
-            mouseY >= returnButtonY && mouseY <= returnButtonY + returnButtonSize) {
-            gp.keyH.resetKeyStates();
-            gp.gameState = gp.pauseState; // Transition to previous menu
-            return;
-        }
-
-        // **Handle other clicks (grid navigation, champion selection, etc.)**
-        int gridColumns = 5;
-        int gridRows = 5;
-        int gridWidth = gp.screenWidth - 2 * GRID_PADDING;
-        int gridHeight = gp.screenHeight - 2 * GRID_PADDING;
-        int cellWidth = gridWidth / gridColumns;
-        int cellHeight = gridHeight / gridRows;
-        int gridStartX = GRID_PADDING;
-        int gridStartY = GRID_PADDING;
-
-        List<Champion> champions = gp.champList;
-        int startIndex = currentPage * CHAMPIONS_PER_PAGE;
-        int endIndex = Math.min(startIndex + CHAMPIONS_PER_PAGE, champions.size());
-
-        // Handle champion selection
-        for (int i = startIndex; i < endIndex; i++) {
-            Champion champion = champions.get(i);
-            int localIndex = i - startIndex;
-            int col = localIndex % gridColumns;
-            int row = localIndex / gridColumns;
-            int xOffset = gridStartX + col * cellWidth;
-            int yOffset = gridStartY + row * cellHeight;
-
-            if (mouseX >= xOffset + 10 && mouseX <= xOffset + cellWidth - 10 &&
-                mouseY >= yOffset + 10 && mouseY <= yOffset + cellHeight - 10) {
-                if (!gp.player.isChampionOwned(champion)) {
-                    System.out.println("You cannot select unowned champions.");
-                    return;
-                }
-                selectedChampion = champion;
-                showPopup = true;
-                gp.repaint();
-                return;
-            }
-        }
-
-        // **Handle left arrow click**
-        int arrowSize = ARROW_SIZE;
-        int arrowXOffset = 40;
-        int arrowY = gp.screenHeight / 2 - arrowSize / 2;
-
-        if (currentPage > 0 && mouseX >= (arrowXOffset - 10) && mouseX <= (arrowXOffset - 10) + arrowSize &&
-            mouseY >= arrowY && mouseY <= arrowY + arrowSize) {
-            currentPage--;
-            gp.repaint();
-            return;
-        }
-
-        // **Handle right arrow click**
-        int maxPage = (int) Math.ceil((double) gp.champList.size() / CHAMPIONS_PER_PAGE) - 1;
-        int rightArrowX = gp.screenWidth - arrowXOffset - arrowSize + 10;
-        if (currentPage < maxPage && mouseX >= rightArrowX && mouseX <= rightArrowX + arrowSize &&
-            mouseY >= arrowY && mouseY <= arrowY + arrowSize) {
-            currentPage++;
-            gp.repaint();
-        }
+        // Mouse functionality disabled - Dex is keyboard-only
+        return;
     }
 
 
@@ -841,24 +935,8 @@ public class Dex {
 
 
     private void handlePopupClick(int mouseX, int mouseY) {
-        int popupWidth = gp.screenWidth;
-        int popupHeight = gp.screenHeight;
-        int popupX = 0;
-        int popupY = 0;
-
-        // Close button
-        int closeButtonSize = 50;
-        int closeButtonX = popupX + popupWidth - closeButtonSize - 20;
-        int closeButtonY = popupY + 20;
-
-        if (mouseX >= closeButtonX && mouseX <= closeButtonX + closeButtonSize &&
-            mouseY >= closeButtonY && mouseY <= closeButtonY + closeButtonSize) {
-            showPopup = false;
-            gp.repaint();
-            return;
-        }
-
-        // No popup navigation arrows needed - only one page
+        // Mouse functionality disabled - popup is keyboard-only
+        return;
     }
 
 
@@ -880,6 +958,22 @@ public class Dex {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+    
+    private BufferedImage loadDarkChampionImage(String imageName) {
+        String darkKey = imageName + "_dark";
+        if (imageCache.containsKey(darkKey)) {
+            return imageCache.get(darkKey);
+        }
+        try {
+            BufferedImage image = ImageIO.read(getClass().getResourceAsStream("/championImgDark/" + imageName + ".png"));
+            imageCache.put(darkKey, image);
+            return image;
+        } catch (Exception e) {
+            // If dark image not found, fall back to loading normal image
+            e.printStackTrace();
+            return loadChampionImage(imageName);
         }
     }
     

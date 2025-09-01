@@ -24,6 +24,7 @@ public class Bag {
     
     // Keyboard navigation
     private boolean keyboardMode = true;
+    private boolean goBackSelected = false; // Is GO BACK button selected
     
     // Scroll management for asymmetric scrolling
     private int currentScrollOffset = 0;
@@ -68,6 +69,7 @@ public class Bag {
     public Bag(GamePanel gp) {
         this.gp = gp;
         initializeInventory();
+        goBackSelected = false; // Ensure proper initialization
     }
     
     private void initializeInventory() {
@@ -79,25 +81,45 @@ public class Bag {
      * Items are ordered the same as in Shop using ItemDataLoader
      */
     private void loadInventoryFromPlayer() {
-        inventory = new ArrayList<>();
-        Map<String, Integer> playerItems = gp.player.getInventory();
-        
-        System.out.println("DEBUG BAG: Loading inventory from player. Total items: " + playerItems.size());
-        for (Map.Entry<String, Integer> entry : playerItems.entrySet()) {
-            System.out.println("DEBUG BAG: Player has '" + entry.getKey() + "' x" + entry.getValue());
+        try {
+            inventory = new ArrayList<>();
+            Map<String, Integer> playerItems = gp.player.getInventory();
+            
+            if (playerItems == null) {
+                System.err.println("ERROR BAG: Player inventory is null!");
+                // Create empty lists to prevent crashes
+                inventory.add(new ArrayList<>());
+                inventory.add(new ArrayList<>());
+                inventory.add(new ArrayList<>());
+                return;
+            }
+            
+            System.out.println("DEBUG BAG: Loading inventory from player. Total items: " + playerItems.size());
+            for (Map.Entry<String, Integer> entry : playerItems.entrySet()) {
+                System.out.println("DEBUG BAG: Player has '" + entry.getKey() + "' x" + entry.getValue());
+            }
+            
+            // Initialize category lists using ItemDataLoader order
+            List<BagItem> consumables = createOrderedCategoryList("consumables", playerItems);
+            List<BagItem> items = createOrderedCategoryList("items", playerItems);
+            List<BagItem> legendBalls = createOrderedCategoryList("legendballs", playerItems);
+            
+            System.out.println("DEBUG BAG: Final counts - Consumables: " + consumables.size() + 
+                              ", Items: " + items.size() + ", LegendBalls: " + legendBalls.size());
+            
+            inventory.add(consumables);
+            inventory.add(items);
+            inventory.add(legendBalls);
+        } catch (Exception e) {
+            System.err.println("ERROR BAG: Exception in loadInventoryFromPlayer: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Create empty lists to prevent crashes
+            inventory = new ArrayList<>();
+            inventory.add(new ArrayList<>());
+            inventory.add(new ArrayList<>());
+            inventory.add(new ArrayList<>());
         }
-        
-        // Initialize category lists using ItemDataLoader order
-        List<BagItem> consumables = createOrderedCategoryList("consumables", playerItems);
-        List<BagItem> items = createOrderedCategoryList("items", playerItems);
-        List<BagItem> legendBalls = createOrderedCategoryList("legendballs", playerItems);
-        
-        System.out.println("DEBUG BAG: Final counts - Consumables: " + consumables.size() + 
-                          ", Items: " + items.size() + ", LegendBalls: " + legendBalls.size());
-        
-        inventory.add(consumables);
-        inventory.add(items);
-        inventory.add(legendBalls);
     }
     
     /**
@@ -105,19 +127,35 @@ public class Bag {
      */
     private List<BagItem> createOrderedCategoryList(String category, Map<String, Integer> playerItems) {
         List<BagItem> categoryList = new ArrayList<>();
-        List<ItemTemplate> templateItems = ItemDataLoader.getItemsByCategory(category);
         
-        // Go through items in ItemDataLoader order
-        for (ItemTemplate template : templateItems) {
-            String itemName = template.name;
-            if (playerItems.containsKey(itemName) && playerItems.get(itemName) > 0) {
-                int quantity = playerItems.get(itemName);
-                BagItem bagItem = createBagItem(itemName, quantity);
-                if (bagItem != null) {
-                    categoryList.add(bagItem);
-                    System.out.println("DEBUG BAG: Adding '" + itemName + "' to " + category + " (ordered)");
+        try {
+            List<ItemTemplate> templateItems = ItemDataLoader.getItemsByCategory(category);
+            
+            if (templateItems == null) {
+                System.err.println("ERROR BAG: ItemDataLoader.getItemsByCategory returned null for: " + category);
+                return categoryList; // Return empty list
+            }
+            
+            // Go through items in ItemDataLoader order
+            for (ItemTemplate template : templateItems) {
+                if (template == null || template.name == null) {
+                    System.err.println("ERROR BAG: Null template or template name in category: " + category);
+                    continue;
+                }
+                
+                String itemName = template.name;
+                if (playerItems.containsKey(itemName) && playerItems.get(itemName) > 0) {
+                    int quantity = playerItems.get(itemName);
+                    BagItem bagItem = createBagItem(itemName, quantity);
+                    if (bagItem != null) {
+                        categoryList.add(bagItem);
+                        System.out.println("DEBUG BAG: Adding '" + itemName + "' to " + category + " (ordered)");
+                    }
                 }
             }
+        } catch (Exception e) {
+            System.err.println("ERROR BAG: Exception in createOrderedCategoryList for " + category + ": " + e.getMessage());
+            e.printStackTrace();
         }
         
         return categoryList;
@@ -146,18 +184,37 @@ public class Bag {
         if (selectedTab < inventory.size() && selectedItem >= inventory.get(selectedTab).size()) {
             selectedItem = 0;
         }
+        goBackSelected = false; // Reset GO BACK selection when refreshing
     }
     
     // Navigation methods with asymmetric scrolling
     public void navigateUp() {
+        if (goBackSelected) {
+            // Do nothing when GO BACK is selected and W is pressed
+            return;
+        }
+        
         if (selectedItem > 0) {
             selectedItem--;
             updateScrollForUpNavigation();
+            gp.playSE(9);
+        } else {
+            // At top item, go to GO BACK button
+            goBackSelected = true;
             gp.playSE(9);
         }
     }
     
     public void navigateDown() {
+        // If GO BACK button is selected, go to first item
+        if (goBackSelected) {
+            goBackSelected = false;
+            selectedItem = 0; // Go to first item
+            currentScrollOffset = 0; // Reset scroll to top
+            gp.playSE(9);
+            return;
+        }
+        
         List<BagItem> currentTab = inventory.get(selectedTab);
         if (selectedItem < currentTab.size() - 1) {
             selectedItem++;
@@ -203,6 +260,7 @@ public class Bag {
             selectedTab--;
             selectedItem = 0; // Reset to first item in new tab
             currentScrollOffset = 0; // Reset scroll when changing tabs
+            goBackSelected = false; // Reset GO BACK selection
             gp.playSE(9);
         }
     }
@@ -212,11 +270,18 @@ public class Bag {
             selectedTab++;
             selectedItem = 0; // Reset to first item in new tab
             currentScrollOffset = 0; // Reset scroll when changing tabs
+            goBackSelected = false; // Reset GO BACK selection
             gp.playSE(9);
         }
     }
     
     public void selectCurrentItem() {
+        if (goBackSelected) {
+            // Handle GO BACK button selection
+            closeBag();
+            return;
+        }
+        
         List<BagItem> currentTab = inventory.get(selectedTab);
         if (selectedItem < currentTab.size()) {
             BagItem selected = currentTab.get(selectedItem);
@@ -337,6 +402,9 @@ public class Bag {
         
         // Draw controls help
         drawModernControls(g2);
+        
+        // Draw GO BACK button
+        drawGoBackButton(g2);
     }
     
     private void drawModernBackground(Graphics2D g2) {
@@ -496,7 +564,7 @@ public class Bag {
             
             BagItem item = currentTab.get(itemIndex);
             int itemY = itemsAreaY + 15 + (i * ITEM_HEIGHT);
-            boolean isSelected = itemIndex == selectedItem;
+            boolean isSelected = !goBackSelected && itemIndex == selectedItem; // Don't highlight items when GO BACK is selected
             
             drawModernBagItem(g2, item, itemsAreaX + 15, itemY, itemsAreaWidth - 30 - scrollbarWidth, ITEM_HEIGHT - 8, isSelected);
         }
@@ -796,5 +864,36 @@ public class Bag {
                 g2.setColor(TEXT_DARK);
             }
         }
+    }
+    
+    private void drawGoBackButton(Graphics2D g2) {
+        int buttonSize = 40; // Square button for arrow
+        int buttonX = 38; // 18 pixels more to the right from original (20 + 10 + 8)
+        int buttonY = 38; // 18 pixels lower from original (20 + 10 + 8)
+        
+        // Style similar to combat bag - clean rounded rectangle
+        Color buttonColor = goBackSelected ? ACCENT_BLUE : BG_BLUE_LIGHT;
+        Color arrowColor = goBackSelected ? TEXT_LIGHT : TEXT_DARK;
+        
+        // Draw button background
+        g2.setColor(buttonColor);
+        g2.fillRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        
+        // Draw border
+        g2.setColor(goBackSelected ? TEXT_LIGHT : BORDER_COLOR);
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        g2.setStroke(new BasicStroke(1)); // Reset stroke
+        
+        // Draw left-pointing arrow
+        g2.setColor(arrowColor);
+        int arrowSize = 16;
+        int centerX = buttonX + buttonSize / 2;
+        int centerY = buttonY + buttonSize / 2;
+        
+        // Left-pointing arrow triangle
+        int[] arrowX = {centerX + arrowSize/2, centerX - arrowSize/2, centerX + arrowSize/2};
+        int[] arrowY = {centerY - arrowSize/2, centerY, centerY + arrowSize/2};
+        g2.fillPolygon(arrowX, arrowY, 3);
     }
 }

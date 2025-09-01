@@ -22,6 +22,7 @@ public class RoleTeamPage {
     private boolean itemModeActive = false; // Whether we're navigating items for the selected champion
     private int selectedItemSlot = 0; // Currently selected item slot (0-2)
     private boolean showItemPopup = false; // Whether to show the "coming soon" popup
+    private boolean goBackSelected = false; // Is GO BACK button selected
     
     public RoleTeamPage(GamePanel gamePanel) {
         this.gamePanel = gamePanel;
@@ -37,6 +38,8 @@ public class RoleTeamPage {
         } else {
             selectedChampionIndex = 0;
         }
+        // Ensure GO BACK button is not selected when page loads
+        goBackSelected = false;
     }
     
     /**
@@ -130,6 +133,9 @@ public class RoleTeamPage {
         
         // Draw modern instructions panel
         drawModernInstructionsPanel(g2);
+        
+        // Draw GO BACK button
+        drawGoBackButton(g2);
         
         // Draw item popup if showing
         if (showItemPopup) {
@@ -227,7 +233,12 @@ public class RoleTeamPage {
         
         // Handle ENTER key based on current mode (after navigation handling)
         if (gamePanel.keyH.interctPressed) {
-            if (itemModeActive) {
+            if (goBackSelected) {
+                // Handle GO BACK button selection
+                gamePanel.gameState = gamePanel.playState;
+                gamePanel.keyH.interctPressed = false;
+                return;
+            } else if (itemModeActive) {
                 // In item mode - open item popup
                 System.out.println("DEBUG: ENTER pressed in item mode! selectedItemSlot=" + selectedItemSlot);
                 Champion champion = getSelectedChampion();
@@ -259,6 +270,7 @@ public class RoleTeamPage {
                 itemModeActive = false;
                 arrowModeActive = false;
                 selectedItemSlot = 0;
+                goBackSelected = false; // Reset GO BACK selection
                 System.out.println("ESC: Exited navigation mode, back to champion selection");
             } else {
                 // Exit to play state
@@ -281,6 +293,23 @@ public class RoleTeamPage {
     private void handleChampionNavigation() {
         // Navigation with W/S keys for champions
         if (gamePanel.keyH.upPressed) {
+            // If GO BACK button is selected, go back to first champion
+            if (goBackSelected) {
+                goBackSelected = false;
+                selectedChampionIndex = 0;
+                gamePanel.keyH.upPressed = false;
+                System.out.println("DEBUG: Moved from GO BACK to first champion");
+                return;
+            }
+            
+            // If at first champion, go to GO BACK button
+            if (selectedChampionIndex == 0) {
+                goBackSelected = true;
+                gamePanel.keyH.upPressed = false;
+                System.out.println("DEBUG: Moved to GO BACK button from first champion");
+                return;
+            }
+            
             // Navigate in compacted view (no empty slots)
             java.util.List<Champion> compacted = getCompactedChampions();
             if (!compacted.isEmpty()) {
@@ -288,11 +317,20 @@ public class RoleTeamPage {
                 if (selectedChampionIndex < 0) {
                     selectedChampionIndex = compacted.size() - 1; // Wrap to last champion
                 }
+                System.out.println("DEBUG: Moved to champion index: " + selectedChampionIndex);
             }
             gamePanel.keyH.upPressed = false;
         }
         
         if (gamePanel.keyH.downPressed) {
+            // If GO BACK button is selected, go to first champion
+            if (goBackSelected) {
+                goBackSelected = false;
+                selectedChampionIndex = 0;
+                gamePanel.keyH.downPressed = false;
+                return;
+            }
+            
             // Navigate in compacted view (no empty slots)
             java.util.List<Champion> compacted = getCompactedChampions();
             if (!compacted.isEmpty()) {
@@ -306,6 +344,9 @@ public class RoleTeamPage {
         
         // D to enter item mode
         if (gamePanel.keyH.rightPressed) {
+            // Reset GO BACK selection when entering item mode
+            goBackSelected = false;
+            
             System.out.println("DEBUG: D key pressed in champion mode!");
             Champion champion = getSelectedChampion();
             if (champion != null) {
@@ -346,6 +387,9 @@ public class RoleTeamPage {
         
         // G to open champion selection
         if (gamePanel.keyH.gPressed) {
+            // Reset GO BACK selection when opening champion menu
+            goBackSelected = false;
+            
             gamePanel.gameState = gamePanel.championMenuState;
             gamePanel.keyH.gPressed = false;
             // Ensure first champion is highlighted when menu opens
@@ -748,18 +792,24 @@ public class RoleTeamPage {
     }
     
     private void drawModernTitle(Graphics2D g2, int leftPanelWidth) {
+        // Calculate center position for the title over the main content area
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        String title = "MY TEAM";
+        FontMetrics fm = g2.getFontMetrics();
+        int titleWidth = fm.stringWidth(title);
+        int centerX = (leftPanelWidth - titleWidth) / 2;
+        
         // Title shadow effect
         g2.setColor(new Color(0, 0, 0, 50));
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        g2.drawString("MY TEAM", 42, 67);
+        g2.drawString(title, centerX + 2, 67);
         
         // Main title with gradient
         GradientPaint titleGradient = new GradientPaint(
-            40, 60, new Color(45, 65, 120),
-            40, 90, new Color(25, 35, 65)
+            centerX, 60, new Color(45, 65, 120),
+            centerX, 90, new Color(25, 35, 65)
         );
         g2.setPaint(titleGradient);
-        g2.drawString("MY TEAM", 40, 65);
+        g2.drawString(title, centerX, 65);
     }
     
     private void drawModernChampionSlots(Graphics2D g2, int leftPanelWidth) {
@@ -820,7 +870,7 @@ public class RoleTeamPage {
         
         // Check if this role slot contains the currently selected champion (in compacted navigation)
         boolean isHighlighted = false;
-        if (champion != null) {
+        if (champion != null && !goBackSelected) { // Don't highlight any champion if GO BACK is selected
             int compactedIndex = getCompactedIndexFromRole(roleIndex);
             if (arrowModeActive) {
                 Arrow currentlySelectedArrow = getCurrentlySelectedArrow();
@@ -908,7 +958,11 @@ public class RoleTeamPage {
         BufferedImage champImage = loadChampionImage(champion.getImageName());
         if (champImage != null) {
             int imageSize = 80; // Slightly larger for better visibility
-            int imageX = x + 20;
+            
+            // Center the image under the role badge
+            // Role badge: x + 15, width 70, so center is at x + 15 + 35 = x + 50
+            // Image should be centered at x + 50, so imageX = x + 50 - imageSize/2 = x + 10
+            int imageX = x + 10; // This centers the 80px image under the 70px role badge
             int imageY = y + 35;
             
             // Image shadow
@@ -1558,6 +1612,39 @@ public class RoleTeamPage {
             }
         }
         return -1; // No more unlocked slots behind
+    }
+    
+    private void drawGoBackButton(Graphics2D g2) {
+        if (showItemPopup) return; // Don't show GO BACK button when popup is open
+        
+        int buttonSize = 40; // Square button for arrow
+        int buttonX = 20; // Top left with padding
+        int buttonY = 20;
+        
+        // Style similar to other menus - clean rounded rectangle
+        Color buttonColor = goBackSelected ? new Color(70, 130, 200) : new Color(135, 170, 220);
+        Color arrowColor = goBackSelected ? Color.WHITE : new Color(45, 55, 75);
+        
+        // Draw button background
+        g2.setColor(buttonColor);
+        g2.fillRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        
+        // Draw border
+        g2.setColor(goBackSelected ? Color.WHITE : new Color(180, 200, 230));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        g2.setStroke(new BasicStroke(1)); // Reset stroke
+        
+        // Draw left-pointing arrow
+        g2.setColor(arrowColor);
+        int arrowSize = 16;
+        int centerX = buttonX + buttonSize / 2;
+        int centerY = buttonY + buttonSize / 2;
+        
+        // Left-pointing arrow triangle
+        int[] arrowX = {centerX + arrowSize/2, centerX - arrowSize/2, centerX + arrowSize/2};
+        int[] arrowY = {centerY - arrowSize/2, centerY, centerY + arrowSize/2};
+        g2.fillPolygon(arrowX, arrowY, 3);
     }
 }
 
