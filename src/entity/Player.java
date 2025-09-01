@@ -45,6 +45,7 @@ public class Player extends Entity {
     
     private Champion[] party = new Champion[5]; // Fixed-size array - DEPRECATED, use useChamps and myTeam instead
     private List<Boolean> ownedChampions=new ArrayList<>();; // List to track ownership
+    private List<Boolean> seenChampions=new ArrayList<>();; // List to track if champion has been seen
     
     // NEW SINGLE LIST + ORDER SYSTEM
     private Champion[] champions = new Champion[5]; // Fixed roles: [Top, Jgl, Mid, Adc, Supp] - champions by role
@@ -94,10 +95,12 @@ public class Player extends Entity {
         for (int i = 0; i < gp.champList.size(); i++) {
         	if(i%2==0) {
         		ownedChampions.add(false);
+        		seenChampions.add(false); // Not seen yet
         	}
         	else
         	{
         		ownedChampions.add(true);
+        		seenChampions.add(true); // Seen and owned
         	}
         }
         
@@ -455,6 +458,18 @@ public class Player extends Entity {
     public boolean isChampionOwned(Champion champion) {
         int index = gp.champList.indexOf(champion);
         return index >= 0 && ownedChampions.get(index);
+    }
+    
+    public boolean isChampionSeen(Champion champion) {
+        int index = gp.champList.indexOf(champion);
+        return index >= 0 && seenChampions.get(index);
+    }
+    
+    public void markChampionAsSeen(Champion champion) {
+        int index = gp.champList.indexOf(champion);
+        if (index >= 0) {
+            seenChampions.set(index, true);
+        }
     }
 
     public Champion getFirstChampion() {

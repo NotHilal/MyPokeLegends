@@ -56,7 +56,6 @@ public class Dex {
         // Reset to main dex view when opened
         showPopup = false;
         selectedChampion = null;
-        popupPage = 0;
         currentPage = 0; // Reset to first page of champions
         enableKeyboardMode();
         resetToFirstChampion();
@@ -150,11 +149,8 @@ public class Dex {
     public void navigateLeft() {
         if (!keyboardMode) enableKeyboardMode();
         if (showPopup) {
-            // Navigate popup pages
-            if (popupPage == 1) {
-                popupPage = 0;
-                gp.playSE(9);
-            }
+            // No popup page navigation - just ignore
+            return;
         } else {
             // Check if we're at the left edge of grid and can select left arrow
             if (selectedGridCol == 0 && !leftArrowSelected && !rightArrowSelected) {
@@ -180,11 +176,8 @@ public class Dex {
     public void navigateRight() {
         if (!keyboardMode) enableKeyboardMode();
         if (showPopup) {
-            // Navigate popup pages
-            if (popupPage == 0) {
-                popupPage = 1;
-                gp.playSE(9);
-            }
+            // No popup page navigation - just ignore
+            return;
         } else {
             // Check if we're at the right edge of grid and can select right arrow
             int championsOnPage = getChampionsOnCurrentPage();
@@ -241,7 +234,6 @@ public class Dex {
                 if (gp.player.isChampionOwned(champion)) {
                     selectedChampion = champion;
                     showPopup = true;
-                    popupPage = 0;
                     gp.playSE(11);
                 }
             }
@@ -381,7 +373,7 @@ public class Dex {
             g2.setColor(Color.BLACK);
             g2.drawRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
 
-            // Draw champion image
+            // Draw champion image based on three states
             BufferedImage champImage = loadChampionImage(champion.getImageName());
             if (champImage != null) {
                 int imgWidth = 80;
@@ -389,17 +381,51 @@ public class Dex {
                 int imgX = xOffset + (cellWidth - imgWidth) / 2;
                 int imgY = yOffset + (cellHeight - imgHeight) / 2;
 
-                if (!gp.player.isChampionOwned(champion)) {
-                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f)); // Low opacity
+                boolean isOwned = gp.player.isChampionOwned(champion);
+                boolean isSeen = gp.player.isChampionSeen(champion);
+                
+                if (isOwned) {
+                    // State 4: Owned - fully visible
                     g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
-                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f)); // Reset opacity
+                } else if (isSeen) {
+                    // State 3: Seen but not captured - low opacity with double "??"
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
+                    g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 
-                    // Draw the white "?" overlay
                     g2.setFont(LARGE_FONT);
-                    g2.setColor(Color.WHITE);
-                    g2.drawString("?", imgX + imgWidth / 2 - 10, imgY + imgHeight / 2 + 20);
+                    g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
+                    String doubleQuestion = "??";
+                    FontMetrics fm = g2.getFontMetrics();
+                    int textWidth = fm.stringWidth(doubleQuestion);
+                    int textX = imgX + (imgWidth - textWidth) / 2;
+                    g2.drawString(doubleQuestion, textX, imgY + imgHeight / 2 + 20);
                 } else {
-                    g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
+                    // Check if this champion exists in some encounter/discovery system
+                    // For now, let's say if index is odd, it's "unknown", if even, it's "unseen"
+                    int championIndex = gp.champList.indexOf(champion);
+                    boolean isUnknown = championIndex % 4 != 0; // 3 out of 4 are unknown, 1 out of 4 is unseen
+                    
+                    if (isUnknown) {
+                        // State 2: Unknown - low opacity with single "?"
+                        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
+                        g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
+                        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+
+                        g2.setFont(LARGE_FONT);
+                        g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
+                        g2.drawString("?", imgX + imgWidth / 2 - 10, imgY + imgHeight / 2 + 20);
+                    } else {
+                        // State 1: Unseen - no background, just an X
+                        g2.setFont(LARGE_FONT); // Same large font as unknown
+                        g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
+                        String xMark = "X";
+                        FontMetrics fm = g2.getFontMetrics();
+                        int textWidth = fm.stringWidth(xMark);
+                        int textX = imgX + (imgWidth - textWidth) / 2;
+                        int textY = imgY + imgHeight / 2 + fm.getAscent() / 2 - 5;
+                        g2.drawString(xMark, textX, textY);
+                    }
                 }
             }
         }
@@ -496,37 +522,8 @@ public class Dex {
         g2.setFont(new Font("Arial", Font.BOLD, 24));
         g2.drawString("X", closeButtonX + 12, closeButtonY + 28);
 
-        // **Navigation Arrows for Popup**
-        int arrowSize = ARROW_SIZE; // Smaller arrows
-        int arrowXOffset = 40;
-        int arrowY = popupHeight / 2 - arrowSize / 2;
-
-        // Left arrow (Only show on page 1)
-        if (popupPage == 1) {
-            g2.setColor(Color.LIGHT_GRAY);
-            g2.fillPolygon(
-                new int[]{arrowXOffset, arrowXOffset + arrowSize, arrowXOffset + arrowSize},
-                new int[]{arrowY + arrowSize / 2, arrowY, arrowY + arrowSize},
-                3
-            );
-        }
-
-        // Right arrow (Only show on page 0)
-        if (popupPage == 0) {
-            int rightArrowX = popupWidth - arrowXOffset - arrowSize;
-            g2.setColor(Color.LIGHT_GRAY);
-            g2.fillPolygon(
-                new int[]{rightArrowX + arrowSize, rightArrowX, rightArrowX},
-                new int[]{arrowY + arrowSize / 2, arrowY, arrowY + arrowSize},
-                3
-            );
-        }
-
-        // **Render Page Content**
-        switch (popupPage) {
-            case 0 -> drawInfoPage(g2, popupX, popupY, popupWidth, popupHeight);
-            case 1 -> drawAbilitiesPage(g2, popupX, popupY, popupWidth, popupHeight);
-        }
+        // **Render Info Page Only**
+        drawInfoPage(g2, popupX, popupY, popupWidth, popupHeight);
     }
 
 
@@ -645,11 +642,6 @@ public class Dex {
 
 
 
-    private void drawAbilitiesPage(Graphics2D g2, int x, int y, int width, int height) {
-        g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, 24));
-        g2.drawString("Abilities Page (Coming Soon)", x + width / 2 - 100, y + height / 2);
-    }
 
     
 
@@ -705,7 +697,6 @@ public class Dex {
                 }
                 selectedChampion = champion;
                 showPopup = true;
-                popupPage = 0;
                 gp.repaint();
                 return;
             }
@@ -755,22 +746,7 @@ public class Dex {
             return;
         }
 
-        // Left arrow (Only on page 1)
-        int arrowSize = 60;
-        if (popupPage == 1 && mouseX >= popupX + 20 && mouseX <= popupX + 20 + arrowSize &&
-            mouseY >= popupY + popupHeight / 2 - arrowSize / 2 && mouseY <= popupY + popupHeight / 2 + arrowSize / 2) {
-            popupPage = 0; // Go back to Info page
-            gp.repaint();
-            return;
-        }
-
-        // Right arrow (Only on page 0)
-        if (popupPage == 0 && mouseX >= popupX + popupWidth - 20 - arrowSize && mouseX <= popupX + popupWidth - 20 &&
-            mouseY >= popupY + popupHeight / 2 - arrowSize / 2 && mouseY <= popupY + popupHeight / 2 + arrowSize / 2) {
-            popupPage = 1; // Go to Abilities page
-            gp.repaint();
-            return;
-        }
+        // No popup navigation arrows needed - only one page
     }
 
 

@@ -355,10 +355,10 @@ public class Bag {
         g2.setColor(new Color(0, 0, 0, 30));
         g2.fillRoundRect(windowX + 4, windowY + 4, windowWidth, windowHeight, 20, 20);
         
-        // Clean window background
+        // Clean window background with light gray for contrast
         GradientPaint windowGradient = new GradientPaint(
-            windowX, windowY, CARD_WHITE,
-            windowX, windowY + windowHeight, new Color(245, 248, 255)
+            windowX, windowY, new Color(240, 245, 250),
+            windowX, windowY + windowHeight, new Color(225, 232, 240)
         );
         g2.setPaint(windowGradient);
         g2.fillRoundRect(windowX, windowY, windowWidth, windowHeight, 20, 20);
@@ -403,21 +403,27 @@ public class Bag {
             boolean isSelected = (i == selectedTab);
             Color categoryColor = getCategoryColor(i);
             
-            // Tab background
+            // Tab background - softer colors
             if (isSelected) {
                 GradientPaint tabGradient = new GradientPaint(
-                    tabX, tabY, categoryColor,
+                    tabX, tabY, new Color(
+                        Math.min(255, categoryColor.getRed() + 40),
+                        Math.min(255, categoryColor.getGreen() + 40),
+                        Math.min(255, categoryColor.getBlue() + 40),
+                        180
+                    ),
                     tabX, tabY + TAB_HEIGHT, new Color(
-                        Math.max(0, categoryColor.getRed() - 30),
-                        Math.max(0, categoryColor.getGreen() - 20),
-                        Math.max(0, categoryColor.getBlue() - 10)
+                        Math.max(0, categoryColor.getRed() - 10),
+                        Math.max(0, categoryColor.getGreen() - 10),
+                        Math.max(0, categoryColor.getBlue() - 10),
+                        160
                     )
                 );
                 g2.setPaint(tabGradient);
             } else {
                 GradientPaint tabGradient = new GradientPaint(
-                    tabX, tabY, CARD_WHITE,
-                    tabX, tabY + TAB_HEIGHT, new Color(240, 245, 250)
+                    tabX, tabY, new Color(210, 220, 235, 120),
+                    tabX, tabY + TAB_HEIGHT, new Color(190, 205, 225, 100)
                 );
                 g2.setPaint(tabGradient);
             }
@@ -728,21 +734,13 @@ public class Bag {
             thumbY = Math.max(y, Math.min(maxThumbY, thumbY));
         }
         
-        // Clean scroll thumb
-        GradientPaint thumbGradient = new GradientPaint(
-            x, thumbY, categoryColor,
-            x, thumbY + thumbHeight, new Color(
-                Math.max(0, categoryColor.getRed() - 30),
-                Math.max(0, categoryColor.getGreen() - 20),
-                Math.max(0, categoryColor.getBlue() - 10)
-            )
-        );
-        g2.setPaint(thumbGradient);
-        g2.fillRoundRect(x + 1, thumbY, width - 2, thumbHeight, (width-2)/2, (width-2)/2);
+        // Shadow for scroll thumb
+        g2.setColor(new Color(0, 0, 0, 40));
+        g2.fillRoundRect(x + 2, thumbY + 1, width - 2, thumbHeight, (width-2)/2, (width-2)/2);
         
-        // Simple highlight
-        g2.setColor(new Color(255, 255, 255, 60));
-        g2.fillRoundRect(x + 2, thumbY + 1, width - 4, thumbHeight / 3, (width-4)/2, (width-4)/2);
+        // Unicolored scroll thumb
+        g2.setColor(categoryColor);
+        g2.fillRoundRect(x + 1, thumbY, width - 2, thumbHeight, (width-2)/2, (width-2)/2);
     }
     
     private void drawModernControls(Graphics2D g2) {
