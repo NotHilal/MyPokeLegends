@@ -160,7 +160,7 @@ public class Dex {
     public void navigateLeft() {
         if (!keyboardMode) enableKeyboardMode();
         if (showPopup) {
-            // No popup page navigation - just ignore
+            navigateToPreviousOwnedChampion();
             return;
         } else {
             // Check if we're at the left edge of grid and can select left arrow
@@ -187,7 +187,7 @@ public class Dex {
     public void navigateRight() {
         if (!keyboardMode) enableKeyboardMode();
         if (showPopup) {
-            // No popup page navigation - just ignore
+            navigateToNextOwnedChampion();
             return;
         } else {
             // Check if we're at the right edge of grid and can select right arrow
@@ -294,6 +294,42 @@ public class Dex {
         int localIndex = selectedGridRow * 5 + selectedGridCol;
         int pageOffset = currentPage * CHAMPIONS_PER_PAGE;
         return pageOffset + localIndex;
+    }
+    
+    private void navigateToPreviousOwnedChampion() {
+        if (selectedChampion == null) return;
+        
+        int currentIndex = gp.champList.indexOf(selectedChampion);
+        
+        // Find previous owned/seen champion (no wrapping)
+        for (int i = currentIndex - 1; i >= 0; i--) {
+            Champion champion = gp.champList.get(i);
+            if (gp.player.isChampionOwned(champion) || gp.player.isChampionSeen(champion)) {
+                selectedChampion = champion;
+                gp.playSE(9);
+                return;
+            }
+        }
+        
+        // No previous champion found - stay at current position (no wrapping)
+    }
+    
+    private void navigateToNextOwnedChampion() {
+        if (selectedChampion == null) return;
+        
+        int currentIndex = gp.champList.indexOf(selectedChampion);
+        
+        // Find next owned/seen champion (no wrapping)
+        for (int i = currentIndex + 1; i < gp.champList.size(); i++) {
+            Champion champion = gp.champList.get(i);
+            if (gp.player.isChampionOwned(champion) || gp.player.isChampionSeen(champion)) {
+                selectedChampion = champion;
+                gp.playSE(9);
+                return;
+            }
+        }
+        
+        // No next champion found - stay at current position (no wrapping)
     }
 
     private void preloadImages() {
@@ -409,44 +445,24 @@ public class Dex {
                     // State 4: Owned - fully visible
                     g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
                 } else if (isSeen) {
-                    // State 3: Seen but not captured - low opacity with double "??"
+                    // State 2: Seen but not owned - low opacity with single "?"
                     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
                     g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
                     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 
                     g2.setFont(LARGE_FONT);
                     g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
-                    String doubleQuestion = "??";
-                    FontMetrics fm = g2.getFontMetrics();
-                    int textWidth = fm.stringWidth(doubleQuestion);
-                    int textX = imgX + (imgWidth - textWidth) / 2;
-                    g2.drawString(doubleQuestion, textX, imgY + imgHeight / 2 + 20);
+                    g2.drawString("?", imgX + imgWidth / 2 - 10, imgY + imgHeight / 2 + 20);
                 } else {
-                    // Check if this champion exists in some encounter/discovery system
-                    // For now, let's say if index is odd, it's "unknown", if even, it's "unseen"
-                    int championIndex = gp.champList.indexOf(champion);
-                    boolean isUnknown = championIndex % 4 != 0; // 3 out of 4 are unknown, 1 out of 4 is unseen
-                    
-                    if (isUnknown) {
-                        // State 2: Unknown - low opacity with single "?"
-                        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
-                        g2.drawImage(champImage, imgX, imgY, imgWidth, imgHeight, null);
-                        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-
-                        g2.setFont(LARGE_FONT);
-                        g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
-                        g2.drawString("?", imgX + imgWidth / 2 - 10, imgY + imgHeight / 2 + 20);
-                    } else {
-                        // State 1: Unseen - no background, just an X
-                        g2.setFont(LARGE_FONT); // Same large font as unknown
-                        g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
-                        String xMark = "X";
-                        FontMetrics fm = g2.getFontMetrics();
-                        int textWidth = fm.stringWidth(xMark);
-                        int textX = imgX + (imgWidth - textWidth) / 2;
-                        int textY = imgY + imgHeight / 2 + fm.getAscent() / 2 - 5;
-                        g2.drawString(xMark, textX, textY);
-                    }
+                    // State 1: Unseen - no background, just an X
+                    g2.setFont(LARGE_FONT);
+                    g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black
+                    String xMark = "X";
+                    FontMetrics fm = g2.getFontMetrics();
+                    int textWidth = fm.stringWidth(xMark);
+                    int textX = imgX + (imgWidth - textWidth) / 2;
+                    int textY = imgY + imgHeight / 2 + fm.getAscent() / 2 - 5;
+                    g2.drawString(xMark, textX, textY);
                 }
             }
         }
