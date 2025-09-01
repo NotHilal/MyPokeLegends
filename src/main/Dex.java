@@ -9,6 +9,7 @@ import javax.imageio.ImageIO;
 import javax.swing.SwingUtilities;
 
 import Champions.Champion;
+import data.ChampionDescriptions;
 
 public class Dex {
 
@@ -27,6 +28,7 @@ public class Dex {
     private boolean keyboardMode = false; // Track if we're using keyboard navigation
     private boolean leftArrowSelected = false;  // Is left arrow selected
     private boolean rightArrowSelected = false; // Is right arrow selected
+    private boolean justOpened = false; // Prevent immediate selection when Dex opens
 
     
     private static final Font LARGE_FONT = new Font("Arial", Font.BOLD, 50);
@@ -57,8 +59,17 @@ public class Dex {
         showPopup = false;
         selectedChampion = null;
         currentPage = 0; // Reset to first page of champions
+        justOpened = true; // Block selection temporarily
+        
+        // Clear any lingering key states FIRST
+        gp.keyH.resetKeyStates();
+        
+        // Enable keyboard mode to show Aatrox selection
         enableKeyboardMode();
         resetToFirstChampion();
+        
+        // Debug: Ensure popup is definitely closed
+        System.out.println("Dex opened - showPopup: " + showPopup + ", selectedChampion: " + selectedChampion);
     }
     
     // Helper methods
@@ -216,6 +227,14 @@ public class Dex {
     public void selectCurrent() {
         if (!keyboardMode) return;
         
+        // Prevent selection immediately after opening Dex
+        if (justOpened) {
+            justOpened = false; // Clear the flag but don't select
+            return;
+        }
+        
+        System.out.println("DEBUG: selectCurrent() called - showPopup: " + showPopup + ", leftArrow: " + leftArrowSelected + ", rightArrow: " + rightArrowSelected);
+        
         if (showPopup) {
             // Close popup
             showPopup = false;
@@ -229,9 +248,11 @@ public class Dex {
         } else {
             // Handle grid selection
             int championIndex = getSelectedChampionIndex();
+            System.out.println("DEBUG: Attempting to select champion at index: " + championIndex);
             if (championIndex >= 0 && championIndex < gp.champList.size()) {
                 Champion champion = gp.champList.get(championIndex);
                 if (gp.player.isChampionOwned(champion)) {
+                    System.out.println("DEBUG: Opening popup for champion: " + champion.getName());
                     selectedChampion = champion;
                     showPopup = true;
                     gp.playSE(11);
@@ -557,7 +578,16 @@ public class Dex {
         g2.setColor(Color.WHITE);
         String champName = selectedChampion.getName();
         int champNameWidth = g2.getFontMetrics().stringWidth(champName);
-        g2.drawString(champName, champBoxX + (champBoxWidth - champNameWidth) / 2, champBoxY + champBoxHeight - 10);
+        g2.drawString(champName, champBoxX + (champBoxWidth - champNameWidth) / 2, champBoxY + champBoxHeight - 35);
+        
+        // Add champion title below name if available
+        if (ChampionDescriptions.hasChampionLore(selectedChampion.getName())) {
+            g2.setFont(new Font("Arial", Font.ITALIC, 16));
+            g2.setColor(new Color(200, 200, 200));
+            String title = ChampionDescriptions.getChampionTitle(selectedChampion.getName());
+            int titleWidth = g2.getFontMetrics().stringWidth(title);
+            g2.drawString(title, champBoxX + (champBoxWidth - titleWidth) / 2, champBoxY + champBoxHeight - 15);
+        }
 
         // Region Image (Top Left, 6px Padding)
         int regionBoxWidth = 100;
@@ -633,9 +663,75 @@ public class Dex {
         // **Stats Title (Outside the box, centered above it)**
         g2.setFont(new Font("Arial", Font.BOLD, 22));
         g2.setColor(Color.WHITE);
-        String statsTitle = "Stats:";
+        String statsTitle = "Champion Details:";
         int statsTitleWidth = g2.getFontMetrics().stringWidth(statsTitle);
         g2.drawString(statsTitle, statsBoxX + (statsBoxWidth - statsTitleWidth) / 2, statsBoxY - 10);
+        
+        // **Champion Statistics inside the box**
+        int contentX = statsBoxX + 20;
+        int contentY = statsBoxY + 30;
+        int lineHeight = 25;
+        
+        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        g2.setColor(Color.WHITE);
+        
+        // Level and Experience
+        g2.drawString("Level: " + selectedChampion.getLevel(), contentX, contentY);
+        contentY += lineHeight;
+        
+        // Base Stats
+        g2.drawString("HP: " + selectedChampion.getMaxHp(), contentX, contentY);
+        contentY += lineHeight;
+        
+        g2.drawString("Attack: " + selectedChampion.getAD(), contentX, contentY);
+        contentY += lineHeight;
+        
+        g2.drawString("Defense: " + selectedChampion.getArmor(), contentX, contentY);
+        contentY += lineHeight;
+        
+        // Class info
+        g2.drawString("Class: " + selectedChampion.getChampionClass(), contentX, contentY);
+        contentY += lineHeight;
+        
+        // Description or abilities
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        g2.setColor(new Color(220, 220, 220));
+        
+        // Get real champion description from LoL lore
+        String description;
+        String championTitle = "";
+        
+        if (ChampionDescriptions.hasChampionLore(selectedChampion.getName())) {
+            description = ChampionDescriptions.getChampionDescription(selectedChampion.getName());
+            championTitle = " - " + ChampionDescriptions.getChampionTitle(selectedChampion.getName());
+        } else {
+            // Fallback description if champion not found in lore database
+            description = "A powerful champion from " + selectedChampion.getRegion() + 
+                         " region. Specializes in " + selectedChampion.getRole().toLowerCase() + 
+                         " combat tactics.";
+        }
+        
+        // Word wrap the description
+        String[] words = description.split(" ");
+        String currentLine = "";
+        int maxLineWidth = statsBoxWidth - 40;
+        FontMetrics fm = g2.getFontMetrics();
+        
+        for (String word : words) {
+            String testLine = currentLine + (currentLine.isEmpty() ? "" : " ") + word;
+            if (fm.stringWidth(testLine) <= maxLineWidth) {
+                currentLine = testLine;
+            } else {
+                if (!currentLine.isEmpty()) {
+                    g2.drawString(currentLine, contentX, contentY);
+                    contentY += 18;
+                    currentLine = word;
+                }
+            }
+        }
+        if (!currentLine.isEmpty()) {
+            g2.drawString(currentLine, contentX, contentY);
+        }
     }
 
 

@@ -7,7 +7,8 @@
       "Bash(rg:*)",
       "Bash(java:*)",
       "Bash(cat:*)",
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "WebFetch(domain:ddragon.leagueoflegends.com)"
     ],
     "deny": [],
     "ask": []

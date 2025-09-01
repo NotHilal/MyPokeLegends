@@ -93,15 +93,9 @@ public class Player extends Entity {
         spawner = new WildChampionSpawner(gp);
         
         for (int i = 0; i < gp.champList.size(); i++) {
-        	if(i%2==0) {
-        		ownedChampions.add(false);
-        		seenChampions.add(false); // Not seen yet
-        	}
-        	else
-        	{
-        		ownedChampions.add(true);
-        		seenChampions.add(true); // Seen and owned
-        	}
+        	// For testing: make most champions owned so you can see the lore
+        	ownedChampions.add(true); // All champions owned for testing
+        	seenChampions.add(true); // All champions seen for testing
         }
         
         setDefaultValues();
