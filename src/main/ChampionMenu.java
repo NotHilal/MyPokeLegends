@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
-import javax.swing.SwingUtilities;
 
 import Champions.Champion;
 	
@@ -34,15 +33,20 @@ import Champions.Champion;
 	    // Arrow navigation states
 	    private boolean leftArrowSelected = false;  // Is left arrow selected
 	    private boolean rightArrowSelected = false; // Is right arrow selected
-	    private boolean goBackSelected = false; // Is GO BACK button selected
 	    
 	    // X button navigation states
 	    private boolean xButtonMode = false;        // Are we in X button navigation mode
 	    private int selectedXButton = 0;            // Currently selected X button (0-4 for the 5 slots)
 	    
+	    // Filter navigation states
+	    private boolean filterMode = false;         // Are we in filter button navigation mode
+	    private int selectedFilter = 0;             // Currently selected filter (0-4 for Top, Mid, Jgl, Adc, Supp)
+	    private boolean returnButtonSelected = false; // Is return button selected
+    public boolean showHelpPopup = false; // Is help popup visible
+	    
 	    // Helper method to check if any arrow is selected
 	    private boolean isAnyArrowSelected() {
-	        return leftArrowSelected || rightArrowSelected || goBackSelected;
+	        return leftArrowSelected || rightArrowSelected;
 	    }
 	    
 	    // Helper method to check if X button mode is active
@@ -118,13 +122,16 @@ import Champions.Champion;
 	        // Reset arrow selection
 	        leftArrowSelected = false;
 	        rightArrowSelected = false;
-	        goBackSelected = false;
 	        // Reset X button mode
 	        xButtonMode = false;
 	        selectedXButton = 0;
+	        // Reset filter mode
+	        filterMode = false;
+	        selectedFilter = 0;
+	        returnButtonSelected = false;
 	    }
 	    
-	    // Disable keyboard mode (when using mouse)
+	    // Disable keyboard mode
 	    public void disableKeyboardMode() {
 	        keyboardMode = false;
 	        xButtonMode = false;
@@ -139,7 +146,7 @@ import Champions.Champion;
 	    // Navigation methods for keyboard input
 	    public void navigateUp() {
 	        if (!keyboardMode) enableKeyboardMode();
-	        if (showPopup) return; // Don't navigate grid while popup is open
+	        if (showPopup || showHelpPopup) return; // Don't navigate grid while popup or help popup is open
 	        
 	        // Handle X button mode
 	        if (xButtonMode) {
@@ -158,14 +165,12 @@ import Champions.Champion;
 	            setGridPosition(0, 2); // Top-right from right arrow
 	            gp.playSE(9);
 	            return;
-	        } else if (goBackSelected) {
-	            // Do nothing when GO BACK is selected and W is pressed
-	            return;
 	        }
 	        
-	        // If at top row, go to GO BACK button
+	        // If at top row, go to filter buttons
 	        if (selectedGridRow == 0) {
-	            goBackSelected = true;
+	            filterMode = true;
+	            selectedFilter = 0; // Start at first filter (Top)
 	            gp.playSE(9);
 	            return;
 	        }
@@ -177,19 +182,19 @@ import Champions.Champion;
 	    
 	    public void navigateDown() {
 	        if (!keyboardMode) enableKeyboardMode();
-	        if (showPopup) return; // Don't navigate grid while popup is open
+	        if (showPopup || showHelpPopup) return; // Don't navigate grid while popup or help popup is open
+	        
+	        // Handle filter mode
+	        if (filterMode) {
+	            filterMode = false;
+	            setGridPosition(0, 0); // Go to top-left of grid
+	            gp.playSE(9);
+	            return;
+	        }
 	        
 	        // Handle X button mode
 	        if (xButtonMode) {
 	            navigateXButtonDown();
-	            return;
-	        }
-	        
-	        // If GO BACK button is selected, go to first champion
-	        if (goBackSelected) {
-	            goBackSelected = false;
-	            setGridPosition(0, 0); // Go to first champion (top-left)
-	            gp.playSE(9);
 	            return;
 	        }
 	        
@@ -214,12 +219,23 @@ import Champions.Champion;
 	    
 	    public void navigateLeft() {
 	        if (!keyboardMode) enableKeyboardMode();
+	        if (showHelpPopup) return; // Don't navigate while help popup is open
 	        if (showPopup) {
 	            // Navigate popup buttons
 	            if (selectedChampion != null && !isRoleSelectionSingleButton()) {
 	                selectedPopupButton = 0; // Select first role button
 	                gp.playSE(9);
 	            }
+	        } else if (returnButtonSelected) {
+	            // Go back to last filter (Supp)
+	            returnButtonSelected = false;
+	            filterMode = true;
+	            selectedFilter = 4; // Go to Supp filter
+	            gp.playSE(9);
+	        } else if (filterMode) {
+	            // Navigate left in filter buttons
+	            selectedFilter = Math.max(0, selectedFilter - 1);
+	            gp.playSE(9);
 	        } else if (xButtonMode) {
 	            // Exit X button mode
 	            exitXButtonMode();
@@ -246,10 +262,24 @@ import Champions.Champion;
 	    
 	    public void navigateRight() {
 	        if (!keyboardMode) enableKeyboardMode();
+	        if (showHelpPopup) return; // Don't navigate while help popup is open
 	        if (showPopup) {
 	            // Navigate popup buttons
 	            if (selectedChampion != null && !isRoleSelectionSingleButton()) {
 	                selectedPopupButton = 1; // Select second role button
+	                gp.playSE(9);
+	            }
+	        } else if (returnButtonSelected) {
+	            // On return button: do nothing when D is pressed
+	            return;
+	        } else if (filterMode) {
+	            // Navigate right in filter buttons, or go to return button from last filter
+	            if (selectedFilter == 4) { // If on Supp (last filter)
+	                filterMode = false;
+	                returnButtonSelected = true;
+	                gp.playSE(9);
+	            } else {
+	                selectedFilter = Math.min(4, selectedFilter + 1); // 0-4 for 5 filters
 	                gp.playSE(9);
 	            }
 	        } else if (xButtonMode) {
@@ -325,15 +355,21 @@ import Champions.Champion;
 	    
 	    public void selectCurrent() {
 	        if (!keyboardMode) return;
+	        if (showHelpPopup) return; // Don't allow selection while help popup is open
 	        
 	        if (showPopup) {
 	            // Handle popup selection
 	            if (selectedChampion != null) {
 	                handlePopupSelection();
 	            }
-	        } else if (goBackSelected) {
-	            // Handle GO BACK button selection
+	        } else if (returnButtonSelected) {
+	            // Handle return button selection
 	            returnToMenu();
+	        } else if (filterMode) {
+	            // Handle filter selection (toggle filter)
+	            roleFilters[selectedFilter] = !roleFilters[selectedFilter];
+	            currentPage = 0; // Reset to first page
+	            gp.playSE(9);
 	        } else if (xButtonMode) {
 	            // Handle X button selection (remove champion)
 	            removeSelectedChampion();
@@ -379,12 +415,13 @@ import Champions.Champion;
 	    
 	    public void returnToMenu() {
 	        gp.keyH.resetKeyStates();
-	        gp.gameState = gp.pauseState;
+	        gp.gameState = gp.roleTeamState;
 	    }
 	    
 	    // Handle A key press - specific behavior based on current position
 	    public void handleAKey() {
 	        if (!keyboardMode) enableKeyboardMode();
+	        if (showHelpPopup) return; // Don't handle A key while help popup is open
 	        if (showPopup) {
 	            // Navigate popup buttons
 	            if (selectedChampion != null && !isRoleSelectionSingleButton()) {
@@ -394,11 +431,22 @@ import Champions.Champion;
 	        } else if (xButtonMode) {
 	            // In X mode: do nothing
 	            return;
-	        } else if (leftArrowSelected) {
-	            // On left arrow: enter X button mode if possible
-	            if (getChampionsInPartyCount() > 1) {
+	        } else if (filterMode) {
+	            // In filter mode: check if on Top filter (index 0) and can enter X button mode
+	            if (selectedFilter == 0 && getChampionsInPartyCount() >= 2) {
+	                // On Top filter with 2+ champions: exit filter mode and enter X button mode
+	                filterMode = false;
 	                enterXButtonMode();
+	            } else {
+	                // Otherwise: normal left navigation
+	                navigateLeft();
 	            }
+	        } else if (returnButtonSelected) {
+	            // On return button: use normal left navigation
+	            navigateLeft();
+	        } else if (leftArrowSelected) {
+	            // On left arrow: do nothing when A is pressed
+	            return;
 	        } else if (rightArrowSelected) {
 	            // On right arrow: go to champion grid position (1,2) - middle right
 	            rightArrowSelected = false;
@@ -408,6 +456,26 @@ import Champions.Champion;
 	            // Not on arrows: normal left navigation
 	            navigateLeft();
 	        }
+	    }
+	    
+	    // Handle E key press - access champions list from champion grid
+	    public void handleEKey() {
+	        if (!keyboardMode) enableKeyboardMode();
+	        if (showPopup || showHelpPopup || xButtonMode || filterMode || returnButtonSelected || isAnyArrowSelected()) {
+	            // Don't handle E key in special modes or when help popup is open
+	            return;
+	        }
+	        
+	        // Enter X button mode if we have 2 or more champions and we're on the champion grid
+	        if (getChampionsInPartyCount() >= 2) {
+	            enterXButtonMode();
+	        }
+	    }
+	    
+	    // Handle T key press - toggle help popup
+	    public void handleTKey() {
+	        showHelpPopup = !showHelpPopup;
+	        gp.playSE(9);
 	    }
 	    
 	    // Check if conditions are met to enter X button mode
@@ -608,13 +676,8 @@ import Champions.Champion;
 	        // Draw popup if visible
 	        drawPopup(g2);
 	        
-	        // Draw GO BACK button
-	        drawGoBackButton(g2);
-	        
-	        // Draw title (after popup so it doesn't get covered)
-	        if (!showPopup) {
-	            drawTitle(g2);
-	        }
+	        // Draw help popup if visible
+	        drawHelpPopup(g2);
 	    }
 	
 	    private void drawLeftPanel(Graphics2D g2) {
@@ -708,12 +771,26 @@ import Champions.Champion;
 	        int returnButtonX = rightPanelX + rightPanelWidth - returnButtonWidth - 10;
 	        int returnButtonY = 10;
 	
-	        g2.setColor(new Color(200, 50, 50)); // Red button
+	        // Change color based on selection
+	        Color buttonColor = returnButtonSelected ? new Color(255, 215, 0) : new Color(200, 50, 50); // Gold when selected, red otherwise
+	        Color textColor = returnButtonSelected ? Color.BLACK : Color.WHITE;
+	        
+	        g2.setColor(buttonColor);
 	        g2.fillRect(returnButtonX, returnButtonY, returnButtonWidth, returnButtonHeight);
-	        g2.setColor(Color.WHITE);
+	        g2.setColor(textColor);
 	        g2.drawRect(returnButtonX, returnButtonY, returnButtonWidth, returnButtonHeight);
 	        g2.setFont(new Font("Arial", Font.BOLD, 12));
-	        g2.drawString("Return to Menu", returnButtonX + 10, returnButtonY + 20);
+	        
+	        // Center the text in the button
+	        String returnText = "Return";
+	        FontMetrics fm = g2.getFontMetrics();
+	        int textWidth = fm.stringWidth(returnText);
+	        int textHeight = fm.getHeight();
+	        
+	        int textX = returnButtonX + (returnButtonWidth - textWidth) / 2;
+	        int textY = returnButtonY + (returnButtonHeight + textHeight) / 2 - fm.getDescent();
+	        
+	        g2.drawString(returnText, textX, textY);
 	
 	        // Draw role filter buttons (centered)
 	        String[] roles = { "Top", "Mid", "Jgl", "Adc", "Supp" };
@@ -726,14 +803,24 @@ import Champions.Champion;
 	        for (int i = 0; i < roles.length; i++) {
 	            int x = filterXOffset + i * (filterButtonWidth + 10);
 	
-	            // Determine button color based on filter state
+	            // Determine button color based on filter state and selection
 	            boolean isActive = roleFilters[i];
-	            Color buttonColor = isActive ? new Color(100, 255, 100) : new Color(200, 200, 200); // Green for active, gray for inactive
-	            g2.setColor(buttonColor);
+	            boolean isSelected = filterMode && selectedFilter == i;
+	            
+	            Color filterButtonColor;
+	            if (isSelected) {
+	                filterButtonColor = new Color(255, 215, 0); // Gold for selected
+	            } else if (isActive) {
+	                filterButtonColor = new Color(100, 255, 100); // Green for active
+	            } else {
+	                filterButtonColor = new Color(200, 200, 200); // Gray for inactive
+	            }
+	            
+	            g2.setColor(filterButtonColor);
 	            g2.fillRect(x, filterYOffset, filterButtonWidth, filterButtonHeight);
 	
 	            // Draw button border and label
-	            g2.setColor(Color.BLACK);
+	            g2.setColor(isSelected ? Color.WHITE : Color.BLACK);
 	            g2.drawRect(x, filterYOffset, filterButtonWidth, filterButtonHeight);
 	            g2.drawString(roles[i], x + 10, filterYOffset + 20);
 	        }
@@ -791,6 +878,16 @@ import Champions.Champion;
 	        // Apply filters and draw the grid
 	        List<Champion> filteredChampions = applyFilters();
 	        drawChampionGrid(g2, filteredChampions, rightPanelX + arrowPadding + arrowSize, filterHeight, rightPanelWidth - 2 * (arrowPadding + arrowSize));
+	        
+	        // Help text in bottom right corner
+	        if (!showHelpPopup) { // Only show when help popup is not visible
+	            g2.setFont(new Font("Arial", Font.ITALIC, 11));
+	            g2.setColor(new Color(180, 180, 180)); // Light gray
+	            String helpText = "Press T for help";
+	            int helpTextWidth = g2.getFontMetrics().stringWidth(helpText);
+	            g2.drawString(helpText, rightPanelX + rightPanelWidth - helpTextWidth - 15, gp.screenHeight - 15);
+	        }
+	        
 	    }
 	
 	
@@ -800,9 +897,6 @@ import Champions.Champion;
 	        int cellWidth = rightPanelWidth / gridColumns; // Width of each cell
 	        int cellHeight = (gp.screenHeight - filterHeight) / gridRows;  // Height of each cell
 
-	        // Get mouse position for hover effect (only when popup is closed)
-	        Point mousePoint = MouseInfo.getPointerInfo().getLocation();
-	        SwingUtilities.convertPointFromScreen(mousePoint, gp);
 
 	        // Calculate the range of champions to display on the current page
 	        int start = currentPage * championsPerPage;
@@ -826,21 +920,14 @@ import Champions.Champion;
 	                }
 	            }
 
-	            // Enable hover effect only if popup is closed and not in X button mode
-	            boolean isHovered = !showPopup && !xButtonMode && !inParty &&
-	                    mousePoint.x >= xOffset + 10 && mousePoint.x <= xOffset + cellWidth - 10 &&
-	                    mousePoint.y >= yOffset + 10 && mousePoint.y <= yOffset + cellHeight - 10;
-
-	            // Check if this cell is selected via keyboard (but not when arrow or X button is selected)
-	            boolean isKeyboardSelected = keyboardMode && !showPopup && !isAnyArrowSelected() && !xButtonMode &&
+	            // Check if this cell is selected via keyboard (but not when arrow, X button, filter mode, or return button is selected)
+	            boolean isKeyboardSelected = keyboardMode && !showPopup && !isAnyArrowSelected() && !xButtonMode && !filterMode && !returnButtonSelected &&
 	                    selectedGridRow == row && selectedGridCol == col;
 
-	            // Draw the cell background with keyboard selection priority
+	            // Draw the cell background
 	            Color cellColor = Color.WHITE;
 	            if (isKeyboardSelected) {
 	                cellColor = new Color(0, 150, 255, 180); // Blue highlight for keyboard selection
-	            } else if (isHovered) {
-	                cellColor = new Color(255, 215, 0, 150); // Gold highlight on mouse hover
 	            }
 	            g2.setColor(cellColor);
 	            g2.fillRect(xOffset + 10, yOffset + 10, cellWidth - 20, cellHeight - 20);
@@ -865,11 +952,21 @@ import Champions.Champion;
 	                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f)); // Reset opacity
 	            }
 
-	            // Draw champion name below the image
+	            // Draw champion name and level below the image
 	            g2.setColor(inParty ? Color.GRAY : Color.GREEN); // Gray text if in party
 	            String champName = champion.getName();
-	            int textWidth = g2.getFontMetrics().stringWidth(champName);
-	            g2.drawString(champName, xOffset + (cellWidth - textWidth) / 2, yOffset + cellHeight - 20); // Center text horizontally
+	            String levelText = "Lv. " + champion.getLevel();
+	            
+	            // Draw champion name
+	            g2.setFont(new Font("Arial", Font.BOLD, 12));
+	            int nameWidth = g2.getFontMetrics().stringWidth(champName);
+	            g2.drawString(champName, xOffset + (cellWidth - nameWidth) / 2, yOffset + cellHeight - 35);
+	            
+	            // Draw level below name
+	            g2.setFont(new Font("Arial", Font.BOLD, 12));
+	            g2.setColor(new Color(0, 0, 0)); // Solid black for level
+	            int levelWidth = g2.getFontMetrics().stringWidth(levelText);
+	            g2.drawString(levelText, xOffset + (cellWidth - levelWidth) / 2, yOffset + cellHeight - 20);
 	        }
 
 	        // Ensure grid remains visible even when popup is open
@@ -982,189 +1079,6 @@ import Champions.Champion;
 
 	
 	
-	    public void handleMouseClick(int mouseX, int mouseY) {
-	        // Disable keyboard mode when mouse is used
-	        disableKeyboardMode();
-	        int leftPanelWidth = gp.screenWidth / 4;
-	        int rightPanelX = leftPanelWidth;
-	        int rightPanelWidth = gp.screenWidth - leftPanelWidth;
-	        int filterHeight = 100;
-	        int arrowPadding = 60;
-	        int arrowSize = 50;
-	        int arrowYOffset = filterHeight + (gp.screenHeight - filterHeight) / 2 - arrowSize / 2;
-	        int slotHeight = gp.screenHeight / 5;
-
-	        // Count the number of champions in useChamps
-	        int championsInParty = getChampionsInPartyCount();
-
-	        // Check for clicks on the "X" button in the useChamps slots if there is more than one champion
-	        if (championsInParty > 1) {
-	            for (int i = 0; i < gp.player.getUseChamps().length; i++) {
-	                int xButtonSize = 20;
-	                int xButtonX = 10 + leftPanelWidth - 30; // Position it near the right edge of the slot
-	                int xButtonY = i * slotHeight + 20; // Position it near the top of the slot
-
-	                if (mouseX >= xButtonX && mouseX <= xButtonX + xButtonSize &&
-	                    mouseY >= xButtonY && mouseY <= xButtonY + xButtonSize) {
-	                    Champion removedChampion = gp.player.getUseChamps()[i];
-	                    
-	                    if (removedChampion != null) {
-	                        // Remove using the new system
-	                        gp.player.setUseChampByIndex(i, null);
-	                        System.out.println(removedChampion.getName() + " has been removed from the " + gp.player.getRoleName(i) + " role.");
-	                    }
-
-	                    gp.repaint();
-	                    return;
-	                }
-	            }
-	        }
-
-	        // Handle popup clicks
-	        if (showPopup && selectedChampion != null) {
-	            int popupWidth = 400;
-	            int popupHeight = 300;
-	            int popupX = gp.screenWidth / 4 + (rightPanelWidth - popupWidth) / 2;
-	            int popupY = gp.screenHeight / 2 - popupHeight / 2;
-
-	            // Check for close button click (red "X")
-	            int closeButtonSize = 30;
-	            int closeButtonX = popupX + popupWidth - closeButtonSize - 10;
-	            int closeButtonY = popupY + 10;
-	            if (mouseX >= closeButtonX && mouseX <= closeButtonX + closeButtonSize &&
-	                mouseY >= closeButtonY && mouseY <= closeButtonY + closeButtonSize) {
-	                showPopup = false;
-	                gp.repaint();
-	                return;
-	            }
-
-	            // Button handling for adding the champion to a role
-	            int buttonWidth = 120;
-	            int buttonHeight = 40;
-	            int buttonY = popupY + 200;
-
-	            if (selectedChampion.getRole2() == null || selectedChampion.getRole2().isEmpty() || selectedChampion.getRole2().equalsIgnoreCase("None")) {
-	                // Single role button (centered)
-	                int buttonX = popupX + (popupWidth - buttonWidth) / 2;
-
-	                if (mouseX >= buttonX && mouseX <= buttonX + buttonWidth &&
-	                    mouseY >= buttonY && mouseY <= buttonY + buttonHeight) {
-	                    promptAddToParty(selectedChampion, selectedChampion.getRole());
-	                    showPopup = false;
-	                    gp.repaint();
-	                    return;
-	                }
-	            } else {
-	                // Two role buttons (side by side)
-	                int button1X = popupX + popupWidth / 4 - buttonWidth / 2;
-	                int button2X = popupX + 3 * popupWidth / 4 - buttonWidth / 2;
-
-	                if (mouseX >= button1X && mouseX <= button1X + buttonWidth &&
-	                    mouseY >= buttonY && mouseY <= buttonY + buttonHeight) {
-	                    promptAddToParty(selectedChampion, selectedChampion.getRole());
-	                    showPopup = false;
-	                    gp.repaint();
-	                    return;
-	                }
-
-	                if (mouseX >= button2X && mouseX <= button2X + buttonWidth &&
-	                    mouseY >= buttonY && mouseY <= buttonY + buttonHeight) {
-	                    promptAddToParty(selectedChampion, selectedChampion.getRole2());
-	                    showPopup = false;
-	                    gp.repaint();
-	                    return;
-	                }
-	            }
-
-	            return;
-	        }
-
-	        // If the popup is active, block further clicks
-	        if (showPopup) return;
-
-	        // Handle Return to Menu button click
-	        int returnButtonWidth = 120;
-	        int returnButtonHeight = 30;
-	        int returnButtonX = rightPanelX + rightPanelWidth - returnButtonWidth - 10;
-	        int returnButtonY = 10;
-
-	        if (mouseX >= returnButtonX && mouseX <= returnButtonX + returnButtonWidth &&
-	            mouseY >= returnButtonY && mouseY <= returnButtonY + returnButtonHeight) {
-	            gp.keyH.resetKeyStates();
-	            gp.gameState = gp.pauseState; // Return to menu
-	            return;
-	        }
-
-	        // Handle left arrow click (always available - wrapping)
-	        if (mouseX >= rightPanelX + arrowPadding && mouseX <= rightPanelX + arrowPadding + arrowSize &&
-	            mouseY >= arrowYOffset && mouseY <= arrowYOffset + arrowSize) {
-	            navigatePageLeft(); // Use wrapping navigation
-	            gp.repaint();
-	            return;
-	        }
-
-	        // Handle right arrow click (always available - wrapping)
-	        if (mouseX >= rightPanelX + rightPanelWidth - arrowPadding - arrowSize && mouseX <= rightPanelX + rightPanelWidth - arrowPadding &&
-	            mouseY >= arrowYOffset && mouseY <= arrowYOffset + arrowSize) {
-	            navigatePageRight(); // Use wrapping navigation
-	            gp.repaint();
-	            return;
-	        }
-
-	        // Handle role filter button clicks
-	        int filterButtonWidth = 80;
-	        int filterButtonHeight = 30;
-	        int totalWidth = roleFilters.length * filterButtonWidth + (roleFilters.length - 1) * 10;
-	        int filterXOffset = rightPanelX + (rightPanelWidth - totalWidth) / 2;
-	        int filterYOffset = 50;
-
-	        for (int i = 0; i < 5; i++) { // Only role filters now
-	            int buttonX = filterXOffset + i * (filterButtonWidth + 10);
-	            if (mouseX >= buttonX && mouseX <= buttonX + filterButtonWidth &&
-	                mouseY >= filterYOffset && mouseY <= filterYOffset + filterButtonHeight) {
-	                roleFilters[i] = !roleFilters[i]; // Toggle role filters
-	                currentPage = 0; // Reset to page 1
-	                gp.repaint();
-	                return;
-	            }
-	        }
-
-	        // Handle champion grid clicks
-	        List<Champion> filteredChampions = applyFilters();
-	        int gridColumns = 3;
-	        int cellWidth = (rightPanelWidth - 2 * (arrowPadding + arrowSize)) / gridColumns;
-	        int cellHeight = (gp.screenHeight - filterHeight) / gridColumns;
-
-	        for (int i = currentPage * championsPerPage; i < Math.min(filteredChampions.size(), (currentPage + 1) * championsPerPage); i++) {
-	            int col = (i - currentPage * championsPerPage) % gridColumns; // Column number
-	            int row = (i - currentPage * championsPerPage) / gridColumns; // Row number
-	            int xOffset = rightPanelX + arrowPadding + arrowSize + col * cellWidth;
-	            int yOffset = filterHeight + row * cellHeight;
-
-	            // Check if champion is already in useChamps
-	            boolean inParty = false;
-	            for (Champion partyMember : gp.player.getUseChamps()) {
-	                if (partyMember != null && partyMember.equals(filteredChampions.get(i))) {
-	                    inParty = true;
-	                    break;
-	                }
-	            }
-
-	            // Skip clicking on champions already in useChamps
-	            if (inParty) continue;
-
-	            if (mouseX >= xOffset + 10 && mouseX <= xOffset + cellWidth - 10 &&
-	                mouseY >= yOffset + 10 && mouseY <= yOffset + cellHeight - 10) {
-	                Champion clickedChampion = filteredChampions.get(i);
-
-	                // Show the popup
-	                selectedChampion = clickedChampion;
-	                showPopup = true;
-	                gp.repaint();
-	                return;
-	            }
-	        }
-	    }
 
 
 	    private void promptAddToParty(Champion selectedChampion, String role) {
@@ -1211,63 +1125,96 @@ import Champions.Champion;
 	        }
 	        return false;
 	    }
-	
-	    private void drawGoBackButton(Graphics2D g2) {
-	        if (showPopup) return; // Don't show GO BACK button when popup is open
+
+	    // Draw help popup
+	    private void drawHelpPopup(Graphics2D g2) {
+	        if (!showHelpPopup) return;
 	        
-	        int buttonSize = 40; // Square button for arrow
-	        int buttonX = 20; // Top left with padding
-	        int buttonY = 20;
+	        // Semi-transparent overlay
+	        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+	        g2.setColor(Color.BLACK);
+	        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+	        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 	        
-	        // Style similar to combat bag - clean rounded rectangle
-	        Color buttonColor = goBackSelected ? new Color(70, 130, 200) : new Color(135, 170, 220);
-	        Color arrowColor = goBackSelected ? Color.WHITE : new Color(45, 55, 75);
+	        // Help popup box - smooth and pretty, bigger to display everything
+	        int popupWidth = 500;
+	        int popupHeight = 300;
+	        int popupX = (gp.screenWidth - popupWidth) / 2;
+	        int popupY = (gp.screenHeight - popupHeight) / 2; // Perfectly centered
 	        
-	        // Draw button background
-	        g2.setColor(buttonColor);
-	        g2.fillRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+	        // Draw smooth shadow effect
+	        g2.setColor(new Color(0, 0, 0, 80));
+	        g2.fillRoundRect(popupX + 5, popupY + 5, popupWidth, popupHeight, 15, 15);
 	        
-	        // Draw border
-	        g2.setColor(goBackSelected ? Color.WHITE : new Color(180, 200, 230));
-	        g2.setStroke(new BasicStroke(2));
-	        g2.drawRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
-	        g2.setStroke(new BasicStroke(1)); // Reset stroke
+	        // Main popup background with rounded corners
+	        g2.setColor(new Color(25, 30, 45)); // Deep blue-gray
+	        g2.fillRoundRect(popupX, popupY, popupWidth, popupHeight, 15, 15);
 	        
-	        // Draw left-pointing arrow
-	        g2.setColor(arrowColor);
-	        int arrowSize = 16;
-	        int centerX = buttonX + buttonSize / 2;
-	        int centerY = buttonY + buttonSize / 2;
+	        // Elegant border
+	        g2.setColor(new Color(100, 150, 200)); // Soft blue
+	        g2.drawRoundRect(popupX, popupY, popupWidth-1, popupHeight-1, 15, 15);
 	        
-	        // Left-pointing arrow triangle
-	        int[] arrowX = {centerX + arrowSize/2, centerX - arrowSize/2, centerX + arrowSize/2};
-	        int[] arrowY = {centerY - arrowSize/2, centerY, centerY + arrowSize/2};
-	        g2.fillPolygon(arrowX, arrowY, 3);
-	    }
-	    
-	    private void drawTitle(Graphics2D g2) {
-	        // Draw "MY TEAM" title centered over the champion grid area
-	        g2.setFont(new Font("Arial", Font.BOLD, 36));
+	        // Title background with gradient-like effect
+	        g2.setColor(new Color(40, 50, 70));
+	        g2.fillRoundRect(popupX + 8, popupY + 8, popupWidth - 16, 40, 10, 10);
+	        g2.setColor(new Color(150, 200, 255)); // Light blue outline
+	        g2.drawRoundRect(popupX + 8, popupY + 8, popupWidth - 16, 40, 10, 10);
+	        
+	        // Title
+	        g2.setFont(new Font("Arial", Font.BOLD, 18));
+	        g2.setColor(Color.YELLOW);
+	        g2.drawString("🎮 Champion Menu Navigation", popupX + 15, popupY + 28);
+	        
+	        // Simple content with clean layout
+	        int contentX = popupX + 30;
+	        int currentY = popupY + 70;
+	        int lineHeight = 20;
+	        
+	        // Main controls
+	        g2.setFont(new Font("Arial", Font.PLAIN, 14));
 	        g2.setColor(Color.WHITE);
-	        String title = "MY TEAM";
-	        FontMetrics fm = g2.getFontMetrics();
-	        int titleWidth = fm.stringWidth(title);
+	        String[] controls = {
+	            "WASD: Navigate",
+	            "Enter: Select",
+	            "ESC: Return to team page",
+	            "E: Access current selected team",
+	            "",
+	            "Navigation Shortcuts:",
+	            "• Access your team from Top filter pressing A",
+	            "• Access the return button pressing D from Supp filter"
+	        };
 	        
-	        // Calculate center position over the actual champion grid area (between the arrows)
-	        int leftPanelWidth = gp.screenWidth / 4;
-	        int rightPanelX = leftPanelWidth;
-	        int arrowPadding = 60; 
-	        int arrowSize = 50;
-	        int gridStartX = rightPanelX + arrowPadding + arrowSize;
-	        int rightPanelWidth = gp.screenWidth - leftPanelWidth;
-	        int gridWidth = rightPanelWidth - 2 * (arrowPadding + arrowSize);
+	        for (String line : controls) {
+	            if (!line.isEmpty()) {
+	                // Highlight shortcut section
+	                if (line.startsWith("Navigation Shortcuts:")) {
+	                    g2.setFont(new Font("Arial", Font.BOLD, 14));
+	                    g2.setColor(new Color(255, 200, 100)); // Golden color
+	                } else if (line.startsWith("•")) {
+	                    g2.setFont(new Font("Arial", Font.PLAIN, 13));
+	                    g2.setColor(new Color(200, 255, 200)); // Light green
+	                } else {
+	                    g2.setFont(new Font("Arial", Font.PLAIN, 14));
+	                    g2.setColor(Color.WHITE);
+	                }
+	                g2.drawString(line, contentX, currentY);
+	            }
+	            currentY += lineHeight;
+	        }
 	        
-	        // Center the title over the grid area
-	        int titleX = gridStartX + (gridWidth - titleWidth) / 2;
+	        // Close instruction with smooth background
+	        g2.setColor(new Color(40, 50, 70));
+	        g2.fillRoundRect(popupX + 15, popupY + popupHeight - 35, popupWidth - 30, 25, 8, 8);
+	        g2.setColor(new Color(120, 180, 255));
+	        g2.drawRoundRect(popupX + 15, popupY + popupHeight - 35, popupWidth - 30, 25, 8, 8);
 	        
-	        int titleY = 60; // Position at top with padding
-	        
-	        g2.drawString(title, titleX, titleY);
+	        g2.setFont(new Font("Arial", Font.BOLD, 12));
+	        g2.setColor(new Color(120, 180, 255));
+	        String closeText = "Press T to close this guide";
+	        int closeTextWidth = g2.getFontMetrics().stringWidth(closeText);
+	        int closeTextX = popupX + (popupWidth - closeTextWidth) / 2;
+	        g2.drawString(closeText, closeTextX, popupY + popupHeight - 18);
 	    }
+	
 	   
 	}

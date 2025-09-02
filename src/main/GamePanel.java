@@ -132,9 +132,6 @@ public class GamePanel extends JPanel implements Runnable{
 	    this.addMouseListener(new MouseAdapter() {
 	        @Override
 	        public void mouseClicked(MouseEvent e) {
-	            if (gameState == championMenuState) { // Only handle clicks in champion menu
-	                championMenu.handleMouseClick(e.getX(), e.getY());
-	            }
 	            if (gameState == dexState) {
 	                dex.handleMouseClick(e.getX(), e.getY());
 	            }
@@ -421,9 +418,6 @@ public class GamePanel extends JPanel implements Runnable{
 
 
 	private void handleMouseClick(int mouseX, int mouseY) {
-	    if (gameState == championMenuState) {
-	        championMenu.handleMouseClick(mouseX, mouseY);
-	    }
 	    
 	    // Other game states...
 	}

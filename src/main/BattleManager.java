@@ -5,6 +5,7 @@ import Champions.Move;
 import Champions.StatIncrease;
 import Champions.StatusEffect;
 
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -67,13 +68,71 @@ public class BattleManager {
     // Image cache for item icons (same system as Bag.java)
     private Map<String, BufferedImage> iconCache = new HashMap<>();
     
+    // Image cache for battle icons
+    private Map<String, BufferedImage> battleIconCache = new HashMap<>();
+    
     // Navigation states for item selection
     public enum ItemNavigationState {
         TAB_SELECTION,    // Currently on tab names (can use A/D to switch tabs, W to go to return arrow)
         RETURN_ARROW,     // Currently on return arrow
         ITEM_LIST         // Currently navigating item list (can use A/D for pages, W/S for items)
     }
+    
+    // Navigation states for fight menu
+    public enum FightNavigationState {
+        MOVE_SELECTION,   // Currently selecting moves (default)
+        RETURN_ARROW      // Currently on return arrow
+    }
+    private FightNavigationState fightNavState = FightNavigationState.MOVE_SELECTION;
+    
+    // Navigation states for party menu  
+    public enum PartyNavigationState {
+        CHAMPION_SELECTION, // Currently selecting champions (default)
+        RETURN_ARROW        // Currently on return arrow
+    }
+    private PartyNavigationState partyNavState = PartyNavigationState.CHAMPION_SELECTION;
     private Random random = new Random();
+    
+    // Getter and setter methods for navigation states
+    public FightNavigationState getFightNavState() {
+        return fightNavState;
+    }
+    
+    public void setFightNavState(FightNavigationState state) {
+        this.fightNavState = state;
+    }
+    
+    public PartyNavigationState getPartyNavState() {
+        return partyNavState;
+    }
+    
+    public void setPartyNavState(PartyNavigationState state) {
+        this.partyNavState = state;
+    }
+    
+    public int getSelectedTeamMemberIndex() {
+        return selectedTeamMemberIndex;
+    }
+    
+    public void setSelectedTeamMemberIndex(int index) {
+        this.selectedTeamMemberIndex = index;
+    }
+    
+    // Method to load battle icons
+    private BufferedImage loadBattleIcon(String iconName) {
+        if (battleIconCache.containsKey(iconName)) {
+            return battleIconCache.get(iconName);
+        }
+        
+        try {
+            BufferedImage icon = ImageIO.read(getClass().getResourceAsStream("/battle/" + iconName + ".png"));
+            battleIconCache.put(iconName, icon);
+            return icon;
+        } catch (Exception e) {
+            System.out.println("Could not load battle icon: " + iconName);
+            return null;
+        }
+    }
     
     // Scrollable text system with colors
     private java.util.List<ColoredMessage> battleMessages = new java.util.ArrayList<>();
@@ -674,32 +733,64 @@ public class BattleManager {
     }
     
     /**
-     * Draws a circular auto-attack button with sword icon
+     * Draws a circular auto-attack button with aa_icon
      */
     private void drawCircularAutoAttackButton(Graphics2D g2, int centerX, int centerY, int radius, boolean selected) {
-        // Button colors
-        Color buttonColor = selected ? new Color(200, 220, 150) : new Color(150, 180, 100);
-        Color borderColor = selected ? new Color(255, 255, 255) : new Color(100, 140, 60);
-        Color shadowColor = new Color(0, 0, 0, 100);
+        // Enhanced button colors with blue gradient
+        Color buttonColor1 = selected ? new Color(100, 150, 255) : new Color(80, 120, 200); // Blue when selected
+        Color buttonColor2 = selected ? new Color(50, 100, 200) : new Color(60, 90, 150);
+        Color borderColor = selected ? new Color(255, 255, 255, 220) : new Color(120, 150, 200);
+        Color shadowColor = new Color(0, 0, 0, 120);
         
         // Draw shadow
         g2.setColor(shadowColor);
-        g2.fillOval(centerX - radius + 2, centerY - radius + 2, radius * 2, radius * 2);
+        g2.fillOval(centerX - radius + 3, centerY - radius + 3, radius * 2, radius * 2);
         
-        // Draw button background
-        g2.setColor(buttonColor);
+        // Draw button background with gradient
+        RadialGradientPaint gradient = new RadialGradientPaint(
+            centerX - radius/3f, centerY - radius/3f, radius * 1.2f,
+            new float[]{0.0f, 1.0f},
+            new Color[]{buttonColor1, buttonColor2}
+        );
+        g2.setPaint(gradient);
         g2.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
         
-        // Draw border
+        // Draw border with glow effect
+        if (selected) {
+            // Outer glow
+            g2.setColor(new Color(255, 255, 255, 80));
+            g2.setStroke(new BasicStroke(4f));
+            g2.drawOval(centerX - radius - 2, centerY - radius - 2, (radius + 2) * 2, (radius + 2) * 2);
+        }
+        
         g2.setColor(borderColor);
-        g2.setStroke(new java.awt.BasicStroke(selected ? 3 : 2));
+        g2.setStroke(new BasicStroke(selected ? 3f : 2f));
         g2.drawOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
         
-        // Draw sword icon in the center
-        drawSwordIcon(g2, centerX, centerY, radius * 0.6f, selected ? Color.WHITE : new Color(80, 80, 80));
+        // Try to load and draw aa_icon
+        BufferedImage aaIcon = loadBattleIcon("aa_icon");
+        if (aaIcon != null) {
+            // Calculate icon size to fit nicely in the circle
+            int iconSize = (int)(radius * 1.2);
+            int iconX = centerX - iconSize / 2;
+            int iconY = centerY - iconSize / 2;
+            
+            // Apply transparency if not selected
+            if (!selected) {
+                AlphaComposite oldComposite = (AlphaComposite) g2.getComposite();
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f));
+                g2.drawImage(aaIcon, iconX, iconY, iconSize, iconSize, null);
+                g2.setComposite(oldComposite);
+            } else {
+                g2.drawImage(aaIcon, iconX, iconY, iconSize, iconSize, null);
+            }
+        } else {
+            // Fallback to sword icon if aa_icon can't be loaded
+            drawSwordIcon(g2, centerX, centerY, radius * 0.6f, selected ? Color.WHITE : new Color(80, 80, 80));
+        }
         
         // Reset stroke
-        g2.setStroke(new java.awt.BasicStroke(1));
+        g2.setStroke(new BasicStroke(1f));
     }
     
     /**
@@ -1061,6 +1152,7 @@ public class BattleManager {
             case 0 -> {
                 battleState = BattleState.MOVE_SELECTION;
                 selectedMoveIndex = 0;
+                fightNavState = FightNavigationState.MOVE_SELECTION; // Reset to move selection
                 // Don't clear battle message when switching to move selection
             }
             case 1 -> {
@@ -1094,14 +1186,10 @@ public class BattleManager {
                 
                 if (hasOtherChampions) {
                     battleState = BattleState.TEAM_SWAP;
-                    selectedTeamMemberIndex = 0;
-                    // Find first available champion for selection
-                    for (int i = 0; i < battleTeam.length; i++) {
-                        if (battleTeam[i] != null && battleTeam[i] != playerChampion && battleTeam[i].getCurrentHp() > 0) {
-                            selectedTeamMemberIndex = i;
-                            break;
-                        }
-                    }
+                    selectedTeamMemberIndex = 0; // Always start with first available champion (index 0 in available list)
+                    partyNavState = PartyNavigationState.CHAMPION_SELECTION; // Reset to champion selection
+                    // selectedTeamMemberIndex should be index in the availableChampions list, not battleTeam array
+                    // So we keep it at 0 to select the first available champion
                     addBattleMessage("Choose a champion to swap to:");
                 } else {
                     addBattleMessage("No other champions available!");
@@ -2761,19 +2849,26 @@ public class BattleManager {
         g2.setStroke(new java.awt.BasicStroke(2));
         g2.drawRoundRect(rightSideStart + 10, blackStartY + 10, rightSideWidth - 20, blackAreaHeight - 20, 15, 15);
         
+        // Return arrow in top left
+        int returnArrowSize = 40;
+        int returnArrowX = rightSideStart + 20;
+        int returnArrowY = blackStartY + 15;
+        
+        drawReturnArrow(g2, returnArrowX, returnArrowY, returnArrowSize, fightNavState == FightNavigationState.RETURN_ARROW);
+        
         // Title
         g2.setColor(Color.WHITE);
         g2.setFont(g2.getFont().deriveFont(java.awt.Font.BOLD, 18f));
-        g2.drawString("SELECT MOVE:", rightSideStart + 25, blackStartY + 40);
+        g2.drawString("SELECT MOVE:", rightSideStart + 70, blackStartY + 40);
         
-        // New layout: Circular auto-attack button on left, 2x2 grid of moves on right
+        // Original layout: Circular auto-attack button on left, 2x2 grid of moves on right
         int moveButtonWidth = 160;
         int moveButtonHeight = 60;
         int horizontalSpacing = 30;
         int verticalSpacing = 20;
         
         // Auto-attack circular button dimensions
-        int autoAttackRadius = 35; // Small circular button
+        int autoAttackRadius = 35; // Original size
         int autoAttackDiameter = autoAttackRadius * 2;
         
         // Calculate positions - auto-attack on left, moves grid on right
@@ -3956,6 +4051,13 @@ public class BattleManager {
         g2.setColor(new Color(255, 255, 255, 60));
         g2.setStroke(new BasicStroke(1f));
         g2.drawRoundRect(panelX + 3, panelY + 3, panelWidth - 6, panelHeight - 6, 22, 22);
+        
+        // Return arrow in top left
+        int returnArrowSize = 40;
+        int returnArrowX = panelX + 20;
+        int returnArrowY = panelY + 15;
+        
+        drawReturnArrow(g2, returnArrowX, returnArrowY, returnArrowSize, partyNavState == PartyNavigationState.RETURN_ARROW);
         
         // Title with shadow effect
         g2.setFont(new Font("Segoe UI", Font.BOLD, 24));

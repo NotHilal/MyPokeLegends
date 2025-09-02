@@ -343,18 +343,33 @@ public class KeyHandler implements KeyListener{
 		        	gp.ui.battleNum = 3;
 		        }
 		    } else if (gp.battleManager.getBattleState() == BattleState.MOVE_SELECTION) {
-		        // Move selection navigation: Auto-attack (0) on left, moves (1-4) in 2x2 grid on right
-		        // Layout: [0]    [1] [2] 
-		        //               [3] [4]
-		        
-		        if (code == KeyEvent.VK_W) { 
-		            if(gp.ui.battleNum == 3 || gp.ui.battleNum == 4) {
-		                // From bottom row to top row
-		                gp.ui.battleNum -= 2;
+		        // Handle navigation between return arrow and moves
+		        if (gp.battleManager.getFightNavState() == BattleManager.FightNavigationState.RETURN_ARROW) {
+		            // From return arrow, S goes back to moves
+		            if (code == KeyEvent.VK_S) {
+		                gp.battleManager.setFightNavState(BattleManager.FightNavigationState.MOVE_SELECTION);
+		                gp.ui.battleNum = 0; // Go back to auto-attack (first option)
 		                gp.playSE(9);
 		            }
+		        } else {
+		            // Move selection navigation: Auto-attack (0) on left, moves (1-4) in 2x2 grid on right
+		            // Layout: [0]    [1] [2] 
+		            //               [3] [4]
+		            
+		            if (code == KeyEvent.VK_W) { 
+		                if(gp.ui.battleNum == 3 || gp.ui.battleNum == 4) {
+		                    // From bottom row to top row
+		                    gp.ui.battleNum -= 2;
+		                    gp.playSE(9);
+		                } else if (gp.ui.battleNum == 0 || gp.ui.battleNum == 1 || gp.ui.battleNum == 2) {
+		                    // From any top element to return arrow
+		                    gp.battleManager.setFightNavState(BattleManager.FightNavigationState.RETURN_ARROW);
+		                    gp.ui.battleNum = -1; // Clear move selection highlight
+		                    gp.playSE(9);
+		                }
+		            }
 		        }
-		        if (code == KeyEvent.VK_S) { 
+		        if (code == KeyEvent.VK_S && gp.battleManager.getFightNavState() == BattleManager.FightNavigationState.MOVE_SELECTION) { 
 		            if(gp.ui.battleNum == 1 || gp.ui.battleNum == 2) {
 		                // From top row to bottom row (if moves exist)
 		                if(gp.ui.battleNum + 2 <= gp.player.getFirstChampion().getMoves().size()) {
@@ -363,7 +378,7 @@ public class KeyHandler implements KeyListener{
 		                }
 		            }
 		        }
-		        if (code == KeyEvent.VK_A) { 
+		        if (code == KeyEvent.VK_A && gp.battleManager.getFightNavState() == BattleManager.FightNavigationState.MOVE_SELECTION) { 
 		            if(gp.ui.battleNum == 1 || gp.ui.battleNum == 3) {
 		                // From left column moves (top-left or bottom-left) to auto-attack
 		                gp.ui.battleNum = 0;
@@ -374,7 +389,7 @@ public class KeyHandler implements KeyListener{
 		                gp.playSE(9);
 		            }
 		        }
-		        if (code == KeyEvent.VK_D) {
+		        if (code == KeyEvent.VK_D && gp.battleManager.getFightNavState() == BattleManager.FightNavigationState.MOVE_SELECTION) {
 		            if(gp.ui.battleNum == 0) {
 		                // From auto-attack to first move
 		                gp.ui.battleNum = 1;
@@ -388,14 +403,32 @@ public class KeyHandler implements KeyListener{
 		            }
 		        }
 		    } else if (gp.battleManager.getBattleState() == BattleState.TEAM_SWAP) {
-		        // Team swap navigation - up/down to navigate through available champions
-		        if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
-		            gp.battleManager.handleBattleAction(-1); // Up arrow
-		            gp.playSE(9);
-		        }
-		        if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
-		            gp.battleManager.handleBattleAction(-2); // Down arrow
-		            gp.playSE(9);
+		        // Handle navigation between return arrow and champion selection
+		        if (gp.battleManager.getPartyNavState() == BattleManager.PartyNavigationState.RETURN_ARROW) {
+		            // From return arrow, S goes back to champion selection
+		            if (code == KeyEvent.VK_S) {
+		                gp.battleManager.setPartyNavState(BattleManager.PartyNavigationState.CHAMPION_SELECTION);
+		                gp.battleManager.setSelectedTeamMemberIndex(0); // Go back to first champion
+		                gp.playSE(9);
+		            }
+		        } else {
+		            // Team swap navigation - up/down to navigate through available champions
+		            if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
+		                // Check if we should go to return arrow or move up in champion list
+		                if (gp.battleManager.getSelectedTeamMemberIndex() == 0) {
+		                    // From first champion to return arrow
+		                    gp.battleManager.setPartyNavState(BattleManager.PartyNavigationState.RETURN_ARROW);
+		                    gp.battleManager.setSelectedTeamMemberIndex(-1); // Clear champion selection highlight
+		                    gp.playSE(9);
+		                } else {
+		                    gp.battleManager.handleBattleAction(-1); // Up arrow
+		                    gp.playSE(9);
+		                }
+		            }
+		            if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
+		                gp.battleManager.handleBattleAction(-2); // Down arrow
+		                gp.playSE(9);
+		            }
 		        }
 		    } else if (gp.battleManager.getBattleState() == BattleState.ITEM_SELECTION) {
 		        // Item selection navigation with W/S
@@ -419,8 +452,22 @@ public class KeyHandler implements KeyListener{
 		    
 		    if (code == KeyEvent.VK_ENTER) {
 		    	 gp.playSE(11);
-		    	 if (gp.battleManager.getBattleState() == BattleState.TEAM_SWAP) {
-		    		 gp.battleManager.handleBattleAction(0); // 0 = select champion
+		    	 if (gp.battleManager.getBattleState() == BattleState.MOVE_SELECTION) {
+		    	     // Check if return arrow is selected in fight menu
+		    	     if (gp.battleManager.getFightNavState() == BattleManager.FightNavigationState.RETURN_ARROW) {
+		    	         gp.battleManager.returnToMainMenu();
+		    	         gp.ui.battleNum = 0; // Reset to Fight option
+		    	     } else {
+		    	         gp.battleManager.handleBattleAction(gp.ui.battleNum);
+		    	     }
+		    	 } else if (gp.battleManager.getBattleState() == BattleState.TEAM_SWAP) {
+		    	     // Check if return arrow is selected in party menu
+		    	     if (gp.battleManager.getPartyNavState() == BattleManager.PartyNavigationState.RETURN_ARROW) {
+		    	         gp.battleManager.returnToMainMenu();
+		    	         gp.ui.battleNum = 2; // Reset to Party option
+		    	     } else {
+		    	         gp.battleManager.handleBattleAction(0); // 0 = select champion
+		    	     }
 		    	 } else if (gp.battleManager.getBattleState() == BattleState.ITEM_SELECTION) {
 		    		 gp.battleManager.handleBattleAction(0); // 0 = use item
 		    	 } else {
@@ -459,7 +506,7 @@ public class KeyHandler implements KeyListener{
 		    num4Pressed = true;
 		}
 		
-		// G key for champion selection
+		// E key for champion selection (changed from G)
 		if (code == KeyEvent.VK_G) {
 		    gPressed = true;
 		}
@@ -565,8 +612,10 @@ public class KeyHandler implements KeyListener{
 		// Champions STATE
 				else if(gp.gameState==gp.championMenuState) {
 					if(code ==KeyEvent.VK_ESCAPE) {
-						// Close popup if open, otherwise return to role team state
-						if(gp.championMenu != null && gp.championMenu.showPopup) {
+						// Close help popup if open, then champion popup if open, otherwise return to role team state
+						if(gp.championMenu != null && gp.championMenu.showHelpPopup) {
+							gp.championMenu.handleTKey(); // Close help popup using existing T key handler
+						} else if(gp.championMenu != null && gp.championMenu.showPopup) {
 							gp.championMenu.closePopup();
 						} else {
 							gp.gameState = gp.roleTeamState;
@@ -600,6 +649,18 @@ public class KeyHandler implements KeyListener{
 							gp.championMenu.selectCurrent();
 						}
 					}
+					// E key to access champions list (X button mode)
+					if(code == KeyEvent.VK_E) {
+						if(gp.championMenu != null) {
+							gp.championMenu.handleEKey();
+						}
+					}
+					// T key to toggle help popup
+					if(code == KeyEvent.VK_T) {
+						if(gp.championMenu != null) {
+							gp.championMenu.handleTKey();
+						}
+					}
 					// Return to menu
 					if(code == KeyEvent.VK_M) {
 						if(gp.championMenu != null) {
@@ -613,8 +674,11 @@ public class KeyHandler implements KeyListener{
 			if(code ==KeyEvent.VK_ESCAPE) {
 				escPressed = true;
 			}
-			if(code ==KeyEvent.VK_G) {
-				gPressed = true;
+			if(code ==KeyEvent.VK_E) {
+				gPressed = true; // E key for champion selection (reuse gPressed since G is no longer used)
+			}
+			if(code ==KeyEvent.VK_ENTER) {
+				interctPressed = true; // Enter key for details/actions
 			}
 			if(code ==KeyEvent.VK_TAB) {
 				gp.openTeamOrder(); // Switch to team order management
@@ -630,9 +694,6 @@ public class KeyHandler implements KeyListener{
 			}
 			if (code == KeyEvent.VK_D) {
 				rightPressed = true;
-			}
-			if (code == KeyEvent.VK_ENTER) {
-				interctPressed = true;
 			}
 		}
 		

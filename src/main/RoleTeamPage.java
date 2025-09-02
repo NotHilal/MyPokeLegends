@@ -209,7 +209,7 @@ public class RoleTeamPage {
             gamePanel.keyH.interctPressed = false;
             gamePanel.keyH.upPressed = false;
             gamePanel.keyH.downPressed = false;
-            gamePanel.keyH.gPressed = false;
+            gamePanel.keyH.interctPressed = false;
             System.out.println("RoleTeamPage: Just entered, clearing key states"); // Debug
             return; // Skip this frame to prevent immediate actions
         }
@@ -235,7 +235,7 @@ public class RoleTeamPage {
         if (gamePanel.keyH.interctPressed) {
             if (goBackSelected) {
                 // Handle GO BACK button selection
-                gamePanel.gameState = gamePanel.playState;
+                gamePanel.gameState = gamePanel.pauseState;
                 gamePanel.keyH.interctPressed = false;
                 return;
             } else if (itemModeActive) {
@@ -273,9 +273,9 @@ public class RoleTeamPage {
                 goBackSelected = false; // Reset GO BACK selection
                 System.out.println("ESC: Exited navigation mode, back to champion selection");
             } else {
-                // Exit to play state
-                gamePanel.gameState = gamePanel.playState;
-                System.out.println("ESC: Exited role team page, back to game");
+                // Exit to pause menu
+                gamePanel.gameState = gamePanel.pauseState;
+                System.out.println("ESC: Exited role team page, back to menu");
             }
             gamePanel.keyH.escPressed = false;
         }
@@ -385,7 +385,7 @@ public class RoleTeamPage {
             gamePanel.keyH.rightPressed = false;
         }
         
-        // G to open champion selection
+        // E to open champion selection
         if (gamePanel.keyH.gPressed) {
             // Reset GO BACK selection when opening champion menu
             goBackSelected = false;
@@ -487,7 +487,7 @@ public class RoleTeamPage {
             gamePanel.keyH.rightPressed = false;
         }
         
-        // G to open champion selection (works in item mode too)
+        // E to open champion selection (works in item mode too)
         if (gamePanel.keyH.gPressed) {
             itemModeActive = false;
             selectedItemSlot = 0;
@@ -556,7 +556,7 @@ public class RoleTeamPage {
             gamePanel.keyH.leftPressed = false;
         }
         
-        // G to open champion selection menu (works in arrow mode too)
+        // E to open champion selection menu (works in arrow mode too)
         if (gamePanel.keyH.gPressed) {
             // Before opening menu, set selectedChampionIndex to match the champion with the selected arrow
             if (arrowModeActive) {
@@ -1122,7 +1122,7 @@ public class RoleTeamPage {
         
         g2.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Increased from 12
         g2.setColor(new Color(120, 120, 120));
-        String instructText = "Press G to select champions";
+        String instructText = "Press E to select champions";
         fm = g2.getFontMetrics(); // Update font metrics for new font size
         textWidth = fm.stringWidth(instructText);
         g2.drawString(instructText, x + (width - textWidth) / 2, centerY + 55);
@@ -1167,7 +1167,7 @@ public class RoleTeamPage {
             y += lineHeight;
             drawInstruction(g2, "A", "Back to Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 100, 100));
             y += lineHeight;
-            drawInstruction(g2, "G", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
+            drawInstruction(g2, "E", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
         } else if (itemModeActive) {
             // Item mode controls
             drawInstruction(g2, "W/S", "Select Champion", rightPanelX + 20, y, Color.WHITE, new Color(100, 180, 255));
@@ -1180,7 +1180,7 @@ public class RoleTeamPage {
             String aText = (selectedItemSlot == 0) ? "Back to Champions" : "Previous Item";
             drawInstruction(g2, "A", aText, rightPanelX + 20, y, Color.WHITE, new Color(255, 100, 100));
             y += lineHeight;
-            drawInstruction(g2, "G", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
+            drawInstruction(g2, "E", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
         } else {
             // Normal champion selection controls
             drawInstruction(g2, "W/S", "Select Champion", rightPanelX + 20, y, Color.WHITE, new Color(100, 180, 255));
@@ -1189,7 +1189,7 @@ public class RoleTeamPage {
             y += lineHeight;
             drawInstruction(g2, "D", "Enter Item Mode", rightPanelX + 20, y, Color.WHITE, new Color(255, 255, 100));
             y += lineHeight;
-            drawInstruction(g2, "G", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
+            drawInstruction(g2, "E", "Change Champions", rightPanelX + 20, y, Color.WHITE, new Color(255, 180, 100));
             y += lineHeight;
             drawInstruction(g2, "ESC", "Back to Game", rightPanelX + 20, y, Color.WHITE, new Color(255, 100, 100));
         }
