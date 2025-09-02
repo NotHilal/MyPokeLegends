@@ -872,7 +872,7 @@ public class Bag {
         int buttonY = 38; // 18 pixels lower from original (20 + 10 + 8)
         
         // Style similar to combat bag - clean rounded rectangle
-        Color buttonColor = goBackSelected ? ACCENT_BLUE : BG_BLUE_LIGHT;
+        Color buttonColor = goBackSelected ? new Color(70, 130, 200) : new Color(135, 170, 220);
         Color arrowColor = goBackSelected ? TEXT_LIGHT : TEXT_DARK;
         
         // Draw button background
@@ -883,7 +883,14 @@ public class Bag {
         g2.setColor(goBackSelected ? TEXT_LIGHT : BORDER_COLOR);
         g2.setStroke(new BasicStroke(2));
         g2.drawRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
-        g2.setStroke(new BasicStroke(1)); // Reset stroke
+        
+        // Draw yellow outline only when selected
+        if (goBackSelected) {
+            g2.setColor(Color.YELLOW);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(buttonX - 1, buttonY - 1, buttonSize + 2, buttonSize + 2, 9, 9);
+            g2.setStroke(new BasicStroke(1)); // Reset stroke
+        }
         
         // Draw left-pointing arrow
         g2.setColor(arrowColor);

@@ -8,7 +8,7 @@ public class KeyHandler implements KeyListener{
 
 	public boolean upPressed, downPressed, leftPressed, rightPressed,f2Pressed, f3Pressed, interctPressed, enterPressed;
 	public boolean num1Pressed = false, num2Pressed = false, num3Pressed = false, num4Pressed = false;
-	public boolean gPressed = false, tabPressed = false, escPressed = false;
+	public boolean gPressed = false, tabPressed = false, escPressed = false, wPressed = false;
 	GamePanel gp;
 	// DEBUG 
 	public boolean checkDrawTime=false;
@@ -269,8 +269,11 @@ public class KeyHandler implements KeyListener{
 		// SHOP STATE
 		else if (gp.gameState == gp.shopState) {
 		    // WASD and arrow keys for navigation in shop
-		    if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
+		    if (code == KeyEvent.VK_UP) {
 		        upPressed = true;
+		    }
+		    if (code == KeyEvent.VK_W) {
+		        wPressed = true;
 		    }
 		    if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
 		        downPressed = true;
@@ -786,6 +789,7 @@ public class KeyHandler implements KeyListener{
 		int code = e.getKeyCode();
 		if (code == KeyEvent.VK_W) {
 			upPressed=false;
+			wPressed=false;
 		}
 		if (code == KeyEvent.VK_S) {
 			downPressed=false;

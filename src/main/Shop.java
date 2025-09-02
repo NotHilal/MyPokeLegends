@@ -28,8 +28,9 @@ public class Shop {
     private int currentPage = 0;
     private static final int ITEMS_PER_PAGE = 8; // 2 rows × 4 columns
     
-    // Tab navigation state
+    // Navigation states
     private boolean tabFocused = false; // Whether we're currently selecting tabs
+    private boolean goBackFocused = false; // Whether we're currently on the go back arrow
     
     // Animation states for smooth transitions
     private float cardHoverScale = 1.0f;
@@ -78,7 +79,21 @@ public class Shop {
     public Shop(GamePanel gp) {
         this.gp = gp;
         initializeShop();
+        resetShopState();
         // Player inventory is now managed centrally in Player class
+    }
+    
+    // Reset shop state when opening
+    public void resetShopState() {
+        // Start with first item selected, not in tab mode or go back mode
+        selectedCategory = 0;
+        selectedItem = 0;
+        currentPage = 0;
+        tabFocused = false;
+        goBackFocused = false;
+        showPurchasePopup = false;
+        purchaseQuantity = 1;
+        selectedPopupButton = 0;
     }
     
     private void initializeShop() {
@@ -176,10 +191,15 @@ public class Shop {
     
     // Navigation methods with tab focus system
     public void navigateUp() {
-        if (tabFocused) {
-            // If we're in tab mode, go back to items (first item of current tab)
+        if (goBackFocused) {
+            // From go back arrow, go back to tabs
+            goBackFocused = false;
+            tabFocused = true;
+            gp.playSE(9);
+        } else if (tabFocused) {
+            // From tabs to go back arrow
             tabFocused = false;
-            selectedItem = 0;
+            goBackFocused = true;
             gp.playSE(9);
         } else {
             int cardsPerRow = 4;
@@ -198,7 +218,12 @@ public class Shop {
     }
     
     public void navigateDown() {
-        if (tabFocused) {
+        if (goBackFocused) {
+            // From go back arrow, go to tabs
+            goBackFocused = false;
+            tabFocused = true;
+            gp.playSE(9);
+        } else if (tabFocused) {
             // If we're in tab mode, go back to items (first item of current tab)
             tabFocused = false;
             selectedItem = 0;
@@ -216,7 +241,10 @@ public class Shop {
     }
     
     public void navigateLeft() {
-        if (tabFocused) {
+        if (goBackFocused) {
+            // Stay on go back arrow
+            return;
+        } else if (tabFocused) {
             // Navigate between tabs
             if (selectedCategory > 0) {
                 selectedCategory--;
@@ -237,7 +265,10 @@ public class Shop {
     }
     
     public void navigateRight() {
-        if (tabFocused) {
+        if (goBackFocused) {
+            // Stay on go back arrow
+            return;
+        } else if (tabFocused) {
             // Navigate between tabs
             if (selectedCategory < categoryNames.length - 1) {
                 selectedCategory++;
@@ -284,7 +315,10 @@ public class Shop {
     }
     
     public void selectCurrentItem() {
-        if (tabFocused) {
+        if (goBackFocused) {
+            // Go back arrow is selected, exit the shop
+            exitShop();
+        } else if (tabFocused) {
             // Tab is already selected, just go back to items
             tabFocused = false;
             selectedItem = 0;
@@ -292,6 +326,30 @@ public class Shop {
         } else {
             // Purchase item (existing logic)
             purchaseItem();
+        }
+    }
+    
+    public void navigateToGoBack() {
+        if (goBackFocused) {
+            // Already on go back arrow, do nothing
+            return;
+        } else if (tabFocused) {
+            // From tabs to go back arrow
+            tabFocused = false;
+            goBackFocused = true;
+            gp.playSE(9);
+        } else {
+            // From items - check if in top row
+            int cardsPerRow = 4;
+            if (selectedItem < cardsPerRow) {
+                // In top row: go to tabs
+                tabFocused = true;
+                gp.playSE(9);
+            } else {
+                // Not in top row: move up one row (same as navigateUp)
+                selectedItem -= cardsPerRow;
+                gp.playSE(9);
+            }
         }
     }
     
@@ -431,6 +489,12 @@ public class Shop {
                 gp.keyH.leftPressed = false;
             }
             
+            // W key navigation to go back arrow from tabs
+            if (gp.keyH.wPressed) {
+                navigateToGoBack();
+                gp.keyH.wPressed = false;
+            }
+            
             if (gp.keyH.enterPressed) {
                 selectCurrentItem(); // Handle both item purchase and tab selection
                 gp.keyH.enterPressed = false;
@@ -454,6 +518,9 @@ public class Shop {
         
         // PokéMart header with awning
         drawPokeMartHeader(g2);
+        
+        // Go back arrow
+        drawGoBackArrow(g2);
         
         // Money display
         drawMoneyDisplay(g2);
@@ -728,7 +795,7 @@ public class Shop {
     }
     
     private void drawItemCard(Graphics2D g2, ShopItem shopItem, int x, int y, int width, int height, int itemIndex, boolean isPreview) {
-        boolean isSelected = !isPreview && (selectedItem == itemIndex); // No selection in preview mode
+        boolean isSelected = !isPreview && !goBackFocused && (selectedItem == itemIndex); // No selection in preview mode or when go back arrow is focused
         boolean canAfford = gp.player.canAfford(shopItem.price);
         
         // Premium multi-layer shadow for depth
@@ -2796,6 +2863,45 @@ public class Shop {
         else if (price >= 1000 || type.contains("rare")) return "RARE";
         else if (price >= 500 || type.contains("uncommon")) return "UNCOMMON";
         else return "COMMON";
+    }
+    
+    // Draw go back arrow in top left corner (same style as Dex page)
+    private void drawGoBackArrow(Graphics2D g2) {
+        int buttonSize = 40; // Square button for arrow
+        int buttonX = 20; // Top left with padding
+        int buttonY = 20;
+        
+        // Style similar to combat bag - clean rounded rectangle
+        Color buttonColor = goBackFocused ? new Color(70, 130, 200) : new Color(135, 170, 220);
+        Color arrowColor = goBackFocused ? Color.WHITE : new Color(45, 55, 75);
+        
+        // Draw button background
+        g2.setColor(buttonColor);
+        g2.fillRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        
+        // Draw border
+        g2.setColor(goBackFocused ? Color.WHITE : new Color(180, 200, 230));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        
+        // Draw yellow outline only when focused
+        if (goBackFocused) {
+            g2.setColor(Color.YELLOW);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(buttonX - 1, buttonY - 1, buttonSize + 2, buttonSize + 2, 9, 9);
+            g2.setStroke(new BasicStroke(1)); // Reset stroke
+        }
+        
+        // Draw left-pointing arrow
+        g2.setColor(arrowColor);
+        int arrowSize = 16;
+        int centerX = buttonX + buttonSize / 2;
+        int centerY = buttonY + buttonSize / 2;
+        
+        // Left-pointing arrow triangle
+        int[] arrowX = {centerX + arrowSize/2, centerX - arrowSize/2, centerX + arrowSize/2};
+        int[] arrowY = {centerY - arrowSize/2, centerY, centerY + arrowSize/2};
+        g2.fillPolygon(arrowX, arrowY, 3);
     }
     
     // Handle mouse clicks (optional)

@@ -650,6 +650,8 @@ public class RoleTeamPage {
     
     public void resetJustEntered() {
         this.justEntered = true;
+        // Reset selection to first champion when page opens
+        initializeSelectedChampion();
     }
     
     // Helper class to represent an arrow
@@ -1633,6 +1635,13 @@ public class RoleTeamPage {
         g2.setColor(goBackSelected ? Color.WHITE : new Color(180, 200, 230));
         g2.setStroke(new BasicStroke(2));
         g2.drawRoundRect(buttonX, buttonY, buttonSize, buttonSize, 8, 8);
+        
+        // Draw yellow outline only when selected
+        if (goBackSelected) {
+            g2.setColor(Color.YELLOW);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(buttonX - 1, buttonY - 1, buttonSize + 2, buttonSize + 2, 9, 9);
+        }
         g2.setStroke(new BasicStroke(1)); // Reset stroke
         
         // Draw left-pointing arrow

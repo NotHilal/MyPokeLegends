@@ -511,7 +511,7 @@ public class GamePanel extends JPanel implements Runnable{
 	public void openShop() {
 		gameState = shopState;
 		if (shop != null) {
-			// Shop will handle its own state reset if needed
+			shop.resetShopState(); // Ensure first item is selected when shop opens
 		}
 	}
 

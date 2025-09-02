@@ -4739,8 +4739,8 @@ public class BattleManager {
     
     private void drawReturnArrow(Graphics2D g2, int x, int y, int size, boolean isHovered) {
         // Arrow background circle
-        Color bgColor1 = isHovered ? new Color(255, 100, 100) : new Color(120, 120, 120);
-        Color bgColor2 = isHovered ? new Color(200, 50, 50) : new Color(80, 80, 80);
+        Color bgColor1 = isHovered ? new Color(70, 130, 200) : new Color(135, 170, 220);
+        Color bgColor2 = isHovered ? new Color(70, 130, 200) : new Color(135, 170, 220);
         
         // Shadow
         g2.setColor(new Color(0, 0, 0, 80));
