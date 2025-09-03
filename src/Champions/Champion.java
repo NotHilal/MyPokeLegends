@@ -445,12 +445,16 @@ public class Champion {
      * Get base AP stat for champions who don't have natural AP
      */
     private int getBaseAPForClass() {
-        return switch(championClass) {
-            case MAGE -> 60;        // Strong base AP
-            case SUPPORT -> 45;     // Medium base AP  
-            case ASSASSIN -> isAPAssassin() ? 55 : 0; // AP assassins get base AP
-            default -> 0;           // Physical champions get no AP
-        };
+        switch(championClass) {
+            case MAGE:
+                return 60;        // Strong base AP
+            case SUPPORT:
+                return 45;     // Medium base AP  
+            case ASSASSIN:
+                return isAPAssassin() ? 55 : 0; // AP assassins get base AP
+            default:
+                return 0;           // Physical champions get no AP
+        }
     }
     
     // Use centralized growth rates system for cleaner management
@@ -462,28 +466,42 @@ public class Champion {
      * HP exponential growth rate per level based on champion class
      */
     private double getHPGrowthRate() {
-        return switch (championClass) {
-            case TANK -> 0.08;      // 8% per level - becomes fortress
-            case FIGHTER -> 0.06;   // 6% per level - beefy bruiser
-            case ASSASSIN -> 0.05;  // 5% per level - mobile glass
-            case MAGE -> 0.05;      // 5% per level - burst glass
-            case SUPPORT -> 0.06;   // 6% per level - utility
-            case MARKSMAN -> 0.04;  // 4% per level - ultimate glass
-        };
+        switch (championClass) {
+            case TANK:
+                return 0.08;      // 8% per level - becomes fortress
+            case FIGHTER:
+                return 0.06;   // 6% per level - beefy bruiser
+            case ASSASSIN:
+                return 0.05;  // 5% per level - mobile glass
+            case MAGE:
+                return 0.05;      // 5% per level - burst glass
+            case SUPPORT:
+                return 0.06;   // 6% per level - utility
+            case MARKSMAN:
+                return 0.04;  // 4% per level - ultimate glass
+        }
+        return 0.05; // Default fallback
     }
     
     /**
      * AD exponential growth rate per level based on champion class - BALANCED EXTREME SCALING
      */
     private double getADGrowthRate() {
-        return switch (championClass) {
-            case MARKSMAN -> 0.15;  // 15% per level - DPS king
-            case ASSASSIN -> 0.13;  // 13% per level - burst assassin  
-            case FIGHTER -> 0.10;   // 10% per level - sustained damage
-            case TANK -> 0.07;      // 7% per level - moderate damage
-            case SUPPORT -> 0.04;   // 4% per level - minimal damage
-            case MAGE -> 0.03;      // 3% per level - focus on AP instead
-        };
+        switch (championClass) {
+            case MARKSMAN:
+                return 0.15;  // 15% per level - DPS king
+            case ASSASSIN:
+                return 0.13;  // 13% per level - burst assassin  
+            case FIGHTER:
+                return 0.10;   // 10% per level - sustained damage
+            case TANK:
+                return 0.07;      // 7% per level - moderate damage
+            case SUPPORT:
+                return 0.04;   // 4% per level - minimal damage
+            case MAGE:
+                return 0.03;      // 3% per level - focus on AP instead
+        }
+        return 0.05; // Default fallback
     }
     
     /**
@@ -824,6 +842,14 @@ public class Champion {
 	public String getRole2() {
 		
 		return role2;
+	}
+	
+	public int getEvolveAt() {
+		return evolveAt;
+	}
+	
+	public String getNextEvolution() {
+		return nextEvolution;
 	}
 	
 	public String getCurrentAssignedRole() {
@@ -1624,5 +1650,35 @@ public class Champion {
     public int getTotalTenacity() {
         int itemTenacity = items.stream().mapToInt(Item::getBonusTenacity).sum();
         return Math.min(100, tenacity + itemTenacity);
+    }
+    
+    // ============== SAVE/LOAD SYSTEM SETTERS ==============
+    
+    public void setExp(int exp) {
+        this.exp = exp;
+    }
+    
+    public void setSpeedStage(int speedStage) {
+        this.speedStage = speedStage;
+    }
+    
+    public void setAttackStage(int attackStage) {
+        this.attackStage = attackStage;
+    }
+    
+    public void setArmorStage(int armorStage) {
+        this.armorStage = armorStage;
+    }
+    
+    public void setApStage(int apStage) {
+        this.apStage = apStage;
+    }
+    
+    public void setMagicResistStage(int magicResistStage) {
+        this.magicResistStage = magicResistStage;
+    }
+    
+    public void setItems(java.util.List<Item> items) {
+        this.items = new java.util.ArrayList<>(items);
     }
 }

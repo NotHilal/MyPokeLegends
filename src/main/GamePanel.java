@@ -525,5 +525,25 @@ public class GamePanel extends JPanel implements Runnable{
 		ui.currentDialog="Action done!\nYou openned Your Badge list!";
 	}
 
+	public void saveGame() {
+		boolean success = SaveGameManager.saveGame(this);
+		if (success) {
+			ui.currentDialog = "Game saved successfully!";
+		} else {
+			ui.currentDialog = "Failed to save game!";
+		}
+		gameState = dialogState;
+	}
+	
+	public void loadGame() {
+		boolean success = SaveGameManager.loadGame(this);
+		if (success) {
+			ui.currentDialog = "Game loaded successfully!";
+			gameState = playState; // Go to play state after loading
+		} else {
+			ui.currentDialog = "Failed to load game!";
+			gameState = dialogState;
+		}
+	}
 	
 }

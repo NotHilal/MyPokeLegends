@@ -59,7 +59,13 @@ public class KeyHandler implements KeyListener{
 						
 					}
 					if(gp.ui.commandNum==1) {
-						// add loadgame
+						// Load game
+						if (SaveGameManager.saveFileExists()) {
+							gp.loadGame();
+						} else {
+							gp.ui.currentDialog = "No save file found!";
+							gp.gameState = gp.dialogState;
+						}
 					}
 					if(gp.ui.commandNum==2) {
 						System.exit(0);
@@ -113,7 +119,8 @@ public class KeyHandler implements KeyListener{
 				if (code == KeyEvent.VK_ENTER) {
 					gp.playSE(11);
 					if(gp.ui.commandNum==0&& gp.ui.commandNum2==0) {
-						System.out.println("You chose Fire!");
+						System.out.println("You chose Tank (Alistar)!");
+						gp.player.addStarterChampion("Alistar", "Support");
 						gp.stopMusic();
 						//wait 1.5 second before starting the music
 						gp.playMusic(5);
@@ -121,7 +128,8 @@ public class KeyHandler implements KeyListener{
 						gp.gameState=gp.playState;
 					}
 					if(gp.ui.commandNum==1&& gp.ui.commandNum2==0) {
-						System.out.println("You chose Water!");
+						System.out.println("You chose Mage (Ahri)!");
+						gp.player.addStarterChampion("Ahri", "Mid");
 						gp.stopMusic();
 						//wait 1.5 second before starting the music
 						gp.playMusic(5); 
@@ -129,7 +137,8 @@ public class KeyHandler implements KeyListener{
 						gp.gameState=gp.playState;
 					}
 					if(gp.ui.commandNum==2&& gp.ui.commandNum2==0) {
-						System.out.println("You chose Grass!");
+						System.out.println("You chose ADC (Ashe)!");
+						gp.player.addStarterChampion("Ashe", "Adc");
 						gp.stopMusic();
 						//wait 1.5 second before starting the music
 						gp.playMusic(5); 
@@ -213,14 +222,8 @@ public class KeyHandler implements KeyListener{
 
 			
 			if (code == KeyEvent.VK_F9) {
-				if(checkDrawTime==false)
-				{
-					checkDrawTime = true; 
-				}else if(checkDrawTime==true)
-				{
-					checkDrawTime = false;
-				}
-				
+				// Load game with F9
+				gp.loadGame();
 	        }
 			if (code == KeyEvent.VK_ENTER) {
 				enterPressed=true;
@@ -254,6 +257,7 @@ public class KeyHandler implements KeyListener{
 		            case "Bag" -> gp.openBag();
 		            case "Map" -> gp.openMap();
 		            case "Badges" -> gp.openBadges();
+		            case "Save" -> gp.saveGame();
 		            
 		        }
 		        gp.ui.menuNum =0;

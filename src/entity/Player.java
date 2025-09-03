@@ -205,24 +205,22 @@ public class Player extends Entity {
     }
     
     public void initializeParty() {
-        // DEPRECATED - keeping for compatibility
-        party[0] = gp.champList.get(numchamp);
-        party[1] = gp.champList.get(1);
+        // DEPRECATED - keeping for compatibility but starting with empty team
+        // party[0] = gp.champList.get(numchamp);
+        // party[1] = gp.champList.get(1);
         
-        // NEW DUAL SYSTEM INITIALIZATION
+        // NEW DUAL SYSTEM INITIALIZATION - starts empty for starter selection
         initializeDualTeamSystem();
     }
     
     public void initializeDualTeamSystem() {
-        // Initialize champions with starting champions
-        champions[0] = gp.champList.get(0);  // Top
-        champions[1] = gp.champList.get(1);  // Jgl  
-        // Other slots remain null initially
+        // Initialize empty team - champions will be added through starter selection
+        // All slots start as null
         
         // Battle order starts as default: [0,1,2,3,4] = [Top,Jgl,Mid,Adc,Supp]
         battleOrder = new int[]{0, 1, 2, 3, 4};
         
-        System.out.println("Initialized team system:");
+        System.out.println("Initialized empty team system - ready for starter selection:");
         printBattleOrder();
     }
     
@@ -418,6 +416,7 @@ public class Player extends Entity {
      * Set champion by index (compatibility method)
      * @deprecated Use setChampionByIndex() instead
      */
+    @Deprecated
     public void setUseChampByIndex(int index, Champion champion) {
         setChampionByIndex(index, champion);
     }
@@ -426,6 +425,7 @@ public class Player extends Entity {
      * Set champion by role (compatibility method)
      * @deprecated Use setChampionByRole() instead
      */
+    @Deprecated
     public void setUseChampByRole(String role, Champion champion) {
         setChampionByRole(role, champion);
     }
@@ -1035,6 +1035,104 @@ public class Player extends Entity {
         });
         
         return orderedKeys;
+    }
+    
+    // ============== SAVE/LOAD SYSTEM METHODS ==============
+    
+    public List<Boolean> getOwnedChampions() {
+        return ownedChampions;
+    }
+    
+    public void setOwnedChampions(List<Boolean> ownedChampions) {
+        this.ownedChampions = ownedChampions;
+    }
+    
+    public List<Boolean> getSeenChampions() {
+        return seenChampions;
+    }
+    
+    public void setSeenChampions(List<Boolean> seenChampions) {
+        this.seenChampions = seenChampions;
+    }
+    
+    public void setChampions(Champion[] champions) {
+        this.champions = champions;
+    }
+    
+    public void setBattleOrder(int[] battleOrder) {
+        if (battleOrder != null && battleOrder.length == 5) {
+            this.battleOrder = battleOrder;
+        }
+    }
+    
+    public Map<String, Long> getItemTimestamps() {
+        return itemTimestamps;
+    }
+    
+    public void setItemTimestamps(Map<String, Long> itemTimestamps) {
+        this.itemTimestamps = itemTimestamps;
+    }
+    
+    public void setInventory(Map<String, Integer> inventory) {
+        this.inventory = inventory;
+    }
+    
+    // ============== STARTER SELECTION METHODS ==============
+    
+    /**
+     * Add a starter champion to the appropriate role in the team
+     * @param championName Name of the champion to add (e.g., "Alistar", "Ahri", "Ashe")
+     * @param role Role to assign the champion to ("Support", "Mid", "Adc")
+     */
+    public void addStarterChampion(String championName, String role) {
+        // Find the champion in the global champion list
+        Champion starterChampion = null;
+        for (Champion champ : gp.champList) {
+            if (champ.getName().equals(championName)) {
+                starterChampion = ChampionFactory.createChampionCopy(champ);
+                break;
+            }
+        }
+        
+        if (starterChampion == null) {
+            System.err.println("Could not find starter champion: " + championName);
+            return;
+        }
+        
+        // Set the champion as owned
+        int championIndex = -1;
+        for (int i = 0; i < gp.champList.size(); i++) {
+            if (gp.champList.get(i).getName().equals(championName)) {
+                championIndex = i;
+                break;
+            }
+        }
+        
+        if (championIndex >= 0 && championIndex < ownedChampions.size()) {
+            ownedChampions.set(championIndex, true);
+            seenChampions.set(championIndex, true);
+        }
+        
+        // Assign to the correct role
+        switch (role) {
+            case "Support":
+                setChampionByRole("Supp", starterChampion);
+                System.out.println("Added " + championName + " as your Support!");
+                break;
+            case "Mid":
+                setChampionByRole("Mid", starterChampion);
+                System.out.println("Added " + championName + " as your Mid laner!");
+                break;
+            case "Adc":
+                setChampionByRole("Adc", starterChampion);
+                System.out.println("Added " + championName + " as your ADC!");
+                break;
+            default:
+                System.err.println("Unknown role for starter: " + role);
+                return;
+        }
+        
+        System.out.println("Starter selection complete! " + championName + " has been added to your team.");
     }
 
 }

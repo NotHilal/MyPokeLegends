@@ -57,7 +57,7 @@ import Champions.Champion;
 	    // Helper method to get count of champions in useChamps
 	    private int getChampionsInPartyCount() {
 	        int count = 0;
-	        for (Champion champion : gp.player.getUseChamps()) {
+	        for (Champion champion : gp.player.getChampions()) {
 	            if (champion != null) {
 	                count++;
 	            }
@@ -388,7 +388,7 @@ import Champions.Champion;
 	                Champion selectedChamp = applyFilters().get(championIndex);
 	                // Check if champion is already in useChamps
 	                boolean inParty = false;
-	                for (Champion partyMember : gp.player.getUseChamps()) {
+	                for (Champion partyMember : gp.player.getChampions()) {
 	                    if (partyMember != null && partyMember.equals(selectedChamp)) {
 	                        inParty = true;
 	                        break;
@@ -500,8 +500,8 @@ import Champions.Champion;
 	        
 	        // Find first champion with an X button (first non-null champion in useChamps)
 	        selectedXButton = 0;
-	        for (int i = 0; i < gp.player.getUseChamps().length; i++) {
-	            if (gp.player.getUseChamps()[i] != null) {
+	        for (int i = 0; i < gp.player.getChampions().length; i++) {
+	            if (gp.player.getChampions()[i] != null) {
 	                selectedXButton = i;
 	                break;
 	            }
@@ -526,7 +526,7 @@ import Champions.Champion;
 	        
 	        // Find previous champion slot with a champion in useChamps
 	        for (int i = selectedXButton - 1; i >= 0; i--) {
-	            if (gp.player.getUseChamps()[i] != null) {
+	            if (gp.player.getChampions()[i] != null) {
 	                selectedXButton = i;
 	                gp.playSE(9);
 	                return;
@@ -534,8 +534,8 @@ import Champions.Champion;
 	        }
 	        
 	        // Wrap to last champion if no previous found
-	        for (int i = gp.player.getUseChamps().length - 1; i > selectedXButton; i--) {
-	            if (gp.player.getUseChamps()[i] != null) {
+	        for (int i = gp.player.getChampions().length - 1; i > selectedXButton; i--) {
+	            if (gp.player.getChampions()[i] != null) {
 	                selectedXButton = i;
 	                gp.playSE(9);
 	                return;
@@ -547,8 +547,8 @@ import Champions.Champion;
 	        if (!xButtonMode) return;
 	        
 	        // Find next champion slot with a champion in useChamps
-	        for (int i = selectedXButton + 1; i < gp.player.getUseChamps().length; i++) {
-	            if (gp.player.getUseChamps()[i] != null) {
+	        for (int i = selectedXButton + 1; i < gp.player.getChampions().length; i++) {
+	            if (gp.player.getChampions()[i] != null) {
 	                selectedXButton = i;
 	                gp.playSE(9);
 	                return;
@@ -557,7 +557,7 @@ import Champions.Champion;
 	        
 	        // Wrap to first champion if no next found
 	        for (int i = 0; i < selectedXButton; i++) {
-	            if (gp.player.getUseChamps()[i] != null) {
+	            if (gp.player.getChampions()[i] != null) {
 	                selectedXButton = i;
 	                gp.playSE(9);
 	                return;
@@ -570,10 +570,10 @@ import Champions.Champion;
 	        if (!xButtonMode) return;
 	        if (getChampionsInPartyCount() <= 1) return; // Can't remove if only one champion
 	        
-	        Champion removedChampion = gp.player.getUseChamps()[selectedXButton];
+	        Champion removedChampion = gp.player.getChampions()[selectedXButton];
 	        if (removedChampion != null) {
 	            // Remove from useChamps and sync to myTeam
-	            gp.player.setUseChampByIndex(selectedXButton, null);
+	            gp.player.setChampionByIndex(selectedXButton, null);
 	            System.out.println(removedChampion.getName() + " has been removed from the " + gp.player.getRoleName(selectedXButton) + " role.");
 	            
 	            // If no more multiple champions, exit X button mode
@@ -582,8 +582,8 @@ import Champions.Champion;
 	            } else {
 	                // Find next valid X button position
 	                boolean foundNext = false;
-	                for (int i = selectedXButton; i < gp.player.getUseChamps().length; i++) {
-	                    if (gp.player.getUseChamps()[i] != null) {
+	                for (int i = selectedXButton; i < gp.player.getChampions().length; i++) {
+	                    if (gp.player.getChampions()[i] != null) {
 	                        selectedXButton = i;
 	                        foundNext = true;
 	                        break;
@@ -592,7 +592,7 @@ import Champions.Champion;
 	                if (!foundNext) {
 	                    // Look backwards
 	                    for (int i = selectedXButton - 1; i >= 0; i--) {
-	                        if (gp.player.getUseChamps()[i] != null) {
+	                        if (gp.player.getChampions()[i] != null) {
 	                            selectedXButton = i;
 	                            break;
 	                        }
@@ -708,7 +708,7 @@ import Champions.Champion;
 	            g2.drawString(roleText, 20, slotY + 30); // Position the text inside the background
 
 	            // Draw the champion image from useChamps array
-	            Champion champion = gp.player.getUseChamps()[i];
+	            Champion champion = gp.player.getChampions()[i];
 	            if (champion != null) {
 	                BufferedImage champImage = loadChampionImage(champion.getImageName());
 	                if (champImage != null) {
@@ -913,7 +913,7 @@ import Champions.Champion;
 
 	            // Check if champion is already in useChamps
 	            boolean inParty = false;
-	            for (Champion partyMember : gp.player.getUseChamps()) {
+	            for (Champion partyMember : gp.player.getChampions()) {
 	                if (partyMember != null && partyMember.equals(champion)) {
 	                    inParty = true;
 	                    break;
@@ -1083,7 +1083,7 @@ import Champions.Champion;
 
 	    private void promptAddToParty(Champion selectedChampion, String role) {
 	        // Use the new dual system - assign to useChamps by role
-	        gp.player.setUseChampByRole(role, selectedChampion);
+	        gp.player.setChampionByRole(role, selectedChampion);
 	        gp.repaint();
 	    }
 	

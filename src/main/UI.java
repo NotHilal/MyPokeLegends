@@ -38,7 +38,7 @@ public class UI {
 	
 	//MENU 
     public int menuNum = 0; // Current selected menu item index
-    public String[] menuItems = {"Dex", "Champions", "Bag", "Map", "Badges"};
+    public String[] menuItems = {"Dex", "Champions", "Bag", "Map", "Badges", "Save"};
     public BufferedImage[] menuImages = new BufferedImage[menuItems.length];
     
 	
@@ -251,7 +251,7 @@ public class UI {
 			x-=75;
 			y+=gp.tileSize*3f;
 			
-			text ="FIRE";
+			text ="TANK";
 			x = getXForCenterText(text)-gp.tileSize*6;
 			y+= gp.tileSize*4.5f;
 			g2.drawString(text, x, y);
@@ -259,7 +259,7 @@ public class UI {
 				g2.drawString(">>", x-gp.tileSize, y);
 			}
 			
-			// Draw Image 1
+			// Draw Image 1 - Alistar (Tank)
 			x-=20;
 			y-=gp.tileSize*3f;
 			g2.drawImage(gp.player.setup("AListar1", "pixelChamps"), x, y,gp.tileSize*2,gp.tileSize*2,null);
@@ -267,32 +267,32 @@ public class UI {
 			y+=gp.tileSize*3f;
 						
 			
-			text ="WATER";
+			text ="MAGE";
 			x = getXForCenterText(text);
 			g2.drawString(text, x, y);
 			if(commandNum==1&& commandNum2==0) {
 				g2.drawString(">>", x-gp.tileSize, y);
 			}
 			
-			// Draw Image 2
+			// Draw Image 2 - Ahri (Mage)
 			x-=16;
 			y-=gp.tileSize*3f;
-			g2.drawImage(gp.player.setup("Fizz1", "pixelChamps"), x, y,gp.tileSize*2,gp.tileSize*2,null);
+			g2.drawImage(gp.player.setup("Ahri1", "pixelChamps"), x, y,gp.tileSize*2,gp.tileSize*2,null);
 			x+=16;
 			y+=gp.tileSize*3f;
 			
 			
-			text ="GRASS";
+			text ="ADC";
 			x = getXForCenterText(text)+gp.tileSize*6;;
 			g2.drawString(text, x, y);
 			if(commandNum==2&& commandNum2==0) {
 				g2.drawString(">>", x-gp.tileSize, y);
 			}
 			
-			// Draw Image 3
+			// Draw Image 3 - Ashe (ADC)
 			x-=16;
 			y-=gp.tileSize*3f;
-			g2.drawImage(gp.player.setup("Teemo1", "pixelChamps"), x, y,gp.tileSize*2,gp.tileSize*2,null);
+			g2.drawImage(gp.player.setup("Ashe1", "pixelChamps"), x, y,gp.tileSize*2,gp.tileSize*2,null);
 			x+=16;
 			y+=gp.tileSize*3f;
 			

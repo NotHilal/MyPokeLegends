@@ -219,4 +219,57 @@ public class ChampionFactory {
 		}
 		return new ArrayList<>(allChampions); // Return copy to prevent external modification
 	}
+	
+	/**
+	 * Create a copy of an existing champion (for save/load system)
+	 * @param template The champion to copy
+	 * @return New champion instance with same base stats
+	 */
+	public static Champion createChampionCopy(Champion template) {
+		if (template == null) return null;
+		
+		// Create moves list copy
+		List<Move> movesCopy = new ArrayList<>();
+		for (Move move : template.getMoves()) {
+			// Create a new move with same stats - moves don't have copy constructor
+			// For now, we'll recreate them from the original data
+			movesCopy.add(new Move(
+				move.getName(),
+				move.getType(),
+				move.getPower(),
+				move.getAccuracy(),
+				move.getManaCost(),
+				null, // effect
+				0,    // effectChance
+				move.isUltimate()
+			));
+		}
+		
+		// Create new champion with same base stats
+		Champion copy = new Champion(
+			template.getName(),
+			template.getImageName(),
+			template.getRegion(),
+			template.getRole(),
+			template.getRole2(),
+			template.getLevel(),
+			template.getMaxHp(),
+			template.getAD(),
+			template.getAP(),
+			template.getArmor(),
+			template.getMagicResist(),
+			template.getSpeed(),
+			template.getCritChance(),
+			template.getLifesteal(),
+			template.getEvolveAt(),
+			template.getNextEvolution(),
+			movesCopy,
+			template.getPassive(),
+			template.getChampionClass(),
+			template.getResourceType(),
+			template.getMaxResource()
+		);
+		
+		return copy;
+	}
 }

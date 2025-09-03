@@ -20,7 +20,7 @@ public class ItemFactory {
         List<Item> items = new ArrayList<>();
         
         // Load items from template data
-        var itemData = ItemDataLoader.loadItems();
+        data.ItemData itemData = ItemDataLoader.loadItems();
         
         // Convert consumables
         for (ItemTemplate template : itemData.consumables) {
@@ -59,7 +59,7 @@ public class ItemFactory {
         
         // Apply stats if the template has them
         if (template.hasStats()) {
-            var stats = template.stats;
+            ItemTemplate.ItemStats stats = template.stats;
             
             // Apply all stats using the existing builder pattern
             if (stats.bonusHP > 0) item.withHP(stats.bonusHP);
@@ -87,9 +87,15 @@ public class ItemFactory {
         
         // Set tier-based properties
         switch (template.tier) {
-            case "mythic" -> item.asMythic();
-            case "legendary" -> item.asLegendary();
-            case "rare" -> item.asLegendary(); // Treat rare as legendary for now
+            case "mythic":
+                item.asMythic();
+                break;
+            case "legendary":
+                item.asLegendary();
+                break;
+            case "rare":
+                item.asLegendary(); // Treat rare as legendary for now
+                break;
             // common/uncommon items don't need special marking
         }
         
@@ -100,40 +106,46 @@ public class ItemFactory {
      * Determine ItemType from template category and stats
      */
     private static Item.ItemType determineItemType(ItemTemplate template) {
-        return switch (template.category) {
-            case "consumable", "legendball" -> Item.ItemType.CONSUMABLE; // Consumables and balls
-            case "equipment" -> {
+        switch (template.category) {
+            case "consumable":
+            case "legendball":
+                return Item.ItemType.CONSUMABLE; // Consumables and balls
+            case "equipment":
                 if (template.name.contains("Boots") || template.name.contains("Greaves") || template.name.contains("Treads")) {
-                    yield Item.ItemType.BOOTS;
+                    return Item.ItemType.BOOTS;
                 } else if (template.stats != null) {
                     // Determine based on primary stats
                     if (template.stats.bonusAP > template.stats.bonusAD) {
-                        yield Item.ItemType.MAGIC;
+                        return Item.ItemType.MAGIC;
                     } else if (template.stats.bonusAD > 0 || template.stats.bonusCritChance > 0 || template.stats.bonusAttackSpeed > 0) {
-                        yield Item.ItemType.DAMAGE;
+                        return Item.ItemType.DAMAGE;
                     } else if (template.stats.bonusHP > 0 || template.stats.bonusArmor > 0 || template.stats.bonusMagicResist > 0) {
-                        yield Item.ItemType.DEFENSE;
+                        return Item.ItemType.DEFENSE;
                     } else {
-                        yield Item.ItemType.UTILITY;
+                        return Item.ItemType.UTILITY;
                     }
                 } else {
-                    yield Item.ItemType.UTILITY;
+                    return Item.ItemType.UTILITY;
                 }
-            }
-            default -> Item.ItemType.UTILITY;
-        };
+            default:
+                return Item.ItemType.UTILITY;
+        }
     }
     
     /**
      * Determine ItemCategory from template category
      */
     private static Item.ItemCategory determineCategoryFromTemplate(ItemTemplate template) {
-        return switch (template.category) {
-            case "consumable" -> Item.ItemCategory.CONSUMABLE;
-            case "legendball" -> Item.ItemCategory.LEGENDBALL;
-            case "equipment" -> Item.ItemCategory.CHAMPIONITEM;
-            default -> Item.ItemCategory.CHAMPIONITEM; // Default to champion item
-        };
+        switch (template.category) {
+            case "consumable":
+                return Item.ItemCategory.CONSUMABLE;
+            case "legendball":
+                return Item.ItemCategory.LEGENDBALL;
+            case "equipment":
+                return Item.ItemCategory.CHAMPIONITEM;
+            default:
+                return Item.ItemCategory.CHAMPIONITEM; // Default to champion item
+        }
     }
     
     /**
@@ -161,19 +173,27 @@ public class ItemFactory {
      * Create passive description from template effect
      */
     private static String createPassiveDescription(ItemTemplate template) {
-        var effect = template.effect;
+        ItemTemplate.ItemEffect effect = template.effect;
         if (effect == null) return "";
         
-        return switch (effect.type) {
-            case "heal" -> "Restores " + effect.power + " HP" + (effect.duration > 0 ? " over " + effect.duration + " turns" : "");
-            case "restore_mana" -> "Restores " + effect.power + " mana";
-            case "revive" -> "Revives with " + effect.power + "% HP";
-            case "catch" -> "Catch rate multiplier: x" + effect.catchRate;
-            case "passive" -> effect.statusEffect + (effect.power > 0 ? " - " + effect.power + "%" : "");
-            case "active" -> "Active effect: " + effect.statusEffect;
-            case "buff" -> "Temporary buff: +" + effect.power + (effect.duration > 0 ? " for " + effect.duration + " seconds" : "");
-            default -> effect.statusEffect != null ? effect.statusEffect : "Special effect";
-        };
+        switch (effect.type) {
+            case "heal":
+                return "Restores " + effect.power + " HP" + (effect.duration > 0 ? " over " + effect.duration + " turns" : "");
+            case "restore_mana":
+                return "Restores " + effect.power + " mana";
+            case "revive":
+                return "Revives with " + effect.power + "% HP";
+            case "catch":
+                return "Catch rate multiplier: x" + effect.catchRate;
+            case "passive":
+                return effect.statusEffect + (effect.power > 0 ? " - " + effect.power + "%" : "");
+            case "active":
+                return "Active effect: " + effect.statusEffect;
+            case "buff":
+                return "Temporary buff: +" + effect.power + (effect.duration > 0 ? " for " + effect.duration + " seconds" : "");
+            default:
+                return effect.statusEffect != null ? effect.statusEffect : "Special effect";
+        }
     }
     
     /**
