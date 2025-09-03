@@ -525,9 +525,5 @@ public class GamePanel extends JPanel implements Runnable{
 		ui.currentDialog="Action done!\nYou openned Your Badge list!";
 	}
 
-	public void saveGame() {
-		gameState = dialogState;
-		ui.currentDialog="Action done!\nYou openned the Save option!";
-	}
 	
 }

@@ -38,7 +38,7 @@ public class UI {
 	
 	//MENU 
     public int menuNum = 0; // Current selected menu item index
-    public String[] menuItems = {"Dex", "Champions", "Bag", "Map", "Badges", "Save"};
+    public String[] menuItems = {"Dex", "Champions", "Bag", "Map", "Badges"};
     public BufferedImage[] menuImages = new BufferedImage[menuItems.length];
     
 	

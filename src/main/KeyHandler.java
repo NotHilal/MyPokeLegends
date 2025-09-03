@@ -193,7 +193,7 @@ public class KeyHandler implements KeyListener{
 				interctPressed=true;
 			}
 			
-			if (code == KeyEvent.VK_F5) { // Toggle high grass visualization
+			if (code == KeyEvent.VK_F5) {
 		        gp.showHighGrass = !gp.showHighGrass;
 		    }
 		    
@@ -254,7 +254,6 @@ public class KeyHandler implements KeyListener{
 		            case "Bag" -> gp.openBag();
 		            case "Map" -> gp.openMap();
 		            case "Badges" -> gp.openBadges();
-		            case "Save" -> gp.saveGame();
 		            
 		        }
 		        gp.ui.menuNum =0;
@@ -290,6 +289,7 @@ public class KeyHandler implements KeyListener{
 		    if (code == KeyEvent.VK_B || code == KeyEvent.VK_ESCAPE) {
 		        escPressed = true;
 		    }
+		    
 		}
 		
 		// BATTLE STATE
