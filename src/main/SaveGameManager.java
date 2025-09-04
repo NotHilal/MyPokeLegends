@@ -113,6 +113,7 @@ public class SaveGameManager {
         saveData.playerData.maxLife = gp.player.maxLife;
         saveData.playerData.money = gp.player.getMoney();
         saveData.playerData.speed = gp.player.speed;
+        saveData.playerData.playerName = gp.playerName; // Save player name
         
         // Champion collection - ownership and seen status
         saveData.championCollection.ownedChampions = new ArrayList<>(gp.player.getOwnedChampions());
@@ -168,6 +169,7 @@ public class SaveGameManager {
         gp.player.maxLife = saveData.playerData.maxLife;
         gp.player.setMoney(saveData.playerData.money);
         gp.player.speed = saveData.playerData.speed;
+        gp.playerName = saveData.playerData.playerName; // Load player name
         
         // Champion collection
         gp.player.setOwnedChampions(saveData.championCollection.ownedChampions);

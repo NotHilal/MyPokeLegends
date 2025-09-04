@@ -96,6 +96,10 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int teamOrderState = 11; // New team order management state
 	public final int bagState = 12; // New bag/inventory state
 	public final int shopState = 13; // New shop state
+	public final int professorIntroState = 14; // New professor introduction state
+	public final int nameInputState = 15; // New name input state
+	public final int professorExtendedState = 16; // Extended professor dialog after name input
+	public final int professorChoiceState = 17; // Yes/No choice state
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -112,6 +116,46 @@ public class GamePanel extends JPanel implements Runnable{
 	public RoleTeamPage roleTeamPage; // New role-based team page
 	public ChampionDetailsPage championDetailsPage; // New champion details page
 	public TeamOrderPage teamOrderPage; // New team order management page
+	
+	// Professor introduction system
+	private String[] professorDialogs = {
+		"Hello there, you must be new around here, I've never seen you before.",
+		"I'm Professor Rito, welcome to our small town called Cergy. It's small and cozy, perfect for someone like me who wants a relaxing peaceful life.",
+		"But I see you're young and full of energy, you might want a lot more than that Hahaha, can you remind me what was your name again?"
+	};
+	
+	// Extended professor dialog after name input
+	private String[] professorExtendedDialogs = {
+		"Pleasure to meet you {playerName}, I'm Professor Rito, and I've been living here for a few years now.",
+		"I research champions, those fascinating beings, animals and creatures that fill our world.",
+		"Do you happen to know about them?"
+	};
+	
+	// Dialog for YES answer
+	private String[] professorYesDialogs = {
+		"Oh that's amazing, why don't you come to my lab so we can have a chat about what you know, I'm really interested!"
+	};
+	
+	// Dialog for NO answer  
+	private String[] professorNoDialogs = {
+		"Champions are beings that live in our big region of Runeterra, they were here way before we arrived and have always coexisted together.",
+		"But things aren't stable forever and some conflict emerged between them separating them in regions and tribes.",
+		"Some of them decided to live peacefully together and some others do war to their neighbors to gain more power and territory.",
+		"It's a very complicated story. Why don't you come to my lab so I will show you more in detail how they look like and what they do?"
+	};
+	
+	private int currentDialogIndex = 0;
+	public String displayedText = "";
+	private int charIndex = 0;
+	private int textTimer = 0;
+	private final int textSpeed = 2; // Lower = faster typing, higher = slower typing
+	public boolean dialogComplete = false;
+	public String playerName = "";
+	
+	// Choice system variables
+	public boolean showChoice = false;
+	public int selectedChoice = 0; // 0 = Yes, 1 = No
+	private String[] currentDialogArray;
 	
 	
 	public GamePanel() {
@@ -268,6 +312,30 @@ public class GamePanel extends JPanel implements Runnable{
 	            gameState = battleState; // Transition to battle state
 	        }
 	    }
+	    
+	    if (gameState == professorIntroState || gameState == professorExtendedState || gameState == professorChoiceState) {
+	        // Update typing animation
+	        if (!dialogComplete && !showChoice) {
+	            textTimer++;
+	            if (textTimer >= textSpeed) {
+	                String currentText = getCurrentDialogText();
+	                if (charIndex < currentText.length()) {
+	                    displayedText += currentText.charAt(charIndex);
+	                    charIndex++;
+	                    // Play sound only every 4th character to slow down the sound frequency
+	                    if (charIndex % 4 == 0) {
+	                        playSE(9); // Play typing sound effect
+	                    }
+	                }
+	                textTimer = 0;
+	                
+	                // Check if current dialog is complete
+	                if (charIndex >= currentText.length()) {
+	                    dialogComplete = true;
+	                }
+	            }
+	        }
+	    }
 	}
 	
 	
@@ -361,6 +429,11 @@ public class GamePanel extends JPanel implements Runnable{
 	    
 	    else if (gameState == shopState) {
 	        shop.draw(g2);
+	    }
+	    
+	    else if (gameState == professorIntroState || gameState == nameInputState || 
+	             gameState == professorExtendedState || gameState == professorChoiceState) {
+	        ui.drawProfessorIntro(g2);
 	    }
 	    
 	    else {
@@ -544,6 +617,98 @@ public class GamePanel extends JPanel implements Runnable{
 			ui.currentDialog = "Failed to load game!";
 			gameState = dialogState;
 		}
+	}
+	
+	public String getPlayerName() {
+		return playerName.isEmpty() ? "Trainer" : playerName;
+	}
+	
+	private String getCurrentDialogText() {
+		String text = "";
+		if (gameState == professorIntroState) {
+			text = professorDialogs[currentDialogIndex];
+		} else if (gameState == professorExtendedState) {
+			text = professorExtendedDialogs[currentDialogIndex];
+			// Replace {playerName} placeholder with actual name
+			text = text.replace("{playerName}", playerName);
+		} else if (gameState == professorChoiceState && currentDialogArray != null) {
+			text = currentDialogArray[currentDialogIndex];
+		}
+		return text;
+	}
+	
+	public void startProfessorIntro() {
+		gameState = professorIntroState;
+		currentDialogIndex = 0;
+		displayedText = "";
+		charIndex = 0;
+		textTimer = 0;
+		dialogComplete = false;
+		showChoice = false;
+	}
+	
+	public void startExtendedDialog() {
+		gameState = professorExtendedState;
+		currentDialogIndex = 0;
+		displayedText = "";
+		charIndex = 0;
+		textTimer = 0;
+		dialogComplete = false;
+		showChoice = false;
+	}
+	
+	public void nextProfessorDialog() {
+		String[] currentArray = getCurrentDialogArray();
+		
+		if (currentDialogIndex < currentArray.length - 1) {
+			currentDialogIndex++;
+			displayedText = "";
+			charIndex = 0;
+			textTimer = 0;
+			dialogComplete = false;
+		} else {
+			// Handle end of different dialog sequences
+			if (gameState == professorIntroState) {
+				// Go to name input after initial intro
+				gameState = nameInputState;
+				playerName = "";
+			} else if (gameState == professorExtendedState) {
+				// Show choice after extended dialog
+				showChoice = true;
+				selectedChoice = 0;
+			} else if (gameState == professorChoiceState) {
+				// Go to starter selection after choice dialogs
+				ui.titleScreenState = 1;
+				gameState = titleState;
+			}
+		}
+	}
+	
+	private String[] getCurrentDialogArray() {
+		if (gameState == professorIntroState) {
+			return professorDialogs;
+		} else if (gameState == professorExtendedState) {
+			return professorExtendedDialogs;
+		} else if (gameState == professorChoiceState && currentDialogArray != null) {
+			return currentDialogArray;
+		}
+		return professorDialogs; // fallback
+	}
+	
+	public void handleChoice(int choice) {
+		if (choice == 0) { // Yes
+			currentDialogArray = professorYesDialogs;
+		} else { // No
+			currentDialogArray = professorNoDialogs;
+		}
+		
+		gameState = professorChoiceState;
+		currentDialogIndex = 0;
+		displayedText = "";
+		charIndex = 0;
+		textTimer = 0;
+		dialogComplete = false;
+		showChoice = false;
 	}
 	
 }

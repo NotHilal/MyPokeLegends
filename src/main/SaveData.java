@@ -47,6 +47,7 @@ public class SaveData implements Serializable {
         public int maxLife;
         public int money;
         public int speed;
+        public String playerName; // Player's chosen name
         
         public PlayerSaveData() {
             this.direction = "down";
@@ -54,6 +55,7 @@ public class SaveData implements Serializable {
             this.maxLife = 6;
             this.money = 10000;
             this.speed = 4;
+            this.playerName = "";
         }
     }
     

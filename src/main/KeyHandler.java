@@ -54,9 +54,8 @@ public class KeyHandler implements KeyListener{
 				if (code == KeyEvent.VK_ENTER) {
 					gp.playSE(11);
 					if(gp.ui.commandNum==0) {
-						
-						gp.ui.titleScreenState=1;
-						
+						// Start professor introduction instead of going to starter selection
+						gp.startProfessorIntro();
 					}
 					if(gp.ui.commandNum==1) {
 						// Load game
@@ -783,6 +782,76 @@ public class KeyHandler implements KeyListener{
 			if(code ==KeyEvent.VK_ENTER) {
 				
 				gp.gameState =gp.playState;
+			}
+		}
+		
+		// PROFESSOR INTRODUCTION STATE
+		else if(gp.gameState == gp.professorIntroState) {
+			if(code == KeyEvent.VK_ENTER) {
+				if(gp.dialogComplete) {
+					gp.playSE(11);
+					gp.nextProfessorDialog();
+				}
+			}
+		}
+		
+		// PROFESSOR EXTENDED DIALOG STATE
+		else if(gp.gameState == gp.professorExtendedState) {
+			if(code == KeyEvent.VK_ENTER) {
+				if(gp.dialogComplete && !gp.showChoice) {
+					gp.playSE(11);
+					gp.nextProfessorDialog();
+				} else if(gp.showChoice) {
+					// Handle choice selection
+					gp.playSE(11);
+					gp.handleChoice(gp.selectedChoice);
+				}
+			} else if(gp.showChoice) {
+				// Handle choice navigation
+				if(code == KeyEvent.VK_W) {
+					gp.playSE(9);
+					gp.selectedChoice = 0; // Yes
+				} else if(code == KeyEvent.VK_S) {
+					gp.playSE(9);
+					gp.selectedChoice = 1; // No
+				}
+			}
+		}
+		
+		// PROFESSOR CHOICE STATE (after choosing yes/no)
+		else if(gp.gameState == gp.professorChoiceState) {
+			if(code == KeyEvent.VK_ENTER) {
+				if(gp.dialogComplete) {
+					gp.playSE(11);
+					gp.nextProfessorDialog();
+				}
+			}
+		}
+		
+		// NAME INPUT STATE
+		else if(gp.gameState == gp.nameInputState) {
+			if(code == KeyEvent.VK_ENTER) {
+				if(!gp.playerName.trim().isEmpty()) {
+					gp.playSE(11);
+					// Name confirmed, go to extended dialog
+					gp.startExtendedDialog();
+					System.out.println("Player name set to: " + gp.playerName);
+				}
+			}
+			else if(code == KeyEvent.VK_BACK_SPACE) {
+				// Delete last character
+				if(!gp.playerName.isEmpty()) {
+					gp.playerName = gp.playerName.substring(0, gp.playerName.length() - 1);
+				}
+			}
+			else {
+				// Add typed character (letters and some symbols only)
+				char c = e.getKeyChar();
+				if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == ' ') {
+					if(gp.playerName.length() < 12) { // Max name length
+						gp.playerName += c;
+					}
+				}
 			}
 		}
 		

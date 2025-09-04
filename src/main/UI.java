@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -434,8 +435,159 @@ public class UI {
 		return gp.screenWidth/2 - textLength/2;
 	}
 	
+	public void drawProfessorIntro(Graphics2D g2) {
+		this.g2 = g2;
+		
+		if (gp.gameState == gp.professorIntroState || gp.gameState == gp.professorExtendedState || gp.gameState == gp.professorChoiceState) {
+			// Set background color
+			g2.setColor(new Color(50, 50, 100));
+			g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+			
+			// Draw professor image
+			try {
+				BufferedImage professorImg = gp.player.setup("Down1", "npcProfessor");
+				int professorX = gp.screenWidth / 2 - gp.tileSize;
+				int professorY = gp.tileSize;
+				g2.drawImage(professorImg, professorX, professorY, gp.tileSize * 2, gp.tileSize * 2, null);
+			} catch (Exception e) {
+				// If image fails to load, show placeholder
+				g2.setColor(Color.GRAY);
+				g2.fillRect(gp.screenWidth / 2 - gp.tileSize, gp.tileSize, gp.tileSize * 2, gp.tileSize * 2);
+			}
+			
+			// Draw dialog box
+			int boxX = 50;
+			int boxY = gp.screenHeight - 200;
+			int boxWidth = gp.screenWidth - 100;
+			int boxHeight = 150;
+			
+			// Dialog box background
+			g2.setColor(new Color(255, 255, 255, 240));
+			g2.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 20, 20);
+			
+			// Dialog box border
+			g2.setColor(new Color(100, 100, 100));
+			g2.setStroke(new BasicStroke(3));
+			g2.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 20, 20);
+			
+			// Draw typing text
+			g2.setColor(Color.BLACK);
+			g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 28F));
+			
+			String[] lines = wrapText(gp.displayedText, boxWidth - 40);
+			int textY = boxY + 40;
+			for (String line : lines) {
+				g2.drawString(line, boxX + 20, textY);
+				textY += 35;
+			}
+			
+			// Draw continue prompt or choice selection
+			if (gp.dialogComplete && !gp.showChoice) {
+				g2.setColor(new Color(100, 100, 100));
+				g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 20F));
+				String prompt = "Press ENTER to continue...";
+				int promptX = boxX + boxWidth - g2.getFontMetrics().stringWidth(prompt) - 20;
+				int promptY = boxY + boxHeight - 20;
+				g2.drawString(prompt, promptX, promptY);
+			}
+			
+			// Draw YES/NO choice selection
+			if (gp.showChoice) {
+				int choiceX = boxX + boxWidth - 150;
+				int choiceY = boxY + boxHeight - 80;
+				
+				g2.setFont(g2.getFont().deriveFont(Font.BOLD, 28F));
+				
+				// YES option
+				if (gp.selectedChoice == 0) {
+					g2.setColor(new Color(100, 200, 100)); // Green for selected
+					g2.drawString(">> YES", choiceX, choiceY);
+					g2.setColor(Color.BLACK);
+					g2.drawString("   NO", choiceX, choiceY + 35);
+				} else {
+					g2.setColor(Color.BLACK);
+					g2.drawString("   YES", choiceX, choiceY);
+					g2.setColor(new Color(200, 100, 100)); // Red for selected
+					g2.drawString(">> NO", choiceX, choiceY + 35);
+				}
+				
+				// Choice instructions
+				g2.setColor(new Color(100, 100, 100));
+				g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 18F));
+				String instruction = "Use W/S to choose, ENTER to select";
+				int instructionX = boxX + 20;
+				int instructionY = boxY + boxHeight - 15;
+				g2.drawString(instruction, instructionX, instructionY);
+			}
+		}
+		
+		else if (gp.gameState == gp.nameInputState) {
+			// Set background color
+			g2.setColor(new Color(50, 50, 100));
+			g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+			
+			// Draw name input screen
+			g2.setColor(Color.WHITE);
+			g2.setFont(g2.getFont().deriveFont(Font.BOLD, 36F));
+			
+			String prompt = "Please enter your name:";
+			int promptX = getXForCenterText(prompt);
+			int promptY = gp.screenHeight / 2 - 100;
+			g2.drawString(prompt, promptX, promptY);
+			
+			// Draw input box
+			int inputBoxX = gp.screenWidth / 2 - 200;
+			int inputBoxY = promptY + 50;
+			int inputBoxWidth = 400;
+			int inputBoxHeight = 60;
+			
+			// Input box background
+			g2.setColor(Color.WHITE);
+			g2.fillRoundRect(inputBoxX, inputBoxY, inputBoxWidth, inputBoxHeight, 10, 10);
+			
+			// Input box border
+			g2.setColor(Color.BLACK);
+			g2.setStroke(new BasicStroke(2));
+			g2.drawRoundRect(inputBoxX, inputBoxY, inputBoxWidth, inputBoxHeight, 10, 10);
+			
+			// Draw player name
+			g2.setColor(Color.BLACK);
+			g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 32F));
+			String displayName = gp.playerName + "_"; // Add cursor
+			g2.drawString(displayName, inputBoxX + 15, inputBoxY + 40);
+			
+			// Draw instruction
+			g2.setColor(Color.WHITE);
+			g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 20F));
+			String instruction = "Press ENTER to confirm";
+			int instructionX = getXForCenterText(instruction);
+			g2.drawString(instruction, instructionX, inputBoxY + 120);
+		}
+	}
 	
-	
-
+	private String[] wrapText(String text, int maxWidth) {
+		FontMetrics fm = g2.getFontMetrics();
+		java.util.List<String> lines = new java.util.ArrayList<>();
+		String[] words = text.split(" ");
+		String currentLine = "";
+		
+		for (String word : words) {
+			String testLine = currentLine.isEmpty() ? word : currentLine + " " + word;
+			if (fm.stringWidth(testLine) <= maxWidth) {
+				currentLine = testLine;
+			} else {
+				if (!currentLine.isEmpty()) {
+					lines.add(currentLine);
+				}
+				currentLine = word;
+			}
+		}
+		
+		if (!currentLine.isEmpty()) {
+			lines.add(currentLine);
+		}
+		
+		return lines.toArray(new String[0]);
+	}
 	
 }
