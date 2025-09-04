@@ -98,8 +98,10 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int shopState = 13; // New shop state
 	public final int professorIntroState = 14; // New professor introduction state
 	public final int nameInputState = 15; // New name input state
-	public final int professorExtendedState = 16; // Extended professor dialog after name input
-	public final int professorChoiceState = 17; // Yes/No choice state
+	public final int eyeOpeningState = 16; // Eye-opening animation state
+	public final int playerQuestionState = 17; // Player's "Huh, where am I?" dialog
+	public final int professorExtendedState = 18; // Extended professor dialog after name input
+	public final int professorChoiceState = 19; // Yes/No choice state
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -156,6 +158,22 @@ public class GamePanel extends JPanel implements Runnable{
 	public boolean showChoice = false;
 	public int selectedChoice = 0; // 0 = Yes, 1 = No
 	private String[] currentDialogArray;
+	
+	// Eye opening animation variables
+	public float eyeAnimationTimer = 0;
+	private final float eyeAnimationDuration = 12.0f; // Total duration in seconds (now 12 seconds)
+	public int eyeOpening = 0; // 0-100, how much the eyes are open
+	public boolean eyesFullyOpen = false;
+	private int eyeBlinkCount = 0;
+	private final int maxEyeBlinks = 2; // Number of blinks after opening
+	private float eyeBlinkTimer = 0;
+	public boolean isBlinking = false;
+	
+	// Smooth blinking variables
+	private float blinkProgress = 0; // 0-1, progress of current blink
+	private final float eyeBlinkDuration = 0.3f; // Duration of one complete eye blink
+	private boolean blinkClosing = true; // true = closing, false = opening
+	public int blinkAmount = 0; // 0-100, how much the eyes are closed during blink
 	
 	
 	public GamePanel() {
@@ -313,6 +331,95 @@ public class GamePanel extends JPanel implements Runnable{
 	        }
 	    }
 	    
+	    if (gameState == eyeOpeningState) {
+	        // Update eye opening animation
+	        eyeAnimationTimer += 1.0 / 60.0; // Assuming 60 FPS
+	        
+	        // New 12-second realistic wake-up sequence
+	        if (eyeAnimationTimer <= 3.0f) {
+	            // Phase 1: Very slow initial stirring (0-3 seconds)
+	            float progress = eyeAnimationTimer / 3.0f; // 0 to 1
+	            float slowCurve = (float) (1.0 - Math.pow(1.0 - progress, 3.0)); // Cubic ease-out
+	            eyeOpening = (int) (slowCurve * 20); // Only crack open to 20% very slowly
+	            
+	        } else if (eyeAnimationTimer <= 5.0f) {
+	            // Phase 2: Eyes close again (struggling to wake up) (3-5 seconds)
+	            float progress = (eyeAnimationTimer - 3.0f) / 2.0f; // 0 to 1 over 2 seconds
+	            float closeCurve = (float) Math.pow(progress, 0.6); // Smooth exponential closing
+	            eyeOpening = (int) (20 * (1 - closeCurve)); // From 20% smoothly to ~0%
+	            
+	        } else if (eyeAnimationTimer <= 7.5f) {
+	            // Phase 3: Open faster this time (5-7.5 seconds)
+	            float progress = (eyeAnimationTimer - 5.0f) / 2.5f; // 0 to 1 over 2.5 seconds
+	            float openCurve = (float) Math.sin(progress * Math.PI / 2); // Sine curve for smooth opening
+	            eyeOpening = (int) (openCurve * 60); // Open to 60% this time
+	            
+	        } else if (eyeAnimationTimer <= 9.0f) {
+	            // Phase 4: Close again (hesitant) (7.5-9 seconds)
+	            float progress = (eyeAnimationTimer - 7.5f) / 1.5f; // 0 to 1 over 1.5 seconds
+	            float closeCurve = (float) Math.pow(progress, 0.8); // Exponential close
+	            eyeOpening = (int) (60 * (1 - closeCurve)); // From 60% to 0%
+	            blinkAmount = (int) (closeCurve * 100); // Add eyelid effect
+	            
+	        } else if (eyeAnimationTimer <= 12.0f) {
+	            // Phase 5: Final awakening - open completely (9-12 seconds)
+	            float progress = (eyeAnimationTimer - 9.0f) / 3.0f; // 0 to 1 over 3 seconds
+	            
+	            if (progress <= 0.5f) {
+	                // First half: smooth opening
+	                float openProgress = progress * 2; // 0 to 1
+	                float openCurve = (float) Math.sin(openProgress * Math.PI / 2);
+	                eyeOpening = (int) (openCurve * 100); // 0% to 100%
+	                blinkAmount = (int) (100 * (1 - openCurve)); // Reduce eyelid effect
+	                
+	            } else {
+	                // Second half: final blink and settle
+	                eyeOpening = 100;
+	                blinkAmount = 0;
+	                eyesFullyOpen = true;
+	                
+	                // Add a subtle final blink at the very end
+	                float finalBlinkProgress = (progress - 0.8f) / 0.2f; // Last 20% of phase
+	                if (finalBlinkProgress > 0 && finalBlinkProgress < 1) {
+	                    float blinkCurve = (float) Math.sin(finalBlinkProgress * Math.PI * 2); // Quick blink
+	                    blinkAmount = (int) (Math.abs(blinkCurve) * 30); // Light blink effect
+	                }
+	            }
+	        }
+	            
+	        // End animation after 12 seconds
+	        if (eyeAnimationTimer >= eyeAnimationDuration) {
+	            gameState = playerQuestionState;
+	            displayedText = "";
+	            charIndex = 0;
+	            textTimer = 0;
+	            dialogComplete = false;
+	        }
+	    }
+	    
+	    if (gameState == playerQuestionState) {
+	        // Update typing animation for player question
+	        if (!dialogComplete) {
+	            textTimer++;
+	            if (textTimer >= textSpeed) {
+	                String questionText = "Me: Huh, where am I?";
+	                if (charIndex < questionText.length()) {
+	                    displayedText += questionText.charAt(charIndex);
+	                    charIndex++;
+	                    // Play sound only every 4th character
+	                    if (charIndex % 4 == 0) {
+	                        playSE(9);
+	                    }
+	                }
+	                textTimer = 0;
+	                
+	                if (charIndex >= questionText.length()) {
+	                    dialogComplete = true;
+	                }
+	            }
+	        }
+	    }
+	    
 	    if (gameState == professorIntroState || gameState == professorExtendedState || gameState == professorChoiceState) {
 	        // Update typing animation
 	        if (!dialogComplete && !showChoice) {
@@ -431,7 +538,8 @@ public class GamePanel extends JPanel implements Runnable{
 	        shop.draw(g2);
 	    }
 	    
-	    else if (gameState == professorIntroState || gameState == nameInputState || 
+	    else if (gameState == eyeOpeningState || gameState == playerQuestionState || 
+	             gameState == professorIntroState || gameState == nameInputState || 
 	             gameState == professorExtendedState || gameState == professorChoiceState) {
 	        ui.drawProfessorIntro(g2);
 	    }
@@ -638,7 +746,22 @@ public class GamePanel extends JPanel implements Runnable{
 	}
 	
 	public void startProfessorIntro() {
-		gameState = professorIntroState;
+		stopMusic(); // Stop the title screen music
+		// Start with eye opening animation
+		gameState = eyeOpeningState;
+		eyeAnimationTimer = 0;
+		eyeOpening = 0;
+		eyesFullyOpen = false;
+		eyeBlinkCount = 0;
+		eyeBlinkTimer = 0;
+		isBlinking = false;
+		
+		// Reset smooth blinking variables
+		blinkProgress = 0;
+		blinkClosing = true;
+		blinkAmount = 0;
+		
+		// Reset dialog variables
 		currentDialogIndex = 0;
 		displayedText = "";
 		charIndex = 0;
@@ -709,6 +832,14 @@ public class GamePanel extends JPanel implements Runnable{
 		textTimer = 0;
 		dialogComplete = false;
 		showChoice = false;
+	}
+	
+	public void resetDialog() {
+		currentDialogIndex = 0;
+		displayedText = "";
+		charIndex = 0;
+		textTimer = 0;
+		dialogComplete = false;
 	}
 	
 }

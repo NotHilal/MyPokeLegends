@@ -1,11 +1,14 @@
 package main;
 
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.FontMetrics;
+import java.awt.GradientPaint;
 import java.awt.Graphics2D;
+import java.awt.RadialGradientPaint;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -438,7 +441,21 @@ public class UI {
 	public void drawProfessorIntro(Graphics2D g2) {
 		this.g2 = g2;
 		
-		if (gp.gameState == gp.professorIntroState || gp.gameState == gp.professorExtendedState || gp.gameState == gp.professorChoiceState) {
+		if (gp.gameState == gp.eyeOpeningState) {
+			// Draw eye opening animation
+			drawEyeOpeningAnimation(g2);
+		}
+		
+		else if (gp.gameState == gp.playerQuestionState) {
+			// Draw black background
+			g2.setColor(Color.BLACK);
+			g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+			
+			// Draw player question dialog
+			drawPlayerQuestionDialog(g2);
+		}
+		
+		else if (gp.gameState == gp.professorIntroState || gp.gameState == gp.professorExtendedState || gp.gameState == gp.professorChoiceState) {
 			// Set background color
 			g2.setColor(new Color(50, 50, 100));
 			g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
@@ -588,6 +605,154 @@ public class UI {
 		}
 		
 		return lines.toArray(new String[0]);
+	}
+	
+	private void drawEyeOpeningAnimation(Graphics2D g2) {
+		// Draw black background (closed eyes)
+		g2.setColor(Color.BLACK);
+		g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+		
+		// Calculate eye opening effect
+		if (gp.eyeOpening > 0) {
+			// Create a "slit" effect by drawing a horizontal opening
+			int eyeHeight = (int) (gp.screenHeight * (gp.eyeOpening / 100.0));
+			int eyeY = (gp.screenHeight - eyeHeight) / 2;
+			
+			// Draw dreamy blurry background visible through the "eyelids"
+			drawDreamyBackground(g2, eyeY, eyeHeight);
+			
+			// Add a subtle gradient effect for more realistic eyelid shadow
+			if (gp.eyeOpening < 100) {
+				// Top eyelid shadow
+				g2.setColor(new Color(0, 0, 0, 100));
+				g2.fillRect(0, eyeY, gp.screenWidth, 10);
+				
+				// Bottom eyelid shadow  
+				g2.fillRect(0, eyeY + eyeHeight - 10, gp.screenWidth, 10);
+			}
+		}
+		
+		// Handle smooth blinking effect
+		if (gp.isBlinking && gp.eyesFullyOpen && gp.blinkAmount > 0) {
+			// Calculate smooth eyelid positions based on blink amount
+			int blinkHeight = (int) (gp.screenHeight * (gp.blinkAmount / 100.0) * 0.4); // Max 40% of screen
+			
+			// Draw top eyelid (smooth gradient)
+			for (int i = 0; i < blinkHeight; i++) {
+				int alpha = (int) (255 * (1.0 - (double) i / blinkHeight * 0.3)); // Fade from solid to semi-transparent
+				g2.setColor(new Color(0, 0, 0, Math.max(alpha, 100)));
+				g2.fillRect(0, i, gp.screenWidth, 1);
+			}
+			
+			// Draw bottom eyelid (smooth gradient)  
+			for (int i = 0; i < blinkHeight; i++) {
+				int alpha = (int) (255 * (1.0 - (double) i / blinkHeight * 0.3));
+				g2.setColor(new Color(0, 0, 0, Math.max(alpha, 100)));
+				g2.fillRect(0, gp.screenHeight - 1 - i, gp.screenWidth, 1);
+			}
+		}
+	}
+	
+	private void drawDreamyBackground(Graphics2D g2, int eyeY, int eyeHeight) {
+		// Create dreamy blurry white and gray background effect
+		
+		// Base dreamy background with soft white-gray gradient
+		GradientPaint dreamGradient = new GradientPaint(
+			0, eyeY, new Color(245, 245, 250, 200),  // Very light blue-white at top
+			0, eyeY + eyeHeight, new Color(220, 220, 225, 180)  // Slightly darker gray-white at bottom
+		);
+		g2.setPaint(dreamGradient);
+		g2.fillRect(0, eyeY, gp.screenWidth, eyeHeight);
+		
+		// Add floating dreamy "particles" or soft spots for blur effect
+		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+		
+		// Create multiple layers of soft "blur spots" using current animation timer
+		float time = gp.eyeAnimationTimer * 0.5f; // Slow drift
+		
+		for (int i = 0; i < 8; i++) {
+			// Calculate position with gentle floating motion
+			float angle = time + (i * 0.8f);
+			int x = (int) (gp.screenWidth * 0.2f + Math.sin(angle) * 150 + i * gp.screenWidth * 0.1f);
+			int y = eyeY + (int) (Math.cos(angle * 0.7f) * 30 + eyeHeight * 0.3f + i * eyeHeight * 0.1f);
+			
+			// Vary sizes for more organic feel
+			int size = 60 + i * 15;
+			
+			// Use radial gradient for soft circular "blur spots"
+			RadialGradientPaint blurSpot = new RadialGradientPaint(
+				x, y, size,
+				new float[]{0.0f, 0.7f, 1.0f},
+				new Color[]{
+					new Color(255, 255, 255, 80),  // White center
+					new Color(230, 230, 240, 40),  // Gray-white middle  
+					new Color(200, 200, 210, 0)    // Transparent edge
+				}
+			);
+			g2.setPaint(blurSpot);
+			g2.fillOval(x - size, y - size, size * 2, size * 2);
+		}
+		
+		// Add some smaller drifting spots for more depth
+		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
+		for (int i = 0; i < 12; i++) {
+			float angle = time * 1.2f + (i * 0.5f);
+			int x = (int) (Math.cos(angle) * 80 + gp.screenWidth * 0.5f + i * 50);
+			int y = eyeY + (int) (Math.sin(angle * 0.8f) * 40 + eyeHeight * 0.6f);
+			int size = 25 + (i % 3) * 10;
+			
+			RadialGradientPaint smallSpot = new RadialGradientPaint(
+				x, y, size,
+				new float[]{0.0f, 1.0f},
+				new Color[]{
+					new Color(240, 240, 245, 60),  // Light center
+					new Color(210, 210, 220, 0)    // Transparent edge
+				}
+			);
+			g2.setPaint(smallSpot);
+			g2.fillOval(x - size, y - size, size * 2, size * 2);
+		}
+		
+		// Reset composite for normal drawing
+		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+	}
+	
+	private void drawPlayerQuestionDialog(Graphics2D g2) {
+		// Draw dialog box
+		int boxX = 50;
+		int boxY = gp.screenHeight - 150;
+		int boxWidth = gp.screenWidth - 100;
+		int boxHeight = 100;
+		
+		// Dialog box background
+		g2.setColor(new Color(255, 255, 255, 240));
+		g2.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 20, 20);
+		
+		// Dialog box border
+		g2.setColor(new Color(100, 100, 100));
+		g2.setStroke(new BasicStroke(3));
+		g2.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 20, 20);
+		
+		// Draw typing text
+		g2.setColor(Color.BLACK);
+		g2.setFont(g2.getFont().deriveFont(Font.BOLD, 28F)); // Make player text bold
+		
+		String[] lines = wrapText(gp.displayedText, boxWidth - 40);
+		int textY = boxY + 35;
+		for (String line : lines) {
+			g2.drawString(line, boxX + 20, textY);
+			textY += 35;
+		}
+		
+		// Draw continue prompt if dialog is complete
+		if (gp.dialogComplete) {
+			g2.setColor(new Color(100, 100, 100));
+			g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 20F));
+			String prompt = "Press ENTER to continue...";
+			int promptX = boxX + boxWidth - g2.getFontMetrics().stringWidth(prompt) - 20;
+			int promptY = boxY + boxHeight - 15;
+			g2.drawString(prompt, promptX, promptY);
+		}
 	}
 	
 }

@@ -785,6 +785,18 @@ public class KeyHandler implements KeyListener{
 			}
 		}
 		
+		// PLAYER QUESTION STATE ("Huh, where am I?")
+		else if(gp.gameState == gp.playerQuestionState) {
+			if(code == KeyEvent.VK_ENTER) {
+				if(gp.dialogComplete) {
+					gp.playSE(11);
+					// Go to professor introduction after player question
+					gp.gameState = gp.professorIntroState;
+					gp.resetDialog();
+				}
+			}
+		}
+		
 		// PROFESSOR INTRODUCTION STATE
 		else if(gp.gameState == gp.professorIntroState) {
 			if(code == KeyEvent.VK_ENTER) {
