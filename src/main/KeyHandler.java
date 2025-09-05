@@ -6,7 +6,7 @@ import main.BattleManager.BattleState;
 
 public class KeyHandler implements KeyListener{
 
-	public boolean upPressed, downPressed, leftPressed, rightPressed,f2Pressed, f3Pressed, interctPressed, enterPressed;
+	public boolean upPressed, downPressed, leftPressed, rightPressed,f2Pressed, f3Pressed, interctPressed, enterPressed, spacePressed;
 	public boolean num1Pressed = false, num2Pressed = false, num3Pressed = false, num4Pressed = false;
 	public boolean gPressed = false, tabPressed = false, escPressed = false, wPressed = false;
 	GamePanel gp;
@@ -226,6 +226,9 @@ public class KeyHandler implements KeyListener{
 	        }
 			if (code == KeyEvent.VK_ENTER) {
 				enterPressed=true;
+			}
+			if (code == KeyEvent.VK_SPACE) {
+				spacePressed=true;
 			}
 			if (code == KeyEvent.VK_ESCAPE) {
 				escPressed = true;
@@ -785,6 +788,31 @@ public class KeyHandler implements KeyListener{
 			}
 		}
 		
+		// PRE-BLINKING STATE ("Huh.." and "Where am I?")
+		else if(gp.gameState == gp.preBlinkingState) {
+			if(code == KeyEvent.VK_ENTER) {
+				if(gp.dialogComplete) {
+					gp.playSE(11);
+					// Move to next dialog or start eye opening
+					if(gp.preBlinkingDialogIndex < gp.preBlinkingDialogs.length - 1) {
+						gp.preBlinkingDialogIndex++;
+						gp.displayedText = "";
+						gp.charIndex = 0;
+						gp.textTimer = 0;
+						gp.dialogComplete = false;
+					} else {
+						// Start eye opening animation after both dialogs
+						gp.gameState = gp.eyeOpeningState;
+						gp.eyeAnimationTimer = 0;
+						gp.eyeOpening = 0;
+					}
+				}
+			}
+			if(code == KeyEvent.VK_SPACE) {
+				spacePressed = true;
+			}
+		}
+		
 		// PLAYER QUESTION STATE ("Huh, where am I?")
 		else if(gp.gameState == gp.playerQuestionState) {
 			if(code == KeyEvent.VK_ENTER) {
@@ -795,6 +823,9 @@ public class KeyHandler implements KeyListener{
 					gp.resetDialog();
 				}
 			}
+			if(code == KeyEvent.VK_SPACE) {
+				spacePressed = true;
+			}
 		}
 		
 		// PROFESSOR INTRODUCTION STATE
@@ -804,6 +835,9 @@ public class KeyHandler implements KeyListener{
 					gp.playSE(11);
 					gp.nextProfessorDialog();
 				}
+			}
+			if(code == KeyEvent.VK_SPACE) {
+				spacePressed = true;
 			}
 		}
 		
@@ -828,6 +862,9 @@ public class KeyHandler implements KeyListener{
 					gp.selectedChoice = 1; // No
 				}
 			}
+			if(code == KeyEvent.VK_SPACE) {
+				spacePressed = true;
+			}
 		}
 		
 		// PROFESSOR CHOICE STATE (after choosing yes/no)
@@ -837,6 +874,9 @@ public class KeyHandler implements KeyListener{
 					gp.playSE(11);
 					gp.nextProfessorDialog();
 				}
+			}
+			if(code == KeyEvent.VK_SPACE) {
+				spacePressed = true;
 			}
 		}
 		
@@ -888,6 +928,9 @@ public class KeyHandler implements KeyListener{
 		if (code == KeyEvent.VK_ENTER) {
 			enterPressed=false;
 		}
+		if (code == KeyEvent.VK_SPACE) {
+			spacePressed=false;
+		}
 		if (code == KeyEvent.VK_E) {
 			interctPressed=false;
 		}
@@ -932,6 +975,7 @@ public class KeyHandler implements KeyListener{
 		f3Pressed = false;
 		interctPressed = false;
 		enterPressed = false;
+		spacePressed = false;
 		num1Pressed = false;
 		num2Pressed = false;
 		num3Pressed = false;

@@ -441,7 +441,16 @@ public class UI {
 	public void drawProfessorIntro(Graphics2D g2) {
 		this.g2 = g2;
 		
-		if (gp.gameState == gp.eyeOpeningState) {
+		if (gp.gameState == gp.preBlinkingState) {
+			// Draw black background for pre-blinking dialog
+			g2.setColor(Color.BLACK);
+			g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+			
+			// Draw the pre-blinking dialog
+			drawPreBlinkingDialog(g2);
+		}
+		
+		else if (gp.gameState == gp.eyeOpeningState) {
 			// Draw eye opening animation
 			drawEyeOpeningAnimation(g2);
 		}
@@ -489,7 +498,8 @@ public class UI {
 			
 			// Draw typing text
 			g2.setColor(Color.BLACK);
-			g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 28F));
+			g2.setFont(maruMonica);
+			g2.setFont(g2.getFont().deriveFont(Font.BOLD, 28F));
 			
 			String[] lines = wrapText(gp.displayedText, boxWidth - 40);
 			int textY = boxY + 40;
@@ -501,6 +511,7 @@ public class UI {
 			// Draw continue prompt or choice selection
 			if (gp.dialogComplete && !gp.showChoice) {
 				g2.setColor(new Color(100, 100, 100));
+				g2.setFont(maruMonica);
 				g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 20F));
 				String prompt = "Press ENTER to continue...";
 				int promptX = boxX + boxWidth - g2.getFontMetrics().stringWidth(prompt) - 20;
@@ -513,6 +524,7 @@ public class UI {
 				int choiceX = boxX + boxWidth - 150;
 				int choiceY = boxY + boxHeight - 80;
 				
+				g2.setFont(maruMonica);
 				g2.setFont(g2.getFont().deriveFont(Font.BOLD, 28F));
 				
 				// YES option
@@ -530,6 +542,7 @@ public class UI {
 				
 				// Choice instructions
 				g2.setColor(new Color(100, 100, 100));
+				g2.setFont(maruMonica);
 				g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 18F));
 				String instruction = "Use W/S to choose, ENTER to select";
 				int instructionX = boxX + 20;
@@ -656,10 +669,10 @@ public class UI {
 	private void drawDreamyBackground(Graphics2D g2, int eyeY, int eyeHeight) {
 		// Create dreamy blurry white and gray background effect
 		
-		// Base dreamy background with soft white-gray gradient
+		// Base dreamy background with soft white-gray gradient (darker)
 		GradientPaint dreamGradient = new GradientPaint(
-			0, eyeY, new Color(245, 245, 250, 200),  // Very light blue-white at top
-			0, eyeY + eyeHeight, new Color(220, 220, 225, 180)  // Slightly darker gray-white at bottom
+			0, eyeY, new Color(200, 200, 210, 200),  // Darker gray-white at top
+			0, eyeY + eyeHeight, new Color(170, 170, 180, 180)  // Even darker gray at bottom
 		);
 		g2.setPaint(dreamGradient);
 		g2.fillRect(0, eyeY, gp.screenWidth, eyeHeight);
@@ -679,14 +692,14 @@ public class UI {
 			// Vary sizes for more organic feel
 			int size = 60 + i * 15;
 			
-			// Use radial gradient for soft circular "blur spots"
+			// Use radial gradient for soft circular "blur spots" (darker)
 			RadialGradientPaint blurSpot = new RadialGradientPaint(
 				x, y, size,
 				new float[]{0.0f, 0.7f, 1.0f},
 				new Color[]{
-					new Color(255, 255, 255, 80),  // White center
-					new Color(230, 230, 240, 40),  // Gray-white middle  
-					new Color(200, 200, 210, 0)    // Transparent edge
+					new Color(220, 220, 230, 70),  // Darker center
+					new Color(190, 190, 200, 35),  // Darker middle  
+					new Color(160, 160, 170, 0)    // Transparent edge
 				}
 			);
 			g2.setPaint(blurSpot);
@@ -705,8 +718,8 @@ public class UI {
 				x, y, size,
 				new float[]{0.0f, 1.0f},
 				new Color[]{
-					new Color(240, 240, 245, 60),  // Light center
-					new Color(210, 210, 220, 0)    // Transparent edge
+					new Color(200, 200, 210, 50),  // Darker center
+					new Color(170, 170, 180, 0)    // Transparent edge
 				}
 			);
 			g2.setPaint(smallSpot);
@@ -735,6 +748,7 @@ public class UI {
 		
 		// Draw typing text
 		g2.setColor(Color.BLACK);
+		g2.setFont(maruMonica);
 		g2.setFont(g2.getFont().deriveFont(Font.BOLD, 28F)); // Make player text bold
 		
 		String[] lines = wrapText(gp.displayedText, boxWidth - 40);
@@ -747,6 +761,47 @@ public class UI {
 		// Draw continue prompt if dialog is complete
 		if (gp.dialogComplete) {
 			g2.setColor(new Color(100, 100, 100));
+			g2.setFont(maruMonica);
+			g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 20F));
+			String prompt = "Press ENTER to continue...";
+			int promptX = boxX + boxWidth - g2.getFontMetrics().stringWidth(prompt) - 20;
+			int promptY = boxY + boxHeight - 15;
+			g2.drawString(prompt, promptX, promptY);
+		}
+	}
+	
+	private void drawPreBlinkingDialog(Graphics2D g2) {
+		// Draw dialog box
+		int boxX = 50;
+		int boxY = gp.screenHeight - 150;
+		int boxWidth = gp.screenWidth - 100;
+		int boxHeight = 100;
+		
+		// Dialog box background
+		g2.setColor(new Color(255, 255, 255, 240));
+		g2.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 20, 20);
+		
+		// Dialog box border
+		g2.setColor(new Color(100, 100, 100));
+		g2.setStroke(new BasicStroke(3));
+		g2.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 20, 20);
+		
+		// Draw typing text
+		g2.setColor(Color.BLACK);
+		g2.setFont(maruMonica);
+		g2.setFont(g2.getFont().deriveFont(Font.BOLD, 28F)); // Make text bold
+		
+		String[] lines = wrapText(gp.displayedText, boxWidth - 40);
+		int textY = boxY + 35;
+		for (String line : lines) {
+			g2.drawString(line, boxX + 20, textY);
+			textY += 35;
+		}
+		
+		// Draw continue prompt if dialog is complete
+		if (gp.dialogComplete) {
+			g2.setColor(new Color(100, 100, 100));
+			g2.setFont(maruMonica);
 			g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 20F));
 			String prompt = "Press ENTER to continue...";
 			int promptX = boxX + boxWidth - g2.getFontMetrics().stringWidth(prompt) - 20;

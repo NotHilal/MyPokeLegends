@@ -5,6 +5,7 @@ import java.net.URL;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
 
 public class Sound {
 	
@@ -25,6 +26,7 @@ public class Sound {
 		soundURL[9]= getClass().getResource("/sound/retroChoice.wav");
 		soundURL[10]= getClass().getResource("/sound/wild-battle.wav");
 		soundURL[11]= getClass().getResource("/sound/select.wav");
+		soundURL[12]= getClass().getResource("/sound/textSound.wav");
 	}
 	
 	
@@ -53,6 +55,45 @@ public class Sound {
 	public void Stop() {
 		
 		clip.stop();
+	}
+	
+	public void PlayWithVolume(float volumePercent) {
+		try {
+			// Convert percentage to decibel (volume range is typically -80.0 to 6.0)
+			float volumeDB;
+			if (volumePercent <= 0) {
+				volumeDB = -80.0f; // Minimum volume (mute)
+			} else if (volumePercent >= 100) {
+				volumeDB = 0.0f; // Maximum volume
+			} else {
+				// Convert percentage to decibel scale - make it more aggressive
+				volumeDB = (float) (Math.log10(volumePercent / 100.0) * 20.0);
+				// Clamp to valid range
+				volumeDB = Math.max(volumeDB, -80.0f);
+				volumeDB = Math.min(volumeDB, 6.0f);
+			}
+			
+			// Try different control types
+			FloatControl volumeControl = null;
+			if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+				volumeControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+			} else if (clip.isControlSupported(FloatControl.Type.VOLUME)) {
+				volumeControl = (FloatControl) clip.getControl(FloatControl.Type.VOLUME);
+			}
+			
+			if (volumeControl != null) {
+				// Make sure the value is within the control's range
+				float min = volumeControl.getMinimum();
+				float max = volumeControl.getMaximum();
+				volumeDB = Math.max(min, Math.min(max, volumeDB));
+				volumeControl.setValue(volumeDB);
+			}
+			
+			clip.start();
+		} catch (Exception e) {
+			// If volume control fails, play at normal volume
+			clip.start();
+		}
 	}
 
 }

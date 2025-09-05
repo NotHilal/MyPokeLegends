@@ -98,10 +98,11 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int shopState = 13; // New shop state
 	public final int professorIntroState = 14; // New professor introduction state
 	public final int nameInputState = 15; // New name input state
-	public final int eyeOpeningState = 16; // Eye-opening animation state
-	public final int playerQuestionState = 17; // Player's "Huh, where am I?" dialog
-	public final int professorExtendedState = 18; // Extended professor dialog after name input
-	public final int professorChoiceState = 19; // Yes/No choice state
+	public final int preBlinkingState = 16; // "Huh.." dialog before eye opening
+	public final int eyeOpeningState = 17; // Eye-opening animation state
+	public final int playerQuestionState = 18; // Player's "What happened?" dialog
+	public final int professorExtendedState = 19; // Extended professor dialog after name input
+	public final int professorChoiceState = 20; // Yes/No choice state
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -148,8 +149,8 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	private int currentDialogIndex = 0;
 	public String displayedText = "";
-	private int charIndex = 0;
-	private int textTimer = 0;
+	public int charIndex = 0;
+	public int textTimer = 0;
 	private final int textSpeed = 2; // Lower = faster typing, higher = slower typing
 	public boolean dialogComplete = false;
 	public String playerName = "";
@@ -158,6 +159,13 @@ public class GamePanel extends JPanel implements Runnable{
 	public boolean showChoice = false;
 	public int selectedChoice = 0; // 0 = Yes, 1 = No
 	private String[] currentDialogArray;
+	
+	// Pre-blinking dialog variables
+	public String[] preBlinkingDialogs = {
+		"Huh..",
+		"Where am I?"
+	};
+	public int preBlinkingDialogIndex = 0;
 	
 	// Eye opening animation variables
 	public float eyeAnimationTimer = 0;
@@ -171,7 +179,7 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	// Smooth blinking variables
 	private float blinkProgress = 0; // 0-1, progress of current blink
-	private final float eyeBlinkDuration = 0.3f; // Duration of one complete eye blink
+	private final float eyeBlinkDuration = 0.2f; // Duration of one complete eye blink (faster)
 	private boolean blinkClosing = true; // true = closing, false = opening
 	public int blinkAmount = 0; // 0-100, how much the eyes are closed during blink
 	
@@ -331,6 +339,31 @@ public class GamePanel extends JPanel implements Runnable{
 	        }
 	    }
 	    
+	    if (gameState == preBlinkingState) {
+	        // Update typing animation for pre-blinking dialogs
+	        if (!dialogComplete) {
+	            textTimer++;
+	            // Use faster speed when SPACE is held down
+	            int currentSpeed = keyH.spacePressed ? 1 : textSpeed;
+	            if (textTimer >= currentSpeed) {
+	                String currentText = preBlinkingDialogs[preBlinkingDialogIndex];
+	                if (charIndex < currentText.length()) {
+	                    displayedText += currentText.charAt(charIndex);
+	                    charIndex++;
+	                    // Play sound only every 4th character
+	                    if (charIndex % 4 == 0) {
+	                        playSEWithVolume(12, 10.0f); // textSound.wav at 10% volume
+	                    }
+	                }
+	                textTimer = 0;
+	                
+	                if (charIndex >= currentText.length()) {
+	                    dialogComplete = true;
+	                }
+	            }
+	        }
+	    }
+	    
 	    if (gameState == eyeOpeningState) {
 	        // Update eye opening animation
 	        eyeAnimationTimer += 1.0 / 60.0; // Assuming 60 FPS
@@ -401,14 +434,16 @@ public class GamePanel extends JPanel implements Runnable{
 	        // Update typing animation for player question
 	        if (!dialogComplete) {
 	            textTimer++;
-	            if (textTimer >= textSpeed) {
-	                String questionText = "Me: Huh, where am I?";
+	            // Use faster speed when SPACE is held down
+	            int currentSpeed = keyH.spacePressed ? 1 : textSpeed;
+	            if (textTimer >= currentSpeed) {
+	                String questionText = "What happened?";
 	                if (charIndex < questionText.length()) {
 	                    displayedText += questionText.charAt(charIndex);
 	                    charIndex++;
 	                    // Play sound only every 4th character
 	                    if (charIndex % 4 == 0) {
-	                        playSE(9);
+	                        playSEWithVolume(12, 10.0f); // textSound.wav at 10% volume
 	                    }
 	                }
 	                textTimer = 0;
@@ -424,14 +459,16 @@ public class GamePanel extends JPanel implements Runnable{
 	        // Update typing animation
 	        if (!dialogComplete && !showChoice) {
 	            textTimer++;
-	            if (textTimer >= textSpeed) {
+	            // Use faster speed when SPACE is held down
+	            int currentSpeed = keyH.spacePressed ? 1 : textSpeed;
+	            if (textTimer >= currentSpeed) {
 	                String currentText = getCurrentDialogText();
 	                if (charIndex < currentText.length()) {
 	                    displayedText += currentText.charAt(charIndex);
 	                    charIndex++;
 	                    // Play sound only every 4th character to slow down the sound frequency
 	                    if (charIndex % 4 == 0) {
-	                        playSE(9); // Play typing sound effect
+	                        playSEWithVolume(12, 10.0f); // textSound.wav at 10% volume - Play typing sound effect
 	                    }
 	                }
 	                textTimer = 0;
@@ -538,7 +575,7 @@ public class GamePanel extends JPanel implements Runnable{
 	        shop.draw(g2);
 	    }
 	    
-	    else if (gameState == eyeOpeningState || gameState == playerQuestionState || 
+	    else if (gameState == preBlinkingState || gameState == eyeOpeningState || gameState == playerQuestionState || 
 	             gameState == professorIntroState || gameState == nameInputState || 
 	             gameState == professorExtendedState || gameState == professorChoiceState) {
 	        ui.drawProfessorIntro(g2);
@@ -616,6 +653,11 @@ public class GamePanel extends JPanel implements Runnable{
 	public void playSE(int i) {
 		se.setFile(i);
 		se.Play();
+	}
+	
+	public void playSEWithVolume(int i, float volumePercent) {
+		se.setFile(i);
+		se.PlayWithVolume(volumePercent);
 	}
 	
 	
@@ -720,6 +762,10 @@ public class GamePanel extends JPanel implements Runnable{
 		boolean success = SaveGameManager.loadGame(this);
 		if (success) {
 			ui.currentDialog = "Game loaded successfully!";
+			// Stop current music and play map music
+			stopMusic();
+			playMusic(5); // cityMusic.wav
+			currentMusic = 5;
 			gameState = playState; // Go to play state after loading
 		} else {
 			ui.currentDialog = "Failed to load game!";
@@ -747,8 +793,15 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	public void startProfessorIntro() {
 		stopMusic(); // Stop the title screen music
-		// Start with eye opening animation
-		gameState = eyeOpeningState;
+		// Start with pre-blinking dialog
+		gameState = preBlinkingState;
+		preBlinkingDialogIndex = 0;
+		displayedText = "";
+		charIndex = 0;
+		textTimer = 0;
+		dialogComplete = false;
+		
+		// Initialize eye animation variables for later
 		eyeAnimationTimer = 0;
 		eyeOpening = 0;
 		eyesFullyOpen = false;
