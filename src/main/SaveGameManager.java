@@ -114,6 +114,7 @@ public class SaveGameManager {
         saveData.playerData.money = gp.player.getMoney();
         saveData.playerData.speed = gp.player.speed;
         saveData.playerData.playerName = gp.playerName; // Save player name
+        saveData.playerData.currentMapId = gp.mapManager.getCurrentMapId(); // Save current map
         
         // Champion collection - ownership and seen status
         saveData.championCollection.ownedChampions = new ArrayList<>(gp.player.getOwnedChampions());
@@ -170,6 +171,14 @@ public class SaveGameManager {
         gp.player.setMoney(saveData.playerData.money);
         gp.player.speed = saveData.playerData.speed;
         gp.playerName = saveData.playerData.playerName; // Load player name
+        
+        // Load current map - change to saved map without spawn point (keep saved coordinates)
+        if (saveData.playerData.currentMapId != null && !saveData.playerData.currentMapId.isEmpty()) {
+            gp.mapManager.changeMap(saveData.playerData.currentMapId, null);
+            // Restore exact player position after map change
+            gp.player.worldX = saveData.playerData.worldX;
+            gp.player.worldY = saveData.playerData.worldY;
+        }
         
         // Champion collection
         gp.player.setOwnedChampions(saveData.championCollection.ownedChampions);

@@ -48,6 +48,7 @@ public class SaveData implements Serializable {
         public int money;
         public int speed;
         public String playerName; // Player's chosen name
+        public String currentMapId; // Current map the player is on
         
         public PlayerSaveData() {
             this.direction = "down";
@@ -56,6 +57,7 @@ public class SaveData implements Serializable {
             this.money = 10000;
             this.speed = 4;
             this.playerName = "";
+            this.currentMapId = "hometown_main_world"; // Default starting map
         }
     }
     

@@ -57,12 +57,12 @@ public class TileManager {
 		setupGrassWithDoorCarpet(12, "grass", false, "");
 		
 		// House furniture tiles on wood floor (starting from ID 13)
-		setupWoodWithFurniture(13, "woodground1", "bigredbed1", true, "");
-		setupWoodWithFurniture(14, "woodground1", "bigredbed2", true, "");
-		setupWoodWithFurniture(15, "woodground1", "bigredbed3", true, "");
-		setupWoodWithFurniture(16, "woodground1", "table", true, "");
-		setupWoodWithFurniture(17, "woodground1", "chairright", false, "");
-		setupWoodWithFurniture(18, "woodground1", "chairleft", false, "");
+		setupWoodWithLargeFurniture(13, "woodground1", "bigbedblue", true, "");        // Large bed
+		setupWoodWithLargeFurniture(14, "woodground1", "closetopenwhite", true, "");   // Large closet
+		setupWoodWithFurniture(15, "woodground1", "closetopenwhite", true, "");        // Regular closet (backup)
+		setupWoodWithFurniture(16, "woodground1", "table", true, "");                  // Regular table
+		setupWoodWithFurniture(17, "woodground1", "chairright", false, "");            // Regular chair
+		setupWoodWithFurniture(18, "woodground1", "chairleft", false, "");             // Regular chair
 	}
 	
 	public void setup(int index, String imgName, boolean collision, String region) {
@@ -245,6 +245,30 @@ public class TileManager {
 	        tile[index].region = region;
 	    } catch (IOException e) {
 	        System.err.println("Error loading furniture: " + furnitureName + " on base: " + baseImgName);
+	        e.printStackTrace();
+	    }
+	}
+	
+	// Method to setup LARGE furniture on wood floor (1.5x size for bed and closets)
+	public void setupWoodWithLargeFurniture(int index, String baseImgName, String furnitureName, boolean collision, String region) {
+	    UtilityTool uTool = new UtilityTool();
+	    try {
+	        tile[index] = new Tile();
+	        
+	        // Load base wood floor image
+	        tile[index].image = ImageIO.read(getClass().getResourceAsStream("/tiles/" + baseImgName + ".png"));
+	        tile[index].image = uTool.scaleImage(tile[index].image, gp.tileSize, gp.tileSize);
+	        
+	        // Load furniture overlay image - make it larger (1.5x) and it will be centered automatically
+	        int largeFurnitureSize = (int)(gp.tileSize * 1.5);
+	        tile[index].overlayImage = ImageIO.read(getClass().getResourceAsStream("/house/" + furnitureName + ".png"));
+	        tile[index].overlayImage = uTool.scaleImage(tile[index].overlayImage, largeFurnitureSize, largeFurnitureSize);
+	        
+	        tile[index].collision = collision;
+	        tile[index].isHighGrass = false;
+	        tile[index].region = region;
+	    } catch (IOException e) {
+	        System.err.println("Error loading large furniture: " + furnitureName + " on base: " + baseImgName);
 	        e.printStackTrace();
 	    }
 	}

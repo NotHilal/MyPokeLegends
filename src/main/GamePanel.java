@@ -48,6 +48,10 @@ public class GamePanel extends JPanel implements Runnable{
 	public boolean showEventRect = false;
 	public boolean showHighGrass = false;
 	
+	// Warp cooldown system to prevent multiple triggers
+	private int warpCooldown = 0;
+	private final int WARP_COOLDOWN_TIME = 30; // frames (0.5 seconds at 60 FPS)
+	
 	// CHAMPIONS
 	public List<Champion> champList = ChampionFactory.createAllChampions();
 	public ChampionMenu championMenu;
@@ -291,6 +295,11 @@ public class GamePanel extends JPanel implements Runnable{
 	    if (gameState == playState) {
 	        // PLAYER
 	        player.update();
+	        
+	        // Update warp cooldown
+	        if (warpCooldown > 0) {
+	            warpCooldown--;
+	        }
 	        
 	        // Check door teleportation
 	        checkDoorTeleport();
@@ -936,6 +945,11 @@ public class GamePanel extends JPanel implements Runnable{
 	}
 	
 	public void checkDoorTeleport() {
+		// Skip if warp is on cooldown
+		if (warpCooldown > 0) {
+			return;
+		}
+		
 		// Calculate player's tile position
 		int playerTileX = (player.worldX + player.solidArea.x) / tileSize;
 		int playerTileY = (player.worldY + player.solidArea.y + player.solidArea.height) / tileSize;
@@ -943,6 +957,8 @@ public class GamePanel extends JPanel implements Runnable{
 		// Check for warp points using MapManager
 		WarpPoint warp = mapManager.checkForWarp(playerTileX, playerTileY);
 		if (warp != null) {
+			// Set cooldown to prevent immediate re-triggering
+			warpCooldown = WARP_COOLDOWN_TIME;
 			if (warp.requiresAnimation) {
 				// Use circle transition for doors
 				startCircleClose(() -> {

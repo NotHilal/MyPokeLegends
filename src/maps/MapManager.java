@@ -48,11 +48,13 @@ public class MapManager {
             currentMapId = mapId;
             currentMap = maps.get(mapId);
             
-            // Move player to spawn point
-            Point spawnPoint = currentMap.getSpawnPoint(spawnPointName);
-            if (spawnPoint != null) {
-                gp.player.worldX = spawnPoint.x * gp.tileSize;
-                gp.player.worldY = spawnPoint.y * gp.tileSize;
+            // Move player to spawn point (if specified)
+            if (spawnPointName != null) {
+                Point spawnPoint = currentMap.getSpawnPoint(spawnPointName);
+                if (spawnPoint != null) {
+                    gp.player.worldX = spawnPoint.x * gp.tileSize;
+                    gp.player.worldY = spawnPoint.y * gp.tileSize;
+                }
             }
             
             // Update tile manager with new map data

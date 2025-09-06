@@ -13,6 +13,7 @@ public class Main {
 		GamePanel gamePanel = new GamePanel();
 		// System.out.println(gamePanel.tileSize); 48
 		window.add(gamePanel);
+
 		
 		window.pack();
 		

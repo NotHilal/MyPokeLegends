@@ -25,37 +25,64 @@ public class CollisionChecker {
 	    switch (entity.direction) {
 	        case "up":
 	            entityTopRow = (entityTopWorldY - entity.speed) / gp.tileSize;
-	            tileNum1 = gp.tileM.mapTileNum[entityLeftCol][entityTopRow];
-	            tileNum2 = gp.tileM.mapTileNum[entityRightCol][entityTopRow];
-	            if (gp.tileM.tile[tileNum1].collision || gp.tileM.tile[tileNum2].collision) {
+	            if (isValidTilePosition(entityLeftCol, entityTopRow) && isValidTilePosition(entityRightCol, entityTopRow)) {
+	                tileNum1 = gp.mapManager.getCurrentMap().getTileAt(entityLeftCol, entityTopRow);
+	                tileNum2 = gp.mapManager.getCurrentMap().getTileAt(entityRightCol, entityTopRow);
+	                if (gp.tileM.tile[tileNum1].collision || gp.tileM.tile[tileNum2].collision) {
+	                    entity.collisionOn = true;
+	                }
+	            } else {
+	                // Out of bounds - treat as collision
 	                entity.collisionOn = true;
 	            }
 	            break;
 	        case "down":
 	            entityBottomRow = (entityBottomWorldY + entity.speed) / gp.tileSize;
-	            tileNum1 = gp.tileM.mapTileNum[entityLeftCol][entityBottomRow];
-	            tileNum2 = gp.tileM.mapTileNum[entityRightCol][entityBottomRow];
-	            if (gp.tileM.tile[tileNum1].collision || gp.tileM.tile[tileNum2].collision) {
+	            if (isValidTilePosition(entityLeftCol, entityBottomRow) && isValidTilePosition(entityRightCol, entityBottomRow)) {
+	                tileNum1 = gp.mapManager.getCurrentMap().getTileAt(entityLeftCol, entityBottomRow);
+	                tileNum2 = gp.mapManager.getCurrentMap().getTileAt(entityRightCol, entityBottomRow);
+	                if (gp.tileM.tile[tileNum1].collision || gp.tileM.tile[tileNum2].collision) {
+	                    entity.collisionOn = true;
+	                }
+	            } else {
+	                // Out of bounds - treat as collision
 	                entity.collisionOn = true;
 	            }
 	            break;
 	        case "left":
 	            entityLeftCol = (entityLeftWorldX - entity.speed) / gp.tileSize;
-	            tileNum1 = gp.tileM.mapTileNum[entityLeftCol][entityTopRow];
-	            tileNum2 = gp.tileM.mapTileNum[entityLeftCol][entityBottomRow];
-	            if (gp.tileM.tile[tileNum1].collision || gp.tileM.tile[tileNum2].collision) {
+	            if (isValidTilePosition(entityLeftCol, entityTopRow) && isValidTilePosition(entityLeftCol, entityBottomRow)) {
+	                tileNum1 = gp.mapManager.getCurrentMap().getTileAt(entityLeftCol, entityTopRow);
+	                tileNum2 = gp.mapManager.getCurrentMap().getTileAt(entityLeftCol, entityBottomRow);
+	                if (gp.tileM.tile[tileNum1].collision || gp.tileM.tile[tileNum2].collision) {
+	                    entity.collisionOn = true;
+	                }
+	            } else {
+	                // Out of bounds - treat as collision
 	                entity.collisionOn = true;
 	            }
 	            break;
 	        case "right":
 	            entityRightCol = (entityRightWorldX + entity.speed) / gp.tileSize;
-	            tileNum1 = gp.tileM.mapTileNum[entityRightCol][entityTopRow];
-	            tileNum2 = gp.tileM.mapTileNum[entityRightCol][entityBottomRow];
-	            if (gp.tileM.tile[tileNum1].collision || gp.tileM.tile[tileNum2].collision) {
+	            if (isValidTilePosition(entityRightCol, entityTopRow) && isValidTilePosition(entityRightCol, entityBottomRow)) {
+	                tileNum1 = gp.mapManager.getCurrentMap().getTileAt(entityRightCol, entityTopRow);
+	                tileNum2 = gp.mapManager.getCurrentMap().getTileAt(entityRightCol, entityBottomRow);
+	                if (gp.tileM.tile[tileNum1].collision || gp.tileM.tile[tileNum2].collision) {
+	                    entity.collisionOn = true;
+	                }
+	            } else {
+	                // Out of bounds - treat as collision
 	                entity.collisionOn = true;
 	            }
 	            break;
 	    }
+	}
+	
+	// Helper method to check if tile position is valid
+	private boolean isValidTilePosition(int col, int row) {
+	    return col >= 0 && row >= 0 && 
+	           col < gp.mapManager.getCurrentMap().width && 
+	           row < gp.mapManager.getCurrentMap().height;
 	}
 	
 	public int checkObject(Entity entity, boolean player) {

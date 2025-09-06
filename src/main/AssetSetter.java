@@ -25,9 +25,7 @@ public class AssetSetter {
 	}
 	
 	public void setNPC() {
-		gp.npc[0]= new NPC_Grandpa(gp);
-		gp.npc[0].worldX = gp.tileSize*21;
-		gp.npc[0].worldY = gp.tileSize*21;
+		// Removed NPC[0] that was at (21,21) - it was inside the house
 		
 		gp.npc[1]= new NPC_Grandpa(gp);
 		gp.npc[1].worldX = gp.tileSize*9;
