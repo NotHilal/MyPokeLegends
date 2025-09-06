@@ -124,7 +124,8 @@ public class KeyHandler implements KeyListener{
 						//wait 1.5 second before starting the music
 						gp.playMusic(5);
 						gp.currentMusic=5;
-						gp.gameState=gp.playState;
+						gp.loadHouseMap(); // Load house map
+						gp.gameState = gp.playState; // Go directly to play state without animation
 					}
 					if(gp.ui.commandNum==1&& gp.ui.commandNum2==0) {
 						System.out.println("You chose Mage (Ahri)!");
@@ -133,7 +134,8 @@ public class KeyHandler implements KeyListener{
 						//wait 1.5 second before starting the music
 						gp.playMusic(5); 
 						gp.currentMusic=5;
-						gp.gameState=gp.playState;
+						gp.loadHouseMap(); // Load house map
+						gp.gameState = gp.playState; // Go directly to play state without animation
 					}
 					if(gp.ui.commandNum==2&& gp.ui.commandNum2==0) {
 						System.out.println("You chose ADC (Ashe)!");
@@ -142,7 +144,8 @@ public class KeyHandler implements KeyListener{
 						//wait 1.5 second before starting the music
 						gp.playMusic(5); 
 						gp.currentMusic=5;
-						gp.gameState=gp.playState;
+						gp.loadHouseMap(); // Load house map
+						gp.gameState = gp.playState; // Go directly to play state without animation
 						
 					}
 					if(gp.ui.commandNum2==1) {

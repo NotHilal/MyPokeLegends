@@ -21,6 +21,8 @@ import Champions.Champion;
 import Champions.ChampionFactory;
 import entity.Entity;
 import entity.Player;
+import maps.MapManager;
+import maps.WarpPoint;
 
 import tile.TileManager;
 
@@ -56,6 +58,7 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	// SYSTEM
 	public TileManager tileM= new TileManager(this);
+	public MapManager mapManager = new MapManager(this);
 	public KeyHandler keyH = new KeyHandler(this);
 	Sound music = new Sound();
 	Sound se = new Sound();
@@ -103,6 +106,8 @@ public class GamePanel extends JPanel implements Runnable{
 	public final int playerQuestionState = 18; // Player's "What happened?" dialog
 	public final int professorExtendedState = 19; // Extended professor dialog after name input
 	public final int professorChoiceState = 20; // Yes/No choice state
+	public final int circleCloseState = 21; // Circle closing transition (screen goes black)
+	public final int circleOpenState = 22; // Circle opening transition (opens from black)
 	
 	
 	private int blinkAlpha = 0; // Current alpha value for the blink
@@ -183,6 +188,14 @@ public class GamePanel extends JPanel implements Runnable{
 	private boolean blinkClosing = true; // true = closing, false = opening
 	public int blinkAmount = 0; // 0-100, how much the eyes are closed during blink
 	
+	// Circle transition variables
+	private float circleTransitionTimer = 0;
+	private final float circleCloseDuration = 1.0f; // 1 second to close
+	private final float circleOpenDuration = 1.0f; // 1 second to open
+	private int circleRadius = 0; // Current circle radius for the transition
+	private int maxCircleRadius; // Maximum radius to cover the entire screen
+	private Runnable onCloseComplete = null; // Callback when close animation finishes
+	
 	
 	public GamePanel() {
 		this.setPreferredSize(new Dimension(screenWidth,screenHeight));
@@ -197,6 +210,9 @@ public class GamePanel extends JPanel implements Runnable{
 		this.roleTeamPage = new RoleTeamPage(this);
 		this.championDetailsPage = new ChampionDetailsPage(this);
 		this.teamOrderPage = new TeamOrderPage(this);
+		
+		// Calculate maximum circle radius to cover entire screen
+		this.maxCircleRadius = (int) Math.sqrt((screenWidth * screenWidth) + (screenHeight * screenHeight)) / 2 + 50;
 
 	    // Add mouse listener for detecting clicks
 	    this.addMouseListener(new MouseAdapter() {
@@ -221,6 +237,10 @@ public class GamePanel extends JPanel implements Runnable{
 		aSetter.setObject();
 		aSetter.setNPC();
 		aSetter.setMonster();
+		
+		// Initialize the map system - start on main world
+		tileM.setMapData(mapManager.getCurrentMap().tileData);
+		
 		//playMusic(5);
 		playMusic(0);
 		currentMusic=0;
@@ -271,6 +291,9 @@ public class GamePanel extends JPanel implements Runnable{
 	    if (gameState == playState) {
 	        // PLAYER
 	        player.update();
+	        
+	        // Check door teleportation
+	        checkDoorTeleport();
 
 	        // NPC
 	        for (int i = 0; i < npc.length; i++) {
@@ -480,6 +503,45 @@ public class GamePanel extends JPanel implements Runnable{
 	            }
 	        }
 	    }
+	    
+	    if (gameState == circleCloseState) {
+	        // Update circle close animation (circle shrinks, screen goes black)
+	        circleTransitionTimer += 1.0f / 60.0f; // Assuming 60 FPS
+	        
+	        float closeProgress = circleTransitionTimer / circleCloseDuration;
+	        float easedProgress = (float) Math.pow(closeProgress, 2); // Quadratic ease-in for faster closing
+	        circleRadius = (int) (maxCircleRadius * (1.0f - easedProgress)); // Circle shrinks
+	        
+		        
+	        if (circleTransitionTimer >= circleCloseDuration) {
+	            // Animation complete - screen is now black
+	            circleRadius = 0; // Fully closed
+	            circleTransitionTimer = 0;
+		            
+	            // Execute callback if provided
+	            if (onCloseComplete != null) {
+	                onCloseComplete.run();
+	                onCloseComplete = null;
+	            }
+	        }
+	    }
+	    
+	    if (gameState == circleOpenState) {
+	        // Update circle open animation (starts black, circle expands to show game)
+	        circleTransitionTimer += 1.0f / 60.0f; // Assuming 60 FPS
+	        
+	        float openProgress = circleTransitionTimer / circleOpenDuration;
+	        float easedProgress = (float) (1.0 - Math.pow(1.0 - openProgress, 2)); // Quadratic ease-out for smooth opening
+	        circleRadius = (int) (maxCircleRadius * easedProgress); // Circle expands
+	        
+		        
+	        if (circleTransitionTimer >= circleOpenDuration) {
+	            // Animation complete - return to normal gameplay
+	            circleRadius = maxCircleRadius; // Fully open (no black overlay)
+	            circleTransitionTimer = 0;
+	            gameState = playState; // Return to play state
+		        }
+	    }
 	}
 	
 	
@@ -579,6 +641,94 @@ public class GamePanel extends JPanel implements Runnable{
 	             gameState == professorIntroState || gameState == nameInputState || 
 	             gameState == professorExtendedState || gameState == professorChoiceState) {
 	        ui.drawProfessorIntro(g2);
+	    }
+	    
+	    else if (gameState == circleCloseState || gameState == circleOpenState) {
+	        // Draw the current game state in background first
+	        tileM.draw(g2);
+
+	        // Add entities
+	        entityList.add(player);
+	        for (int i = 0; i < npc.length; i++) {
+	            if (npc[i] != null) {
+	                entityList.add(npc[i]);
+	            }
+	        }
+	        for (int i = 0; i < obj.length; i++) {
+	            if (obj[i] != null) {
+	                entityList.add(obj[i]);
+	            }
+	        }
+	        for (int i = 0; i < monster.length; i++) {
+	            if (monster[i] != null) {
+	                entityList.add(monster[i]);
+	            }
+	        }
+
+	        // Sort and draw entities
+	        entityList.sort(Comparator.comparingInt(e -> e.worldY));
+	        for (Entity entity : entityList) {
+	            entity.draw(g2);
+	        }
+	        entityList.clear();
+
+	        // Draw UI
+	        ui.draw(g2);
+
+	        // Apply circle transition effect
+	        int centerX = screenWidth / 2;
+	        int centerY = screenHeight / 2;
+	        
+		        
+	        if (circleRadius < maxCircleRadius) {
+	            // Draw black overlay everywhere first
+	            g2.setColor(Color.BLACK);
+	            g2.fillRect(0, 0, screenWidth, screenHeight);
+	            
+	            // Now create a circular window to show the game content
+	            if (circleRadius > 0) {
+	                // Create a clipping shape for the circle
+	                java.awt.Shape originalClip = g2.getClip();
+	                java.awt.geom.Ellipse2D circle = new java.awt.geom.Ellipse2D.Double(
+	                    centerX - circleRadius, 
+	                    centerY - circleRadius, 
+	                    circleRadius * 2, 
+	                    circleRadius * 2
+	                );
+	                g2.setClip(circle);
+	                
+	                // Redraw game content in the circular area
+	                tileM.draw(g2);
+	                
+	                // Redraw entities
+	                entityList.add(player);
+	                for (int i = 0; i < npc.length; i++) {
+	                    if (npc[i] != null) {
+	                        entityList.add(npc[i]);
+	                    }
+	                }
+	                for (int i = 0; i < obj.length; i++) {
+	                    if (obj[i] != null) {
+	                        entityList.add(obj[i]);
+	                    }
+	                }
+	                for (int i = 0; i < monster.length; i++) {
+	                    if (monster[i] != null) {
+	                        entityList.add(monster[i]);
+	                    }
+	                }
+	                entityList.sort(Comparator.comparingInt(e -> e.worldY));
+	                for (Entity entity : entityList) {
+	                    entity.draw(g2);
+	                }
+	                entityList.clear();
+	                
+	                ui.draw(g2);
+	                
+	                // Restore original clipping
+	                g2.setClip(originalClip);
+	            }
+	        }
 	    }
 	    
 	    else {
@@ -775,6 +925,48 @@ public class GamePanel extends JPanel implements Runnable{
 	
 	public String getPlayerName() {
 		return playerName.isEmpty() ? "Trainer" : playerName;
+	}
+	
+	public void loadHouseMap() {
+		mapManager.changeMap("hometown_player_house", "entrance");
+	}
+	
+	public void loadMainMap() {
+		mapManager.changeMap("hometown_main_world", "default");
+	}
+	
+	public void checkDoorTeleport() {
+		// Calculate player's tile position
+		int playerTileX = (player.worldX + player.solidArea.x) / tileSize;
+		int playerTileY = (player.worldY + player.solidArea.y + player.solidArea.height) / tileSize;
+		
+		// Check for warp points using MapManager
+		WarpPoint warp = mapManager.checkForWarp(playerTileX, playerTileY);
+		if (warp != null) {
+			if (warp.requiresAnimation) {
+				// Use circle transition for doors
+				startCircleClose(() -> {
+					mapManager.changeMap(warp.targetMapId, warp.targetSpawnPoint);
+					startCircleOpen();
+				});
+			} else {
+				// Instant teleport for routes/other connections
+				mapManager.changeMap(warp.targetMapId, warp.targetSpawnPoint);
+			}
+		}
+	}
+	
+	public void startCircleClose(Runnable onComplete) {
+		gameState = circleCloseState;
+		circleTransitionTimer = 0;
+		circleRadius = maxCircleRadius; // Start with full circle visible
+		onCloseComplete = onComplete;
+	}
+	
+	public void startCircleOpen() {
+		gameState = circleOpenState;
+		circleTransitionTimer = 0;
+		circleRadius = 0; // Start with no circle (full black screen)
 	}
 	
 	private String getCurrentDialogText() {
